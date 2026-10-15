@@ -28,11 +28,13 @@ export function Layout() {
           <Outlet />
         </div>
 
-        <footer className="legal" aria-label="Legal">
-          <p>Legal</p>
-          <ul>
-            {infoPages.map(({ slug, label }) => <li key={slug}><Link to={`/info/${slug}`}>{label}</Link></li>)}
-          </ul>
+        <footer className="legal">
+          <nav aria-labelledby="legal-heading">
+            <p id="legal-heading">Legal</p>
+            <ul>
+              {infoPages.map(({ slug, label }) => <li key={slug}><Link to={`/info/${slug}`}>{label}</Link></li>)}
+            </ul>
+          </nav>
         </footer>
 
         <nav className="bottom-nav" aria-label="Main navigation">

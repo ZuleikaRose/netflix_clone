@@ -15,6 +15,26 @@ npm run build && npm run preview
 
 On the sign-in screen, choose **Use demo account**, or create an account with **Sign up**.
 
+## Testing
+
+End-to-end tests use [Playwright](https://playwright.dev) and run every journey at phone (390×844) and desktop (1280×800) sizes:
+
+```bash
+npx playwright install chromium   # first time only
+npm run test:e2e                  # builds the app, serves dist/, runs the suite
+npm run test:e2e:report           # open the HTML report from the last run
+```
+
+| Spec | Covers |
+| --- | --- |
+| `e2e/auth.spec.js` | Sign-in guard and return path, validation, sign-up (incl. duplicate email), sign-out, refresh reset |
+| `e2e/browse.spec.js` | Home rows and filters, title actions (list, favorite, rate, review, play), recommendations, search URL state, maturity filtering, 404 |
+| `e2e/help.spec.js` | Every footer link, support chat, FAQ search, feedback and issue forms, promo codes, share fallback |
+| `e2e/games.spec.js` | A full Poster Match playthrough, all five Plot Twist rounds |
+| `e2e/layout.spec.js` | Every route: heading present, no horizontal overflow, 44px touch targets, no console errors; keyboard focus order |
+
+Tests serve the production build with `e2e/serve.js`, a tiny static server with SPA fallback, rather than `vite preview`. Because all state lives in memory, tests sign in once and then use client-side navigation (`navigateInApp()` in `e2e/helpers.js`), since a full page load signs the user out.
+
 ## What's inside
 
 | Area | Routes | Highlights |

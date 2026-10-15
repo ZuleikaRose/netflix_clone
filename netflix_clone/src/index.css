@@ -59,7 +59,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .avatar-hit { border: 0; padding: 0; background: transparent; cursor: pointer; }
 .avatar-hit .avatar { pointer-events: none; }
 .chip { position: relative; }
-.chip::before { content: ""; position: absolute; inset: -6px 0; }
+.chip::before { content: ""; position: absolute; inset: -7px 0; }
 .resume::before { content: ""; position: absolute; inset: -5px; border-radius: 50%; }
 .nav-item { min-height: 44px; justify-content: center; }
 

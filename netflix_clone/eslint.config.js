@@ -18,4 +18,9 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // Playwright config and e2e tests run in Node (test bodies) and the browser (page.evaluate callbacks)
+    files: ['playwright.config.js', 'e2e/**/*.js'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
 ])
