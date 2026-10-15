@@ -56,6 +56,8 @@ export function AuthProvider({ children }) {
         return null
       },
       changePlan: (plan) => patchUser({ plan }),
+      applyPromo: (code) => patchUser({ promo: code }),
+      removePromo: () => patchUser({ promo: null }),
       setPreference: (key, val) => patchUser({ preferences: { ...user.preferences, [key]: val } }),
     }
   }, [accounts, currentEmail, session])

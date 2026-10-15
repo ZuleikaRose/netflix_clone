@@ -10,6 +10,9 @@ export function LibraryProvider({ children }) {
   const [reminders, setReminders] = useState([])
   const [ratings, setRatings] = useState({})
   const [reviews, setReviews] = useState({})
+  const [feedback, setFeedback] = useState([])
+  const [issues, setIssues] = useState([])
+  const [doNotSell, setDoNotSell] = useState(false)
 
   const value = useMemo(() => ({
     myList,
@@ -17,12 +20,18 @@ export function LibraryProvider({ children }) {
     reminders,
     ratings,
     reviews,
+    feedback,
+    issues,
+    doNotSell,
     toggleMyList: toggleIn(setMyList),
     toggleFavorite: toggleIn(setFavorites),
     toggleReminder: toggleIn(setReminders),
     rate: (id, stars) => setRatings((r) => ({ ...r, [id]: stars })),
     addReview: (id, review) => setReviews((r) => ({ ...r, [id]: [review, ...(r[id] ?? [])] })),
-  }), [myList, favorites, reminders, ratings, reviews])
+    addFeedback: (entry) => setFeedback((f) => [entry, ...f]),
+    addIssue: (issue) => setIssues((all) => [issue, ...all]),
+    setDoNotSell,
+  }), [myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell])
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
 }

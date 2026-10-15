@@ -3,6 +3,7 @@ import { Layout } from './components/Layout.jsx'
 import { RequireAuth } from './components/RequireAuth.jsx'
 import { Account } from './pages/Account.jsx'
 import { Home } from './pages/Home.jsx'
+import { InfoPage } from './pages/InfoPage.jsx'
 import { Login } from './pages/Login.jsx'
 import { Logout } from './pages/Logout.jsx'
 import { MyNetflix } from './pages/MyNetflix.jsx'
@@ -33,7 +34,7 @@ function App() {
           <Route path="my-netflix" element={<MyNetflix />} />
           <Route path="account" element={<Account />} />
           <Route path="games" element={<Placeholder title="Games" />} />
-          <Route path="info/:slug" element={<Placeholder />} />
+          <Route path="info/:slug" element={<InfoPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Route>

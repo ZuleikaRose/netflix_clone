@@ -4,6 +4,7 @@ import { Field } from '../components/Field.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PlanPicker } from '../components/PlanPicker.jsx'
 import { findPlan } from '../data/plans.js'
+import { discountedPrice, findPromotion } from '../data/promotions.js'
 import { EMAIL_PATTERN, MIN_PASSWORD, useAuth } from '../state/authContext.js'
 import { focusFirstError } from './formUtils.js'
 
@@ -89,9 +90,18 @@ function PasswordForm({ email, changePassword }) {
 }
 
 export function Account() {
-  const { user, updateProfile, changePassword, changePlan, setPreference } = useAuth()
+  const { user, updateProfile, changePassword, changePlan, removePromo, setPreference } = useAuth()
   const [planStatus, setPlanStatus] = useState('')
   const plan = findPlan(user.plan)
+  const promo = findPromotion(user.promo)
+
+  const switchPlan = (id) => {
+    changePlan(id)
+    // Plan-specific codes (e.g. Premium-only) stop applying when the plan changes
+    const dropped = promo?.plan && promo.plan !== id
+    if (dropped) removePromo()
+    setPlanStatus(`Switched to ${findPlan(id).name}${dropped ? ` · ${promo.code} removed (${findPlan(promo.plan).name} only)` : ''}`)
+  }
 
   return (
     <>
@@ -99,7 +109,8 @@ export function Account() {
       <div className="settings">
         <section className="settings-card membership" aria-labelledby="membership-heading">
           <h2 id="membership-heading">Membership</h2>
-          <p><b>{plan.name}</b> · {plan.price}/month</p>
+          <p><b>{plan.name}</b> · {promo ? <><span className="sr-only">was </span><s className="muted">{plan.price}</s> <span className="sr-only">now </span>{discountedPrice(plan.price, promo.percent)}</> : plan.price}/month</p>
+          {promo && <p className="muted">Code {promo.code}: {promo.percent}% off · <Link to="/info/promotions" className="inline-link">Manage</Link></p>}
           <p className="muted">Member since 2026 · {user.email}</p>
         </section>
 
@@ -108,7 +119,7 @@ export function Account() {
 
         <section className="settings-card" aria-labelledby="plan-heading">
           <h2 id="plan-heading">Plan</h2>
-          <PlanPicker name="account-plan" value={user.plan} onChange={(id) => { changePlan(id); setPlanStatus(`Switched to ${findPlan(id).name}`) }} />
+          <PlanPicker name="account-plan" value={user.plan} onChange={switchPlan} />
           <Status message={planStatus} />
         </section>
 
@@ -133,6 +144,7 @@ export function Account() {
         <nav className="settings-card link-list" aria-label="Help">
           <Link to="/info/support">Customer Support</Link>
           <Link to="/info/faqs">FAQs</Link>
+          <Link to="/info/promotions">Promotions &amp; Discounts</Link>
           <Link to="/logout" className="danger-link">Sign out</Link>
         </nav>
       </div>
