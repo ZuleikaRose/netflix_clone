@@ -8,9 +8,9 @@ test.use({ reducedMotion: 'reduce' })
 const WCAG_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
 const signedInRoutes = [
-  '/', '/title/after-dark', '/title/after-dark?play=1', '/search', '/search?q=zzz', '/new', '/my-netflix', '/account',
+  '/', '/title/after-dark', '/title/after-dark?play=1', '/search', '/search?q=zzz', '/new', '/my-netflix', '/favorites', '/account',
   '/games', '/games/memory', '/games/trivia', '/does/not/exist',
-  ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'terms', 'privacy', 'do-not-sell'].map((s) => `/info/${s}`),
+  ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell'].map((s) => `/info/${s}`),
 ]
 
 // The fixed tab bar overlaps whatever content happens to scroll beneath it, which axe's target-size rule
@@ -59,6 +59,7 @@ test('every signed-in page meets WCAG 2.2 AA', async ({ page }) => {
 })
 
 test('interactive states meet WCAG 2.2 AA', async ({ page }) => {
+  test.setTimeout(90_000)
   await signInAsDemo(page)
 
   await navigateInApp(page, '/info/support')
@@ -80,6 +81,21 @@ test('interactive states meet WCAG 2.2 AA', async ({ page }) => {
   await navigateInApp(page, '/games/trivia')
   await page.locator('.answer').first().click()
   await audit(page, 'trivia answered')
+
+  await navigateInApp(page, '/account')
+  await page.getByRole('button', { name: 'Update payment method' }).click()
+  await page.getByRole('button', { name: 'Save card' }).click()
+  await page.getByRole('button', { name: 'Cancel membership' }).click()
+  await audit(page, 'billing errors + cancel confirmation')
+
+  await navigateInApp(page, '/info/affiliate')
+  await page.getByRole('button', { name: 'Apply now' }).click()
+  await audit(page, 'affiliate form errors')
+  await page.getByLabel('Website or channel URL').fill('https://example.com')
+  await page.getByLabel('Newsletter').check()
+  await page.getByLabel(/I agree to the program terms/).check()
+  await page.getByRole('button', { name: 'Apply now' }).click()
+  await audit(page, 'affiliate dashboard')
 })
 
 test('keyboard focus is never hidden behind the sticky header or tab bar (WCAG 2.4.11)', async ({ page }) => {

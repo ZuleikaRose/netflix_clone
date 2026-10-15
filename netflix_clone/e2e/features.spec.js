@@ -1,0 +1,175 @@
+import { expect, test } from '@playwright/test'
+import { navigateInApp, signInAsDemo, tabBar } from './helpers.js'
+
+// Features added from the updated user journey (app_outline/user_journey.md)
+
+test.beforeEach(async ({ page }) => {
+  await signInAsDemo(page)
+})
+
+test.describe('homepage', () => {
+  test('featured carousel moves with arrows and dots', async ({ page }) => {
+    const heroTitle = page.locator('.hero-title')
+    await expect(heroTitle).toHaveText(/BEHIND\s*THE GLASS/)
+    await page.getByRole('button', { name: 'Next featured title' }).click()
+    await expect(heroTitle).toHaveText(/AFTER\s*DARK/)
+    await expect(page.getByRole('button', { name: 'Show After Dark' })).toHaveAttribute('aria-current', 'true')
+    await page.getByRole('button', { name: 'Previous featured title' }).click()
+    await page.getByRole('button', { name: 'Previous featured title' }).click()
+    await expect(heroTitle).toHaveText(/THE\s*SIGNAL/) // wraps around to the last slide
+  })
+
+  test('service banner can be dismissed for the session', async ({ page }) => {
+    const banner = page.getByRole('status', { name: 'Service notice' })
+    await expect(banner).toContainText('Scheduled maintenance')
+    await page.getByRole('button', { name: 'Dismiss notice' }).click()
+    await expect(banner).toHaveCount(0)
+    await navigateInApp(page, '/new')
+    await tabBar(page).getByRole('link', { name: 'Home' }).click()
+    await expect(page.getByRole('status', { name: 'Service notice' })).toHaveCount(0)
+  })
+
+  test('turning off personalized recommendations hides the personalized row', async ({ page }) => {
+    await navigateInApp(page, '/title/after-dark')
+    await page.getByRole('button', { name: 'Favorite' }).click()
+    await tabBar(page).getByRole('link', { name: 'Home' }).click()
+    await expect(page.getByRole('heading', { name: 'Because You Liked After Dark' })).toBeVisible()
+
+    await navigateInApp(page, '/account')
+    await page.getByRole('switch', { name: /Personalized recommendations/ }).uncheck()
+    await tabBar(page).getByRole('link', { name: 'Home' }).click()
+    await expect(page.getByRole('heading', { name: /Because You Liked/ })).toHaveCount(0)
+  })
+})
+
+test('title pages list cast and crew', async ({ page }) => {
+  await navigateInApp(page, '/title/the-signal')
+  await expect(page.getByText('Director: Dara Whitfield · Writer: Ben Osei')).toBeVisible()
+})
+
+test('search filters by release year', async ({ page }) => {
+  await navigateInApp(page, '/search')
+  await page.getByLabel('Released').selectOption('2026')
+  await expect(page).toHaveURL(/year=2026/)
+  await expect(page.getByRole('heading', { name: '4 results' })).toBeVisible()
+  await page.getByLabel('Released').selectOption('earlier')
+  await expect(page.getByRole('heading', { name: '2 results' })).toBeVisible()
+  await expect(page.locator('.poster-link')).toHaveText(['THE VEIL', 'DEAD RECKONING'])
+})
+
+test('watch list and favorites have their own pages', async ({ page }) => {
+  await navigateInApp(page, '/watchlist')
+  await expect(page.getByRole('tab', { name: 'Watch list' })).toHaveAttribute('aria-selected', 'true')
+  await expect(tabBar(page).getByRole('link', { name: 'My Netflix' })).toHaveAttribute('aria-current', 'page')
+  await page.getByRole('tab', { name: 'Favorites' }).click()
+  await expect(page).toHaveURL(/\/favorites$/)
+  await expect(page.getByText('Tap the heart on any title to add a favorite.')).toBeVisible()
+})
+
+test.describe('account billing', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateInApp(page, '/account')
+  })
+
+  test('payment method validates and keeps only brand and last four', async ({ page }) => {
+    await expect(page.getByText('Visa •••• 4242')).toBeVisible()
+    await page.getByRole('button', { name: 'Update payment method' }).click()
+    await page.getByLabel('Name on card').fill('Alex Doe')
+    await page.getByLabel('Card number').fill('4242 4242 4242 4241')
+    await page.getByLabel('Expiry (MM/YY)').fill('01/20')
+    await page.getByLabel('Security code').fill('12')
+    await page.getByRole('button', { name: 'Save card' }).click()
+    await expect(page.getByText('Enter a valid card number.')).toBeVisible()
+    await expect(page.getByText('This card has expired.')).toBeVisible()
+    await expect(page.getByLabel('Card number')).toBeFocused()
+
+    await page.getByLabel('Card number').fill('5555 5555 5555 4444')
+    await page.getByLabel('Expiry (MM/YY)').fill('12/39')
+    await page.getByLabel('Security code').fill('123')
+    await page.getByRole('button', { name: 'Save card' }).click()
+    await expect(page.getByText('Mastercard •••• 4444')).toBeVisible()
+    await expect(page.getByText('Payment method updated')).toBeVisible()
+    // The full number never stays in the page once saved
+    expect(await page.content()).not.toContain('5555555555554444')
+  })
+
+  test('billing date, pause and cancel update the membership', async ({ page }) => {
+    await page.getByLabel('Bill me on the').selectOption('20')
+    await expect(page.getByText(/Billing date changed to the 20th\. Next payment/)).toBeVisible()
+
+    await page.getByLabel('Pause for').selectOption('2')
+    await page.getByRole('button', { name: 'Pause membership' }).click()
+    await expect(page.locator('.billing-state')).toHaveText(/^Paused · resumes /)
+    await expect(page.locator('.membership')).toContainText('Paused · resumes')
+    await page.getByRole('button', { name: 'Resume now' }).click()
+    await expect(page.locator('.billing-state')).toHaveText(/^Next payment /)
+
+    await page.getByRole('button', { name: 'Cancel membership' }).click()
+    await expect(page.getByRole('button', { name: 'Keep membership' })).toBeFocused()
+    await page.getByRole('button', { name: 'Yes, cancel membership' }).click()
+    await expect(page.locator('.billing-state')).toHaveText(/^Cancelled · you can watch until /)
+    await page.getByRole('button', { name: 'Restart membership' }).click()
+    await expect(page.locator('.billing-state')).toHaveText(/^Next payment /)
+  })
+})
+
+test.describe('affiliate program', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateInApp(page, '/info/affiliate')
+  })
+
+  test('joining validates the application, then shows a working dashboard', async ({ page }) => {
+    await expect(page.getByRole('button', { name: /Copy social caption/ }).first()).toBeDisabled()
+    await page.getByLabel('Website or channel URL').fill('not a url')
+    await page.getByRole('button', { name: 'Apply now' }).click()
+    await expect(page.getByText(/Enter the full address/)).toBeVisible()
+    await expect(page.getByText('Choose at least one way you’ll promote us.')).toBeVisible()
+    await expect(page.getByText('You need to accept the program terms to join.')).toBeVisible()
+
+    await page.getByLabel('Website or channel URL').fill('https://youtube.com/@alexwatches')
+    await page.getByLabel('YouTube').check()
+    await page.getByLabel(/I agree to the program terms/).check()
+    await page.getByRole('button', { name: 'Apply now' }).click()
+
+    await expect(page.getByRole('heading', { name: 'Your affiliate dashboard' })).toBeVisible()
+    await expect(page.getByLabel('Your referral link')).toHaveValue(/\/signup\?ref=ALEX\d{2}$/)
+
+    for (let i = 0; i < 11; i++) await page.getByRole('button', { name: 'Simulate a sign-up' }).click()
+    await page.getByRole('button', { name: 'Simulate a click' }).click()
+    const stats = page.locator('.stat-grid')
+    await expect(stats).toContainText('Sign-ups11')
+    await expect(stats).toContainText('Earnings$115') // 10 × $10 + 1 × $15
+    await expect(page.getByText(/Pro tier · \$15 per sign-up/)).toBeVisible()
+  })
+
+  test('copy falls back to showing the text when the clipboard is unavailable', async ({ page }) => {
+    await page.getByLabel('Website or channel URL').fill('https://example.com')
+    await page.getByLabel('Blog or website').check()
+    await page.getByLabel(/I agree to the program terms/).check()
+    await page.getByRole('button', { name: 'Apply now' }).click()
+
+    await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined }))
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await expect(page.getByText(/Couldn’t access the clipboard/)).toContainText('/signup?ref=')
+  })
+
+  test('commission tiers and program terms are listed', async ({ page }) => {
+    await expect(page.getByRole('row', { name: /Partner 51\+ \$20/ })).toBeVisible()
+    await page.locator('summary', { hasText: 'Promotion restrictions' }).click()
+    await expect(page.getByText('No paid search ads that bid on our brand name.')).toBeVisible()
+  })
+})
+
+test('referral links show a welcome on sign-up', async ({ page }) => {
+  await navigateInApp(page, '/logout')
+  await page.getByRole('button', { name: 'Sign Out' }).click()
+  await navigateInApp(page, '/signup?ref=ALEX26')
+  await expect(page.getByText('You were invited by a friend (code ALEX26). Welcome!')).toBeVisible()
+})
+
+test('legal hub links to every legal document', async ({ page }) => {
+  await navigateInApp(page, '/info/legal')
+  await expect(page.getByRole('heading', { name: 'Streaming disclaimers' })).toBeVisible()
+  await page.locator('.topic-grid').getByRole('link', { name: /Terms of Service/ }).click()
+  await expect(page.locator('.page-header h1')).toHaveText('Terms of Service')
+})

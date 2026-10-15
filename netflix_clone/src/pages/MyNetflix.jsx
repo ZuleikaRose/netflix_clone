@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
@@ -8,14 +7,17 @@ import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
 
 const tabs = [
-  { key: 'list', label: 'My List', empty: 'Tap “My List” on any title to save it for later.' },
-  { key: 'favorites', label: 'Favorites', empty: 'Tap the heart on any title to add a favorite.' },
+  { key: 'list', path: '/watchlist', label: 'Watch list', empty: 'Tap “My List” on any title to add it to your watch list.' },
+  { key: 'favorites', path: '/favorites', label: 'Favorites', empty: 'Tap the heart on any title to add a favorite.' },
 ]
 
 export function MyNetflix() {
   const library = useLibrary()
   const { user } = useAuth()
-  const [tab, setTab] = useState('list')
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  // /my-netflix and /watchlist show the watch list; /favorites shows favorites
+  const tab = pathname === '/favorites' ? 'favorites' : 'list'
   const active = tabs.find((t) => t.key === tab)
   const ids = tab === 'list' ? library.myList : library.favorites
   const remove = tab === 'list' ? library.toggleMyList : library.toggleFavorite
@@ -34,7 +36,7 @@ export function MyNetflix() {
 
       <div className="tabs" role="tablist" aria-label="Your titles">
         {tabs.map((t) => (
-          <button key={t.key} role="tab" id={`tab-${t.key}`} aria-selected={tab === t.key} aria-controls="library-panel" className={tab === t.key ? 'tab active' : 'tab'} onClick={() => setTab(t.key)}>
+          <button key={t.key} role="tab" id={`tab-${t.key}`} aria-selected={tab === t.key} aria-controls="library-panel" className={tab === t.key ? 'tab active' : 'tab'} onClick={() => navigate(t.path, { replace: true })}>
             {t.label}
           </button>
         ))}

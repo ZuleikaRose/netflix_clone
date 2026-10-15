@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Icon } from './Icon.jsx'
 import { infoPages } from '../data/infoPages.js'
 
@@ -7,12 +7,13 @@ const navItems = [
   { to: '/', label: 'Home', icon: 'home', end: true },
   { to: '/games', label: 'Games', icon: 'games' },
   { to: '/new', label: 'New & Hot', icon: 'new' },
-  { to: '/my-netflix', label: 'My Netflix', icon: 'profile' },
+  { to: '/my-netflix', label: 'My Netflix', icon: 'profile', also: ['/watchlist', '/favorites'] },
 ]
 
 
 export function Layout() {
   const { pathname } = useLocation()
+  const isTabActive = ({ to, end, also = [] }) => (end ? pathname === to : pathname.startsWith(to)) || also.includes(pathname)
   const phoneRef = useRef(null)
 
   // The phone frame is the scroll container on desktop; the window is on mobile — reset both on navigation
@@ -38,10 +39,10 @@ export function Layout() {
         </footer>
 
         <nav className="bottom-nav" aria-label="Main navigation">
-          {navItems.map(({ to, label, icon, end }) => (
-            <NavLink key={to} to={to} end={end} className={({ isActive }) => (isActive ? 'nav-item selected' : 'nav-item')}>
+          {navItems.map(({ to, label, icon, end, also }) => (
+            <Link key={to} to={to} className={isTabActive({ to, end, also }) ? 'nav-item selected' : 'nav-item'} aria-current={isTabActive({ to, end, also }) ? 'page' : undefined}>
               <Icon name={icon} /><span>{label}</span>
-            </NavLink>
+            </Link>
           ))}
         </nav>
       </div>

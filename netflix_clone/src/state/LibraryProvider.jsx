@@ -16,6 +16,7 @@ export function LibraryProvider({ children }) {
   const [bestScores, setBestScores] = useState({})
   // Affiliate account for this session: null until the user applies
   const [affiliate, setAffiliate] = useState(null)
+  const [dismissedNotices, setDismissedNotices] = useState([])
 
   const value = useMemo(() => ({
     myList,
@@ -28,6 +29,7 @@ export function LibraryProvider({ children }) {
     doNotSell,
     bestScores,
     affiliate,
+    dismissedNotices,
     toggleMyList: toggleIn(setMyList),
     toggleFavorite: toggleIn(setFavorites),
     toggleReminder: toggleIn(setReminders),
@@ -42,10 +44,11 @@ export function LibraryProvider({ children }) {
       const improved = prev === undefined || (better === 'low' ? value < prev : value > prev)
       return improved ? { ...s, [game]: value } : s
     }),
+    dismissNotice: (id) => setDismissedNotices((ids) => [...ids, id]),
     joinAffiliate: (application) => setAffiliate({ ...application, clicks: 0, signups: 0 }),
     // Demo-only stand-in for real referral tracking
     recordReferral: (kind) => setAffiliate((a) => a && ({ ...a, clicks: a.clicks + 1, signups: a.signups + (kind === 'signup' ? 1 : 0) })),
-  }), [myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate])
+  }), [myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices])
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
 }

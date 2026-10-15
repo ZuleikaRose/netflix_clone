@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test'
 import { navigateInApp, signInAsDemo } from './helpers.js'
 
 const routes = [
-  '/', '/title/behind-the-glass', '/search', '/new', '/my-netflix', '/account', '/games', '/games/memory', '/games/trivia',
-  ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'terms', 'privacy', 'do-not-sell'].map((s) => `/info/${s}`),
+  '/', '/title/behind-the-glass', '/search', '/new', '/my-netflix', '/watchlist', '/favorites', '/account', '/games', '/games/memory', '/games/trivia',
+  ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell'].map((s) => `/info/${s}`),
 ]
 
 // Style guide: >= 44px touch targets. Counts ::before hit-area extensions and wrapping <label>s; inline links in prose are exempt (WCAG 2.5.8).

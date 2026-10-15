@@ -32,6 +32,8 @@ function App() {
           <Route path="search" element={<Search />} />
           <Route path="new" element={<NewHot />} />
           <Route path="my-netflix" element={<MyNetflix />} />
+          <Route path="watchlist" element={<MyNetflix />} />
+          <Route path="favorites" element={<MyNetflix />} />
           <Route path="account" element={<Account />} />
           <Route path="games" element={<Games />} />
           <Route path="games/:gameId" element={<Games />} />

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { faqs } from '../../data/faqs.js'
+import { serviceStatus } from '../../data/serviceStatus.js'
 import { useAuth } from '../../state/authContext.js'
 
 const topics = [
@@ -68,7 +69,8 @@ export function Support() {
 
   return (
     <div className="settings">
-      <p className="status-banner" role="status"><span className="dot" aria-hidden="true" /> All systems operational</p>
+      <p className="status-banner" role="status"><span className="dot" aria-hidden="true" /> {serviceStatus.operational ? 'All systems operational' : 'Service disruption'}</p>
+      {serviceStatus.notice && <p className="service-banner inline"><b>{serviceStatus.notice.title}:</b> {serviceStatus.notice.message}</p>}
 
       <form className="help-search" role="search" onSubmit={(e) => { e.preventDefault(); navigate(`/info/faqs?q=${encodeURIComponent(query.trim())}`) }}>
         <label htmlFor="help-q" className="sr-only">Search help articles</label>

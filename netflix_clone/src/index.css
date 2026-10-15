@@ -391,3 +391,16 @@ textarea { resize: vertical; }
 .asset-text { margin: 0; padding: 10px 12px; overflow-x: auto; border-radius: 6px; color: #d4d4d4; background: #181818; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .check-list.restricted li::before { content: "✕"; color: var(--error); }
 .accordion details ul { margin: 0; padding: 0 14px 10px; }
+
+/* ---------- Home: service banner & featured carousel ---------- */
+.service-banner { position: absolute; z-index: 6; top: 124px; left: 17px; right: 17px; display: flex; align-items: center; gap: 4px; padding: 6px 4px 6px 14px; border: 1px solid #5c4a10; border-radius: 10px; color: #fbe7a1; background: #241d08f2; backdrop-filter: blur(8px); font-size: 13px; line-height: 1.4; }
+.service-banner p { flex: 1; margin: 0; }
+.service-banner .icon-button { color: #fbe7a1; }
+.service-banner.inline { position: static; padding: 12px 14px; }
+.carousel-controls { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 10px; }
+.carousel-arrow { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; color: #fff; background: transparent; cursor: pointer; }
+.carousel-arrow:hover { background: #ffffff1a; }
+.carousel-dots { display: flex; }
+.dot-btn { position: relative; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.dot-btn::after { content: ""; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; border-radius: 50%; background: #ffffff80; transform: translate(-50%, -50%); transition: width .2s ease, background-color .2s ease; }
+.dot-btn.active::after { width: 20px; border-radius: 4px; background: #fff; }

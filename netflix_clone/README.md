@@ -32,6 +32,7 @@ npm run test:e2e:report           # open the HTML report from the last run
 | `e2e/help.spec.js` | Every footer link, support chat, FAQ search, feedback and issue forms, promo codes, share fallback |
 | `e2e/games.spec.js` | A full Poster Match playthrough, all five Plot Twist rounds |
 | `e2e/layout.spec.js` | Every route: heading present, no horizontal overflow, 44px touch targets, no console errors; keyboard focus order |
+| `e2e/features.spec.js` | Carousel, service banner, personalization opt-out, crew, release-year filter, Watch list/Favorites routes, billing, affiliate program, referral sign-up, legal hub |
 | `e2e/a11y.spec.js` | [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.2 AA audit of every page and key interactive states (errors, chat, expanded FAQ, answered trivia); keyboard focus never hidden behind the sticky bars (2.4.11) |
 
 CI (`.github/workflows/ci.yml`) runs lint, build and the full suite on every push to `main` and on pull requests, and uploads the HTML report as an artifact.
@@ -43,10 +44,10 @@ Tests serve the production build with `e2e/serve.js`, a tiny static server with 
 | Area | Routes | Highlights |
 | --- | --- | --- |
 | Auth | `/login`, `/signup`, `/logout` | Sign-in guard that returns you to the page you wanted; plan picker; accessible inline validation |
-| Browse | `/`, `/title/:id`, `/search`, `/new` | TV/Movie filters, Top 10, "Because You Liked…" recommendations, mock player, ratings & reviews, share, URL-driven search filters |
-| Library | `/my-netflix`, `/account` | My List & Favorites; profile, password, plan, playback and maturity settings |
+| Browse | `/`, `/title/:id`, `/search`, `/new` | Featured carousel, maintenance banner, TV/Movie filters, Top 10, "Because You Liked…" recommendations, mock player, ratings & reviews, share, URL-driven search filters |
+| Library | `/my-netflix`, `/watchlist`, `/favorites`, `/account` | Watch list & Favorites pages; profile, password, plan, billing (payment method, billing date, pause, cancel), playback, maturity and privacy settings |
 | Games | `/games`, `/games/:gameId` | Poster Match (memory) and Plot Twist (trivia), with best scores for the session |
-| Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Terms, Privacy, Do Not Sell |
+| Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Affiliate Program (join, referral dashboard, tiered commissions, marketing materials), Legal & Privacy hub, Terms, Privacy, Do Not Sell |
 
 The maturity setting in Account filters every catalog surface: Home, Search, New & Hot, related titles and games.
 
