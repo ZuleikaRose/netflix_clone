@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
+import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { PosterCard } from '../components/PosterCard.jsx'
 import { useAuth } from '../state/authContext.js'
 import { useCatalog } from '../state/useCatalog.js'
@@ -20,9 +21,10 @@ function Row({ title, children }) {
 export function Home() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { myList, toggleMyList } = useLibrary()
+  const { myList, favorites, ratings, toggleMyList } = useLibrary()
   const [type, setType] = useState(null)
   const { titles: catalog } = useCatalog()
+  useDocumentTitle('Home')
 
   const titles = type ? catalog.filter((t) => t.type === type) : catalog
   const featured = [...titles].sort((a, b) => b.popularity - a.popularity)[0]
@@ -31,6 +33,15 @@ export function Home() {
   const newReleases = titles.filter((t) => t.isNew && t.id !== featured?.id)
   const saved = featured && myList.includes(featured.id)
   const [first, ...rest] = featured ? featured.title.toUpperCase().split(' ') : []
+
+  // Personalized row: seed from the most recent favorite, then 4★+ ratings, then My List
+  const likedIds = [...[...favorites].reverse(), ...Object.keys(ratings).filter((id) => ratings[id] >= 4), ...[...myList].reverse()]
+  const seed = likedIds.map((id) => titles.find((t) => t.id === id)).find(Boolean)
+  const sharedGenres = (t) => t.genres.filter((g) => seed.genres.includes(g)).length
+  const becauseYouLiked = seed
+    ? titles.filter((t) => t.id !== seed.id && !myList.includes(t.id) && sharedGenres(t) > 0)
+      .sort((a, b) => sharedGenres(b) - sharedGenres(a) || b.popularity - a.popularity)
+    : []
 
   return (
     <>
@@ -81,6 +92,12 @@ export function Home() {
                 <div className="progress"><span style={{ width: `${t.progress}%` }} /></div>
               </PosterCard>
             ))}
+          </Row>
+        )}
+
+        {becauseYouLiked.length > 0 && (
+          <Row title={`Because You Liked ${seed.title}`}>
+            {becauseYouLiked.map((t) => <PosterCard key={t.id} title={t} />)}
           </Row>
         )}
 

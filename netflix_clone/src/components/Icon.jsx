@@ -13,6 +13,7 @@ const iconPaths = {
   close: <path d="M6 6l12 12M18 6 6 18" />,
   play: <path d="M7 4.5v15l12-7.5Z" />,
   pause: <path d="M8 5v14M16 5v14" />,
+  share: <><circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="m8.2 10.8 7.6-4.6M8.2 13.2l7.6 4.6" /></>,
 }
 
 export function Icon({ name, filled = false }) {

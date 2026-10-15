@@ -3,6 +3,8 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
+import { ShareButton } from '../components/ShareButton.jsx'
+import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { describeLength, findTitle } from '../data/catalog.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useAuth } from '../state/authContext.js'
@@ -47,6 +49,8 @@ export function TitleDetail() {
   const { titles: catalog, isAllowed } = useCatalog()
 
   const title = findTitle(id)
+  // Runs after PageHeader's effect (parents run last), so the tab shows the show's name, not "TV Show"
+  useDocumentTitle(title?.title)
   if (!title) return <NotFound />
   if (!isAllowed(title)) {
     return (
@@ -103,6 +107,7 @@ export function TitleDetail() {
             <button className={favorite ? 'ghost-action on' : 'ghost-action'} aria-pressed={favorite} onClick={() => toggleFavorite(id)}>
               <Icon name="heart" filled={favorite} /><span>Favorite</span>
             </button>
+            <ShareButton title={title} />
           </div>
         </div>
 

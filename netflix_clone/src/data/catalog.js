@@ -42,7 +42,7 @@ export const catalog = [
   {
     id: 'the-veil', title: 'The Veil', type: 'show', year: 2023, maturity: 'TV-MA', seasons: 1,
     genres: ['Horror', 'Drama'], mood: ['Haunting', 'Intimate'], popularity: 89, isNew: false, top10: 3,
-    image: photo.glass, tint: 'hue-rotate(160deg) saturate(1.4)',
+    image: photo.glass, tint: 'sepia(.9) hue-rotate(160deg) saturate(1.8)',
     synopsis: 'A widow moves into a lake house where the fog carries voices from the families who lived there before.',
     cast: ['Adele Park', 'Simon Reyes'],
     reviews: [{ author: 'Chris', stars: 3, text: 'Gorgeous to look at, a little slow in the middle.' }],

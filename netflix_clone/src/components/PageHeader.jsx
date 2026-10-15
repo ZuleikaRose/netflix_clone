@@ -1,8 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from './Icon.jsx'
+import { useDocumentTitle } from './useDocumentTitle.js'
 
 export function PageHeader({ title, back = false }) {
   const navigate = useNavigate()
+  useDocumentTitle(title)
 
   return (
     <header className="page-header">

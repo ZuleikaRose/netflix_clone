@@ -7,8 +7,11 @@ const defaultPreferences = { autoplayNext: true, autoplayPreviews: false, emailU
 
 const normalize = (email) => email.trim().toLowerCase()
 
+// getRandomValues works on plain-HTTP origins too (randomUUID needs a secure context, e.g. fails on a LAN IP)
+const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
+
 export function AuthProvider({ children }) {
-  const [accounts, setAccounts] = useState(() => [{ ...demoAccount, password: crypto.randomUUID(), preferences: defaultPreferences }])
+  const [accounts, setAccounts] = useState(() => [{ ...demoAccount, password: randomSecret(), preferences: defaultPreferences }])
   const [currentEmail, setCurrentEmail] = useState(null)
   // Bumped on every sign-in/out so per-session stores (My List, ratings…) start fresh
   const [session, setSession] = useState(0)

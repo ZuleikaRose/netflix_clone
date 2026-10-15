@@ -9,7 +9,7 @@ import { Logout } from './pages/Logout.jsx'
 import { MyNetflix } from './pages/MyNetflix.jsx'
 import { NewHot } from './pages/NewHot.jsx'
 import { NotFound } from './pages/NotFound.jsx'
-import { Placeholder } from './pages/Placeholder.jsx'
+import { Games } from './pages/Games.jsx'
 import { Search } from './pages/Search.jsx'
 import { Signup } from './pages/Signup.jsx'
 import { TitleDetail } from './pages/TitleDetail.jsx'
@@ -33,7 +33,8 @@ function App() {
           <Route path="new" element={<NewHot />} />
           <Route path="my-netflix" element={<MyNetflix />} />
           <Route path="account" element={<Account />} />
-          <Route path="games" element={<Placeholder title="Games" />} />
+          <Route path="games" element={<Games />} />
+          <Route path="games/:gameId" element={<Games />} />
           <Route path="info/:slug" element={<InfoPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>

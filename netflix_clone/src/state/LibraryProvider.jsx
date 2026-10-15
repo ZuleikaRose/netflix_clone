@@ -13,6 +13,7 @@ export function LibraryProvider({ children }) {
   const [feedback, setFeedback] = useState([])
   const [issues, setIssues] = useState([])
   const [doNotSell, setDoNotSell] = useState(false)
+  const [bestScores, setBestScores] = useState({})
 
   const value = useMemo(() => ({
     myList,
@@ -23,6 +24,7 @@ export function LibraryProvider({ children }) {
     feedback,
     issues,
     doNotSell,
+    bestScores,
     toggleMyList: toggleIn(setMyList),
     toggleFavorite: toggleIn(setFavorites),
     toggleReminder: toggleIn(setReminders),
@@ -31,7 +33,13 @@ export function LibraryProvider({ children }) {
     addFeedback: (entry) => setFeedback((f) => [entry, ...f]),
     addIssue: (issue) => setIssues((all) => [issue, ...all]),
     setDoNotSell,
-  }), [myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell])
+    // better: 'low' (fewest moves wins) or 'high' (most points wins)
+    recordScore: (game, value, better) => setBestScores((s) => {
+      const prev = s[game]
+      const improved = prev === undefined || (better === 'low' ? value < prev : value > prev)
+      return improved ? { ...s, [game]: value } : s
+    }),
+  }), [myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell, bestScores])
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
 }

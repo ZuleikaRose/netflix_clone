@@ -1,16 +1,51 @@
-# React + Vite
+# Netflix Clone
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A mobile-first, front-end-only streaming app built with React 19, Vite and React Router (`BrowserRouter`). It was built in phases from the wireframes, user journey and style guide in `../app_outline`.
 
-Currently, two official plugins are available:
+There is no backend. **All data lives in memory**: refreshing the page signs you out and resets your list, ratings, reviews and settings.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Run it
 
-## React Compiler
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run lint
+npm run build && npm run preview
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+On the sign-in screen, choose **Use demo account**, or create an account with **Sign up**.
 
-## Expanding the ESLint configuration
+## What's inside
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+| Area | Routes | Highlights |
+| --- | --- | --- |
+| Auth | `/login`, `/signup`, `/logout` | Sign-in guard that returns you to the page you wanted; plan picker; accessible inline validation |
+| Browse | `/`, `/title/:id`, `/search`, `/new` | TV/Movie filters, Top 10, "Because You Liked…" recommendations, mock player, ratings & reviews, share, URL-driven search filters |
+| Library | `/my-netflix`, `/account` | My List & Favorites; profile, password, plan, playback and maturity settings |
+| Games | `/games`, `/games/:gameId` | Poster Match (memory) and Plot Twist (trivia), with best scores for the session |
+| Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Terms, Privacy, Do Not Sell |
+
+The maturity setting in Account filters every catalog surface: Home, Search, New & Hot, related titles and games.
+
+## Project layout
+
+```
+src/
+  components/   Layout (phone frame + tab bar + footer), PageHeader, Field, PosterCard, ShareButton…
+  data/         Catalog, plans, promotions, FAQs, legal copy (all sample content)
+  pages/        One file per route; info/ and games/ hold the sub-pages
+  state/        AuthProvider (accounts, session) and LibraryProvider (per-session list, ratings, reports…)
+```
+
+`LibraryProvider` is keyed by the auth session, so every sign-in starts with an empty library.
+
+## Design notes
+
+- Designed for 390px phones. On wider screens the app renders inside a centered phone frame with its own scroll area, so the tab bar stays pinned.
+- One accent color (`#e50914`) for primary actions. Form errors use a distinct orange (`#e87c03`).
+- Touch targets are at least 44px, keyboard focus is always visible, and every input has a label. Motion is subtle and turned off under `prefers-reduced-motion`.
+
+## Caveats
+
+- Authentication is a mock for demonstration only. Passwords are held in plain JavaScript memory; never reuse this pattern with real credentials.
+- Titles, synopses, reviews and legal text are placeholder content. Posters reuse four Unsplash photos with CSS color filters.
