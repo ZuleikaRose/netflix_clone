@@ -7,6 +7,8 @@
 }
 
 * { box-sizing: border-box; }
+/* Keep focused / scrolled-to elements clear of the sticky header and tab bar (WCAG 2.4.11) */
+html { scroll-padding: 72px 0 96px; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at top, #303030, #101010 70%); }
 button, input, select, textarea { font: inherit; }
 a { color: inherit; text-decoration: none; }
@@ -66,7 +68,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 /* Desktop: render a fixed-height phone frame that scrolls internally so the tab bar stays pinned to the frame */
 @media (min-width: 600px) {
   .app-shell { height: 100vh; align-items: center; }
-  .phone { height: min(900px, calc(100vh - 48px)); min-height: 0; padding-bottom: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; border: 1px solid #333; border-radius: 28px; }
+  .phone { height: min(900px, calc(100vh - 48px)); min-height: 0; padding-bottom: 0; scroll-padding: 72px 0 80px; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; border: 1px solid #333; border-radius: 28px; }
   .phone::-webkit-scrollbar { display: none; }
   .bottom-nav { position: sticky; left: 0; transform: none; border-radius: 0 0 28px 28px; }
 }
@@ -249,7 +251,7 @@ textarea { resize: vertical; }
 .chat-log { display: grid; gap: 8px; max-height: 280px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
 .bubble { max-width: 85%; padding: 10px 12px; border-radius: 14px; font-size: 14px; line-height: 1.4; animation: page-in .2s ease-out; }
 .bubble.agent { justify-self: start; border-bottom-left-radius: 4px; background: #262626; }
-.bubble.you { justify-self: end; border-bottom-right-radius: 4px; background: var(--accent); }
+.bubble.you { justify-self: end; border-bottom-right-radius: 4px; color: #fff; background: var(--accent); }
 .bubble.typing { color: #a3a3a3; font-style: italic; }
 .chat-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .chat-form input { min-height: 48px; padding: 0 12px; border: 1px solid #3a3a3a; border-radius: 6px; color: #f5f5f5; background: #161616; }

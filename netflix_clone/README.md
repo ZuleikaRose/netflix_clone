@@ -32,6 +32,9 @@ npm run test:e2e:report           # open the HTML report from the last run
 | `e2e/help.spec.js` | Every footer link, support chat, FAQ search, feedback and issue forms, promo codes, share fallback |
 | `e2e/games.spec.js` | A full Poster Match playthrough, all five Plot Twist rounds |
 | `e2e/layout.spec.js` | Every route: heading present, no horizontal overflow, 44px touch targets, no console errors; keyboard focus order |
+| `e2e/a11y.spec.js` | [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.2 AA audit of every page and key interactive states (errors, chat, expanded FAQ, answered trivia); keyboard focus never hidden behind the sticky bars (2.4.11) |
+
+CI (`.github/workflows/ci.yml`) runs lint, build and the full suite on every push to `main` and on pull requests, and uploads the HTML report as an artifact.
 
 Tests serve the production build with `e2e/serve.js`, a tiny static server with SPA fallback, rather than `vite preview`. Because all state lives in memory, tests sign in once and then use client-side navigation (`navigateInApp()` in `e2e/helpers.js`), since a full page load signs the user out.
 
