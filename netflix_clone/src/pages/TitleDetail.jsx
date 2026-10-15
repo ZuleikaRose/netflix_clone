@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
-import { catalog, describeLength, findTitle } from '../data/catalog.js'
+import { describeLength, findTitle } from '../data/catalog.js'
+import { useCatalog } from '../state/useCatalog.js'
+import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { NotFound } from './NotFound.jsx'
 
@@ -40,10 +42,23 @@ export function TitleDetail() {
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
   const { myList, favorites, ratings, reviews, toggleMyList, toggleFavorite, rate, addReview } = useLibrary()
+  const { user } = useAuth()
   const [draft, setDraft] = useState('')
+  const { titles: catalog, isAllowed } = useCatalog()
 
   const title = findTitle(id)
   if (!title) return <NotFound />
+  if (!isAllowed(title)) {
+    return (
+      <>
+        <PageHeader title="Restricted" back />
+        <div className="empty">
+          <p>{title.title} is rated {title.maturity}, which is above this profile’s maturity setting.</p>
+          <Link to="/account" className="play wide">Change in Account</Link>
+        </div>
+      </>
+    )
+  }
 
   const playing = params.get('play') === '1'
   const saved = myList.includes(id)
@@ -55,7 +70,7 @@ export function TitleDetail() {
   const submitReview = (e) => {
     e.preventDefault()
     if (!draft.trim()) return
-    addReview(id, { author: 'Alex', stars: myRating || null, text: draft.trim() })
+    addReview(id, { author: user.name, stars: myRating || null, text: draft.trim() })
     setDraft('')
   }
 

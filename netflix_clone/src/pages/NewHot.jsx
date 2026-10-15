@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
-import { catalog, describeLength } from '../data/catalog.js'
+import { describeLength } from '../data/catalog.js'
+import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
 
 export function NewHot() {
   const { reminders, toggleReminder } = useLibrary()
+  const { titles: catalog } = useCatalog()
   const fresh = catalog.filter((t) => t.isNew).sort((a, b) => b.popularity - a.popularity)
 
   return (

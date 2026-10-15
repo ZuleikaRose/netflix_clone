@@ -1,0 +1,141 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Field } from '../components/Field.jsx'
+import { PageHeader } from '../components/PageHeader.jsx'
+import { PlanPicker } from '../components/PlanPicker.jsx'
+import { findPlan } from '../data/plans.js'
+import { EMAIL_PATTERN, MIN_PASSWORD, useAuth } from '../state/authContext.js'
+import { focusFirstError } from './formUtils.js'
+
+const toggles = [
+  { key: 'autoplayNext', label: 'Autoplay next episode', hint: 'Start the next episode automatically on all devices.' },
+  { key: 'autoplayPreviews', label: 'Autoplay previews', hint: 'Play previews while you browse.' },
+  { key: 'emailUpdates', label: 'Email me new releases', hint: 'News about titles we think you’ll love.' },
+]
+
+function Status({ message }) {
+  return <p className="save-status" role="status">{message && <><span aria-hidden="true">✓</span> {message}</>}</p>
+}
+
+function ProfileForm({ user, updateProfile }) {
+  const [form, setForm] = useState({ name: user.name, email: user.email })
+  const [errors, setErrors] = useState({})
+  const [status, setStatus] = useState('')
+
+  const submit = (e) => {
+    e.preventDefault()
+    const next = {}
+    if (!form.name.trim()) next.name = 'Please enter your name.'
+    if (!EMAIL_PATTERN.test(form.email.trim())) next.email = 'Please enter a valid email address.'
+    if (!Object.keys(next).length) {
+      const error = updateProfile(form)
+      if (error) next.email = error
+    }
+    setErrors(next)
+    setStatus(Object.keys(next).length ? '' : 'Profile saved')
+    if (Object.keys(next).length) focusFirstError(e.currentTarget)
+  }
+
+  return (
+    <form className="settings-card" onSubmit={submit} noValidate aria-labelledby="profile-heading">
+      <h2 id="profile-heading">Profile</h2>
+      <Field label="Name" autoComplete="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={errors.name} />
+      <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={errors.email} />
+      <button type="submit" className="cta">Save profile</button>
+      <Status message={status} />
+    </form>
+  )
+}
+
+function PasswordForm({ email, changePassword }) {
+  const blank = { current: '', next: '', confirm: '' }
+  const [form, setForm] = useState(blank)
+  const [errors, setErrors] = useState({})
+  const [status, setStatus] = useState('')
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+
+  const submit = (e) => {
+    e.preventDefault()
+    const next = {}
+    if (!form.current) next.current = 'Please enter your current password.'
+    if (form.next.length < MIN_PASSWORD) next.next = `Password must be at least ${MIN_PASSWORD} characters.`
+    if (form.confirm !== form.next) next.confirm = 'Passwords don’t match.'
+    if (!Object.keys(next).length) {
+      const error = changePassword(form.current, form.next)
+      if (error) next.current = error
+    }
+    setErrors(next)
+    if (Object.keys(next).length) {
+      setStatus('')
+      focusFirstError(e.currentTarget)
+    } else {
+      setForm(blank)
+      setStatus('Password updated')
+    }
+  }
+
+  return (
+    <form className="settings-card" onSubmit={submit} noValidate aria-labelledby="password-heading">
+      <h2 id="password-heading">Change password</h2>
+      {/* Lets password managers associate the new password with this account */}
+      <input type="text" name="username" autoComplete="username" value={email} readOnly hidden />
+      <Field label="Current password" type="password" autoComplete="current-password" value={form.current} onChange={set('current')} error={errors.current} />
+      <Field label="New password" type="password" autoComplete="new-password" value={form.next} onChange={set('next')} error={errors.next} hint={`At least ${MIN_PASSWORD} characters.`} />
+      <Field label="Confirm new password" type="password" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} error={errors.confirm} />
+      <button type="submit" className="cta">Update password</button>
+      <Status message={status} />
+    </form>
+  )
+}
+
+export function Account() {
+  const { user, updateProfile, changePassword, changePlan, setPreference } = useAuth()
+  const [planStatus, setPlanStatus] = useState('')
+  const plan = findPlan(user.plan)
+
+  return (
+    <>
+      <PageHeader title="Account" back />
+      <div className="settings">
+        <section className="settings-card membership" aria-labelledby="membership-heading">
+          <h2 id="membership-heading">Membership</h2>
+          <p><b>{plan.name}</b> · {plan.price}/month</p>
+          <p className="muted">Member since 2026 · {user.email}</p>
+        </section>
+
+        <ProfileForm user={user} updateProfile={updateProfile} />
+        <PasswordForm email={user.email} changePassword={changePassword} />
+
+        <section className="settings-card" aria-labelledby="plan-heading">
+          <h2 id="plan-heading">Plan</h2>
+          <PlanPicker name="account-plan" value={user.plan} onChange={(id) => { changePlan(id); setPlanStatus(`Switched to ${findPlan(id).name}`) }} />
+          <Status message={planStatus} />
+        </section>
+
+        <section className="settings-card" aria-labelledby="playback-heading">
+          <h2 id="playback-heading">Playback &amp; notifications</h2>
+          {toggles.map(({ key, label, hint }) => (
+            <label key={key} className="switch-row">
+              <span><span className="switch-label">{label}</span><span className="muted">{hint}</span></span>
+              <input type="checkbox" role="switch" checked={user.preferences[key]} onChange={(e) => setPreference(key, e.target.checked)} />
+            </label>
+          ))}
+          <label className="select-row">
+            <span className="switch-label">Maturity rating</span>
+            <select value={user.preferences.maturity} onChange={(e) => setPreference('maturity', e.target.value)}>
+              <option value="all">All maturity ratings</option>
+              <option value="teen">Teens (TV-14, PG-13 and below)</option>
+              <option value="kids">Kids (TV-PG, PG and below)</option>
+            </select>
+          </label>
+        </section>
+
+        <nav className="settings-card link-list" aria-label="Help">
+          <Link to="/info/support">Customer Support</Link>
+          <Link to="/info/faqs">FAQs</Link>
+          <Link to="/logout" className="danger-link">Sign out</Link>
+        </nav>
+      </div>
+    </>
+  )
+}

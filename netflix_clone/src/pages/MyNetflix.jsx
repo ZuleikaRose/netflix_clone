@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
 import { findTitle } from '../data/catalog.js'
+import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
 
 const tabs = [
@@ -13,6 +14,7 @@ const tabs = [
 
 export function MyNetflix() {
   const library = useLibrary()
+  const { user } = useAuth()
   const [tab, setTab] = useState('list')
   const active = tabs.find((t) => t.key === tab)
   const ids = tab === 'list' ? library.myList : library.favorites
@@ -24,9 +26,10 @@ export function MyNetflix() {
       <section className="profile-card">
         <span className="avatar large" aria-hidden="true"><span /><span /><i /></span>
         <div>
-          <h2>Alex</h2>
+          <h2>{user.name}</h2>
           <p className="muted">{library.myList.length} saved · {library.favorites.length} favorites · {Object.keys(library.ratings).length} rated</p>
         </div>
+        <Link to="/account" className="account-link">Account</Link>
       </section>
 
       <div className="tabs" role="tablist" aria-label="Your titles">

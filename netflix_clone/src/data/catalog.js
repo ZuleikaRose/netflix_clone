@@ -71,6 +71,14 @@ export const catalog = [
     cast: ['Owen Strand', 'Bea Kaminski'],
     reviews: [{ author: 'Alex', stars: 5, text: 'Non-stop. The storm sequence is unreal.' }],
   },
+  {
+    id: 'lantern-island', title: 'Lantern Island', type: 'show', year: 2026, maturity: 'TV-PG', seasons: 2,
+    genres: ['Adventure', 'Family'], mood: ['Whimsical', 'Heartfelt'], popularity: 82, isNew: true, top10: null,
+    image: photo.light, tint: 'hue-rotate(40deg) saturate(1.8) brightness(1.15)',
+    synopsis: 'Three cousins spend a summer keeping the lighthouse lit on an island where the lanterns grant small, strange wishes.',
+    cast: ['Poppy Nakamura', 'Eli Brooks'],
+    reviews: [{ author: 'Dana', stars: 5, text: 'Our whole family watches this together.' }],
+  },
 ]
 
 export const genres = [...new Set(catalog.flatMap((t) => t.genres))].sort()

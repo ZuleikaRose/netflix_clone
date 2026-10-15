@@ -1,7 +1,8 @@
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
-import { catalog, genres } from '../data/catalog.js'
+import { genres } from '../data/catalog.js'
+import { useCatalog } from '../state/useCatalog.js'
 
 const sorters = {
   popular: (a, b) => b.popularity - a.popularity,
@@ -12,6 +13,7 @@ const sorters = {
 export function Search() {
   // Query state lives in the URL so results survive Back/Forward and can be shared
   const [params, setParams] = useSearchParams()
+  const { titles: catalog } = useCatalog()
   const q = params.get('q') ?? ''
   const genre = params.get('genre') ?? ''
   const type = params.get('type') ?? ''
