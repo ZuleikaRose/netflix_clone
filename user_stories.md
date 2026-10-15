@@ -1,16 +1,25 @@
-# Task Manager: user stories
+# Netflix Clone: user stories
 
-[](https://github.com/ZuleikaRose/netflix_clone)
+[Netflix Clone on GitHub](https://github.com/ZuleikaRose/netflix_clone)
 
-Pulled from Netflix_Clone `app_outline/` (the journey and each page's `user_story.md`) into one list: one line per thing the app has to  *remember* . Story 1 isn't on any page; it's added so the database knows who owns what.
+Pulled from `app_outline/` (the user journey and each page's `user_journey.md`) into one list: one line per thing the app has to *remember*. Story 1 isn't on any single page; it's there so the database knows who owns what.
 
-There's no login screen yet: that comes in a future lecture. The database is ready for it.
+Today the app keeps all of this in memory and resets on refresh. These stories describe what a database would need to store.
 
-1. As a user, I want an account with my name and email so that the app knows which projects and tasks are mine.
-2. As a user, I want to create netflix_tables with a name and a description so that I can organize my work.
-3. As a user, I want to create tasks with a title so that I can track what I need to do.
-4. As a user, I want to assign a task to a project (or leave it on its own) so that I can keep related work together.
-5. As a user, I want to give a task a due date so that I know what's coming up.
-6. As a user, I want to mark tasks as complete so that I know what I've finished.
-7. As a user, I want to label tasks with tags like "school" or "urgent" (a task can have several) so that I can filter my list.
-8. As a user, I want to see when each task was created so that I can spot old ones.
+1. As a user, I want an account with my name, email and password so that my list, ratings and settings belong to me.
+2. As a user, I want to choose a membership plan (Basic, Standard or Premium) so that I know what I pay and what quality I get.
+3. As a user, I want to save a payment method (only the card brand, last four digits and expiry) and a billing day so that I'm charged on a date that suits me.
+4. As a user, I want to pause, cancel or restart my membership so that I only pay when I'm watching.
+5. As a user, I want to browse movies and TV shows with a title, synopsis, genre, release year, maturity rating, cast and crew so that I can decide what to watch.
+6. As a user, I want to add titles to my Watch list so that I can find them later.
+7. As a user, I want to mark titles as Favorites (a title can be on both lists) so that I get recommendations based on what I love.
+8. As a user, I want to rate a title and write a review so that other viewers know what I thought.
+9. As a user, I want to set a reminder for an upcoming title so that I don't miss its release.
+10. As a user, I want to set preferences (autoplay, email updates, personalized recommendations, maturity level) so that the app works the way I like.
+11. As a user, I want to apply a promo code to my plan so that I get a discount.
+12. As a user, I want to send feedback and report issues and get a ticket number so that I can follow up on a problem.
+13. As a user, I want to opt out of the sale of my personal data so that my privacy choice is recorded.
+14. As an affiliate, I want to join the Affiliate Program with my website and promotion channels so that I get my own referral code.
+15. As an affiliate, I want each click and sign-up from my referral link counted so that I can see my tier and earnings.
+16. As a user, I want my best score in each game saved so that I can try to beat it.
+17. As a user, I want to see when each review, ticket and referral was created so that I know how recent it is.
