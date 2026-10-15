@@ -10,10 +10,27 @@ There is no backend. **All data lives in memory**: refreshing the page signs you
 npm install
 npm run dev      # http://localhost:5173
 npm run lint
-npm run build && npm run preview
+npm run build
 ```
 
-On the sign-in screen, choose **Use demo account**, or create an account with **Sign up**.
+On the sign-in screen, choose **Use demo account**, or create an account with **Sign up**. The demo account's password is random on every page load, so the button is the only way into it.
+
+### Demo data for trying features
+
+| Feature | Try |
+| --- | --- |
+| Payment method (Account → Billing) | Test cards `4242 4242 4242 4242` (Visa) or `5555 5555 5555 4444` (Mastercard), any future expiry, any 3-digit code |
+| Promo codes (Promotions & Discounts) | `WELCOME50`, `STUDENT20`, `FAMILY15` (Premium plan only) |
+| Affiliate Program | Join with any `https://` URL, then use **Simulate a sign-up**: 11 sign-ups reaches the Pro tier |
+| Referral sign-up | `/signup?ref=ALEX26` shows the "invited by a friend" welcome |
+| Support chat | Ask about passwords, promo codes or devices; answers come from the FAQs |
+| Maturity filter | Account → Maturity rating → Kids leaves only *Lantern Island* |
+
+### Troubleshooting
+
+If `npm run dev` stalls right after "Console Ninja extension is connected to Vite", the Console Ninja VS Code
+extension has injected a hook into `node_modules/vite/bin/vite.js`. Run `npm install --force vite` to restore
+the file, and disable the extension for this workspace to stop it coming back.
 
 ## Testing
 
@@ -33,7 +50,7 @@ npm run test:e2e:report           # open the HTML report from the last run
 | `e2e/games.spec.js` | A full Poster Match playthrough, all five Plot Twist rounds |
 | `e2e/layout.spec.js` | Every route: heading present, no horizontal overflow, 44px touch targets, no console errors; keyboard focus order |
 | `e2e/features.spec.js` | Carousel, service banner, personalization opt-out, crew, release-year filter, Watch list/Favorites routes, billing, affiliate program, referral sign-up, legal hub |
-| `e2e/a11y.spec.js` | [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.2 AA audit of every page and key interactive states (errors, chat, expanded FAQ, answered trivia); keyboard focus never hidden behind the sticky bars (2.4.11) |
+| `e2e/a11y.spec.js` | [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.2 AA audit of every page and key interactive states (form errors, chat, expanded FAQ, answered trivia, billing errors and cancel confirmation, affiliate form and dashboard); keyboard focus never hidden behind the sticky bars (2.4.11) |
 
 CI (`.github/workflows/ci.yml`) runs lint, build and the full suite on every push to `main` and on pull requests, and uploads the HTML report as an artifact.
 
@@ -55,11 +72,17 @@ The maturity setting in Account filters every catalog surface: Home, Search, New
 
 ```
 src/
-  components/   Layout (phone frame + tab bar + footer), PageHeader, Field, PosterCard, ShareButton…
-  data/         Catalog, plans, promotions, FAQs, legal copy (all sample content)
-  pages/        One file per route; info/ and games/ hold the sub-pages
-  state/        AuthProvider (accounts, session) and LibraryProvider (per-session list, ratings, reports…)
+  components/   Layout (phone frame + tab bar + footer), PageHeader, Field, PosterCard, ShareButton,
+                useCopyToClipboard, useDocumentTitle
+  data/         Catalog, plans, billing, promotions, affiliate program, FAQs, legal copy, service status
+                (all sample content)
+  pages/        One file per route; account/, info/ and games/ hold the sub-pages
+  state/        AuthProvider (accounts, billing, preferences, session) and LibraryProvider
+                (per-session list, ratings, reviews, reports, affiliate account, dismissed notices)
+e2e/            Playwright specs, helpers and serve.js
 ```
+
+Requirements and the outline-to-route map are in [`../CLAUDE.md`](../CLAUDE.md).
 
 `LibraryProvider` is keyed by the auth session, so every sign-in starts with an empty library.
 
@@ -71,5 +94,5 @@ src/
 
 ## Caveats
 
-- Authentication is a mock for demonstration only. Passwords are held in plain JavaScript memory; never reuse this pattern with real credentials.
+- Authentication, billing and the affiliate program are mocks for demonstration only. Passwords are held in plain JavaScript memory and only a card's brand, last 4 digits and expiry are kept; never reuse these patterns with real data.
 - Titles, synopses, reviews and legal text are placeholder content. Posters reuse four Unsplash photos with CSS color filters.
