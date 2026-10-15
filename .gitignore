@@ -2,3 +2,4 @@
 .cto-toolkit/
 .obsidian/
 node_modules/
+.playwright-mcp/
