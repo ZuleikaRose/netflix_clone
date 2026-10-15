@@ -24,7 +24,7 @@ export function Signup() {
 
   if (user) return <Navigate to="/" replace />
 
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
 
   const submit = (e) => {
     e.preventDefault()
@@ -41,10 +41,10 @@ export function Signup() {
     <AuthShell title="Create Account">
       <form className="auth-form" onSubmit={submit} noValidate>
         {formError && <p className="form-alert" role="alert">{formError} <Link to="/login">Sign in instead</Link></p>}
-        <Field label="Name" autoComplete="name" value={form.name} onChange={set('name')} error={errors.name} />
-        <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={set('email')} error={errors.email} />
-        <Field label="Password" type="password" autoComplete="new-password" value={form.password} onChange={set('password')} error={errors.password} hint={`At least ${MIN_PASSWORD} characters.`} />
-        <Field label="Confirm password" type="password" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} error={errors.confirm} />
+        <Field label="Name" autoComplete="name" value={form.name} onChange={updateField('name')} error={errors.name} />
+        <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={updateField('email')} error={errors.email} />
+        <Field label="Password" type="password" autoComplete="new-password" value={form.password} onChange={updateField('password')} error={errors.password} hint={`At least ${MIN_PASSWORD} characters.`} />
+        <Field label="Confirm password" type="password" autoComplete="new-password" value={form.confirm} onChange={updateField('confirm')} error={errors.confirm} />
         <PlanPicker value={form.plan} onChange={(plan) => setForm({ ...form, plan })} />
         <button type="submit" className="cta">Start Watching</button>
       </form>

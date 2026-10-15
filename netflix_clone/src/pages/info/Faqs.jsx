@@ -6,7 +6,7 @@ export function Faqs() {
   const q = params.get('q') ?? ''
   const category = params.get('category') ?? ''
 
-  const update = (key, value) => {
+  const setQueryParam = (key, value) => {
     const next = new URLSearchParams(params)
     if (value) next.set(key, value)
     else next.delete(key)
@@ -21,11 +21,11 @@ export function Faqs() {
   return (
     <div className="settings">
       <label htmlFor="faq-q" className="sr-only">Search FAQs</label>
-      <input id="faq-q" type="search" className="search-input" placeholder="Search FAQs" value={q} onChange={(e) => update('q', e.target.value)} />
+      <input id="faq-q" type="search" className="search-input" placeholder="Search FAQs" value={q} onChange={(e) => setQueryParam('q', e.target.value)} />
 
       <div className="genre-chips" role="group" aria-label="Filter by topic">
         {faqCategories.map((c) => (
-          <button key={c} className={category === c ? 'chip active' : 'chip'} aria-pressed={category === c} onClick={() => update('category', category === c ? '' : c)}>{c}</button>
+          <button key={c} className={category === c ? 'chip active' : 'chip'} aria-pressed={category === c} onClick={() => setQueryParam('category', category === c ? '' : c)}>{c}</button>
         ))}
       </div>
 

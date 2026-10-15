@@ -11,7 +11,7 @@ export function Promotions() {
   const plan = findPlan(user.plan)
   const active = findPromotion(user.promo)
 
-  const apply = (value) => {
+  const applyCode = (value) => {
     const promo = findPromotion(value)
     if (!promo) return setError('That code isn’t valid. Check the spelling and try again.')
     if (promo.plan && promo.plan !== user.plan) return setError(`${promo.code} only works with the ${findPlan(promo.plan).name} plan.`)
@@ -34,7 +34,7 @@ export function Promotions() {
         {active && <button type="button" className="ghost-cta" onClick={removePromo}>Remove code</button>}
       </section>
 
-      <form className="settings-card" onSubmit={(e) => { e.preventDefault(); apply(code) }} noValidate>
+      <form className="settings-card" onSubmit={(e) => { e.preventDefault(); applyCode(code) }} noValidate>
         <div className={error ? 'field has-error' : 'field'}>
           <label htmlFor="promo-code">Promo code</label>
           <input id="promo-code" value={code} onChange={(e) => setCode(e.target.value)} autoCapitalize="characters" aria-invalid={Boolean(error)} aria-describedby={error ? 'promo-error' : undefined} placeholder="e.g. WELCOME50" />
@@ -51,7 +51,7 @@ export function Promotions() {
             <p className="muted">{p.detail}</p>
             <p className="promo-code"><span className="sr-only">Code: </span>{p.code}</p>
           </div>
-          <button type="button" className="ghost-action" disabled={user.promo === p.code} onClick={() => apply(p.code)}>
+          <button type="button" className="ghost-action" disabled={user.promo === p.code} onClick={() => applyCode(p.code)}>
             {user.promo === p.code ? 'Applied' : 'Use code'}
           </button>
         </section>

@@ -15,7 +15,7 @@ export function ReportIssue() {
   const [form, setForm] = useState(blank)
   const [errors, setErrors] = useState({})
   const [justFiled, setJustFiled] = useState(null)
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
 
   const submit = (e) => {
     e.preventDefault()
@@ -38,12 +38,12 @@ export function ReportIssue() {
 
         <label className="select-row">
           <span className="switch-label">Type of issue</span>
-          <select value={form.type} onChange={set('type')}>{types.map((t) => <option key={t}>{t}</option>)}</select>
+          <select value={form.type} onChange={updateField('type')}>{types.map((t) => <option key={t}>{t}</option>)}</select>
         </label>
 
         <label className="select-row">
           <span className="switch-label">Related title (optional)</span>
-          <select value={form.titleId} onChange={set('titleId')}>
+          <select value={form.titleId} onChange={updateField('titleId')}>
             <option value="">None</option>
             {catalog.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
           </select>
@@ -51,13 +51,13 @@ export function ReportIssue() {
 
         <div className={errors.summary ? 'field has-error' : 'field'}>
           <label htmlFor="issue-summary">What went wrong?</label>
-          <input id="issue-summary" value={form.summary} onChange={set('summary')} aria-invalid={Boolean(errors.summary)} aria-describedby={errors.summary ? 'summary-error' : undefined} placeholder="e.g. Video freezes after 10 minutes" />
+          <input id="issue-summary" value={form.summary} onChange={updateField('summary')} aria-invalid={Boolean(errors.summary)} aria-describedby={errors.summary ? 'summary-error' : undefined} placeholder="e.g. Video freezes after 10 minutes" />
           {errors.summary && <p id="summary-error" className="field-error"><span aria-hidden="true">⚠</span> {errors.summary}</p>}
         </div>
 
         <div className="field">
           <label htmlFor="issue-steps">Steps to reproduce (optional)</label>
-          <textarea id="issue-steps" rows="4" value={form.steps} onChange={set('steps')} placeholder={'1. Open a title\n2. Press Play\n3. …'} />
+          <textarea id="issue-steps" rows="4" value={form.steps} onChange={updateField('steps')} placeholder={'1. Open a title\n2. Press Play\n3. …'} />
         </div>
 
         <p className="muted">Device info is attached automatically: {deviceSummary()}</p>

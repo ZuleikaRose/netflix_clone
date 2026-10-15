@@ -53,7 +53,7 @@ function PasswordForm({ email, changePassword }) {
   const [form, setForm] = useState(blank)
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('')
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
 
   const submit = (e) => {
     e.preventDefault()
@@ -80,9 +80,9 @@ function PasswordForm({ email, changePassword }) {
       <h2 id="password-heading">Change password</h2>
       {/* Lets password managers associate the new password with this account */}
       <input type="text" name="username" autoComplete="username" value={email} readOnly hidden />
-      <Field label="Current password" type="password" autoComplete="current-password" value={form.current} onChange={set('current')} error={errors.current} />
-      <Field label="New password" type="password" autoComplete="new-password" value={form.next} onChange={set('next')} error={errors.next} hint={`At least ${MIN_PASSWORD} characters.`} />
-      <Field label="Confirm new password" type="password" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} error={errors.confirm} />
+      <Field label="Current password" type="password" autoComplete="current-password" value={form.current} onChange={updateField('current')} error={errors.current} />
+      <Field label="New password" type="password" autoComplete="new-password" value={form.next} onChange={updateField('next')} error={errors.next} hint={`At least ${MIN_PASSWORD} characters.`} />
+      <Field label="Confirm new password" type="password" autoComplete="new-password" value={form.confirm} onChange={updateField('confirm')} error={errors.confirm} />
       <button type="submit" className="cta">Update password</button>
       <Status message={status} />
     </form>

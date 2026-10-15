@@ -19,7 +19,7 @@ export function Search() {
   const type = params.get('type') ?? ''
   const sort = params.get('sort') ?? 'popular'
 
-  const update = (key, value) => {
+  const setQueryParam = (key, value) => {
     const next = new URLSearchParams(params)
     if (value) next.set(key, value)
     else next.delete(key)
@@ -38,24 +38,24 @@ export function Search() {
       <PageHeader title="Search" back />
       <div className="search-panel">
         <label htmlFor="search-input" className="sr-only">Search titles, people, genres</label>
-        <input id="search-input" type="search" className="search-input" placeholder="Search titles, people, genres" value={q} onChange={(e) => update('q', e.target.value)} autoFocus />
+        <input id="search-input" type="search" className="search-input" placeholder="Search titles, people, genres" value={q} onChange={(e) => setQueryParam('q', e.target.value)} autoFocus />
 
         <div className="genre-chips" role="group" aria-label="Filter by genre">
           {genres.map((g) => (
-            <button key={g} className={genre === g ? 'chip active' : 'chip'} aria-pressed={genre === g} onClick={() => update('genre', genre === g ? '' : g)}>{g}</button>
+            <button key={g} className={genre === g ? 'chip active' : 'chip'} aria-pressed={genre === g} onClick={() => setQueryParam('genre', genre === g ? '' : g)}>{g}</button>
           ))}
         </div>
 
         <div className="search-selects">
           <label>Type
-            <select value={type} onChange={(e) => update('type', e.target.value)}>
+            <select value={type} onChange={(e) => setQueryParam('type', e.target.value)}>
               <option value="">All</option>
               <option value="show">TV Shows</option>
               <option value="movie">Movies</option>
             </select>
           </label>
           <label>Sort by
-            <select value={sort} onChange={(e) => update('sort', e.target.value)}>
+            <select value={sort} onChange={(e) => setQueryParam('sort', e.target.value)}>
               <option value="popular">Popularity</option>
               <option value="newest">Release date</option>
               <option value="az">A–Z</option>

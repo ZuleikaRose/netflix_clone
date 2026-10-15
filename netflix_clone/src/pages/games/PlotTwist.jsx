@@ -26,7 +26,7 @@ export function PlotTwist({ titles }) {
     if (title.id === round.answer.id) setScore((s) => s + 1)
   }
 
-  const next = () => {
+  const goToNextRound = () => {
     const last = index + 1 >= rounds.length
     if (last) recordScore('trivia', score, 'high')
     setIndex(index + 1)
@@ -82,7 +82,7 @@ export function PlotTwist({ titles }) {
         </p>
       </section>
 
-      {picked && <button type="button" className="cta" onClick={next} autoFocus>{index + 1 === rounds.length ? 'See score' : 'Next question'}</button>}
+      {picked && <button type="button" className="cta" onClick={goToNextRound} autoFocus>{index + 1 === rounds.length ? 'See score' : 'Next question'}</button>}
     </div>
   )
 }

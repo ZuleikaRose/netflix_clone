@@ -5,7 +5,7 @@ import { AuthContext, demoAccount } from './authContext.js'
 
 const defaultPreferences = { autoplayNext: true, autoplayPreviews: false, emailUpdates: true, maturity: 'all' }
 
-const normalize = (email) => email.trim().toLowerCase()
+const normalizeEmail = (email) => email.trim().toLowerCase()
 
 // getRandomValues works on plain-HTTP origins too (randomUUID needs a secure context, e.g. fails on a LAN IP)
 const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
       user,
       session,
       login(email, password) {
-        const account = accounts.find((a) => a.email === normalize(email))
+        const account = accounts.find((a) => a.email === normalizeEmail(email))
         if (!account || account.password !== password) return 'Incorrect email or password.'
         setCurrentEmail(account.email)
         setSession((n) => n + 1)
@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
         setSession((n) => n + 1)
       },
       signup({ name, email, password, plan }) {
-        const key = normalize(email)
+        const key = normalizeEmail(email)
         if (accounts.some((a) => a.email === key)) return 'An account with this email already exists.'
         setAccounts((all) => [...all, { name: name.trim(), email: key, password, plan, preferences: defaultPreferences }])
         setCurrentEmail(key)
@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
         setSession((n) => n + 1)
       },
       updateProfile({ name, email }) {
-        const key = normalize(email)
+        const key = normalizeEmail(email)
         if (key !== currentEmail && accounts.some((a) => a.email === key)) return 'That email is already used by another account.'
         setAccounts((all) => all.map((a) => (a.email === currentEmail ? { ...a, name: name.trim(), email: key } : a)))
         setCurrentEmail(key)
