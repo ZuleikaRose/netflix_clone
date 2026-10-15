@@ -4,6 +4,10 @@ import { PosterCard } from '../components/PosterCard.jsx'
 import { genres } from '../data/catalog.js'
 import { useCatalog } from '../state/useCatalog.js'
 
+// Release-date filter (outline: filter by genre, release date or popularity)
+const releaseYears = [2026, 2025, 2024]
+const EARLIEST_LISTED_YEAR = releaseYears.at(-1)
+
 const sorters = {
   popular: (a, b) => b.popularity - a.popularity,
   newest: (a, b) => b.year - a.year,
@@ -17,6 +21,7 @@ export function Search() {
   const q = params.get('q') ?? ''
   const genre = params.get('genre') ?? ''
   const type = params.get('type') ?? ''
+  const year = params.get('year') ?? ''
   const sort = params.get('sort') ?? 'popular'
 
   const setQueryParam = (key, value) => {
@@ -31,6 +36,7 @@ export function Search() {
     .filter((t) => !needle || [t.title, ...t.cast, ...t.genres].some((s) => s.toLowerCase().includes(needle)))
     .filter((t) => !genre || t.genres.includes(genre))
     .filter((t) => !type || t.type === type)
+    .filter((t) => !year || (year === 'earlier' ? t.year < EARLIEST_LISTED_YEAR : t.year === Number(year)))
     .sort(sorters[sort] ?? sorters.popular)
 
   return (
@@ -54,6 +60,13 @@ export function Search() {
               <option value="movie">Movies</option>
             </select>
           </label>
+          <label>Released
+            <select value={year} onChange={(e) => setQueryParam('year', e.target.value)}>
+              <option value="">Any year</option>
+              {releaseYears.map((y) => <option key={y} value={y}>{y}</option>)}
+              <option value="earlier">Before {EARLIEST_LISTED_YEAR}</option>
+            </select>
+          </label>
           <label>Sort by
             <select value={sort} onChange={(e) => setQueryParam('sort', e.target.value)}>
               <option value="popular">Popularity</option>
@@ -64,7 +77,7 @@ export function Search() {
         </div>
       </div>
 
-      <h2 className="results-heading" aria-live="polite">{needle || genre || type ? `${results.length} result${results.length === 1 ? '' : 's'}` : 'Top Searches'}</h2>
+      <h2 className="results-heading" aria-live="polite">{needle || genre || type || year ? `${results.length} result${results.length === 1 ? '' : 's'}` : 'Top Searches'}</h2>
       {results.length > 0
         ? <div className="poster-grid">{results.map((t) => <PosterCard key={t.id} title={t} />)}</div>
         : <p className="empty">No matches for “{q}”. Try a different title, actor or genre.</p>}

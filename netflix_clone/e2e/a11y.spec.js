@@ -48,6 +48,8 @@ test('signed-out pages meet WCAG 2.2 AA', async ({ page }) => {
 })
 
 test('every signed-in page meets WCAG 2.2 AA', async ({ page }) => {
+  // Audits ~20 pages twice each (content + tab bar), so it needs more than the default 30s
+  test.setTimeout(120_000)
   await signInAsDemo(page)
   for (const route of signedInRoutes) {
     await navigateInApp(page, route)

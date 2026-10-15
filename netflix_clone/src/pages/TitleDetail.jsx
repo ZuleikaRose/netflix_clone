@@ -113,6 +113,7 @@ export function TitleDetail() {
 
         <p className="synopsis">{title.synopsis}</p>
         <p className="credits"><span>Starring:</span> {title.cast.join(', ')}</p>
+        <p className="credits"><span>Director:</span> {title.crew.director} · <span>Writer:</span> {title.crew.writer}</p>
         <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>
 
         <section className="reviews" aria-labelledby="reviews-heading">

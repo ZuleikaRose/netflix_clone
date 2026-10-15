@@ -13,6 +13,7 @@ export const catalog = [
     image: photo.glass, tint: 'none',
     synopsis: 'A forensic glass restorer finds handprints inside a sealed museum case — prints that match her missing sister.',
     cast: ['Mara Quinn', 'Theo Adeyemi', 'Lena Voss'],
+    crew: { director: 'Ines Valero', writer: 'Tom Ashby' },
     reviews: [{ author: 'Jordan', stars: 5, text: 'Every episode ends on a hook. Binged it in a weekend.' }],
   },
   {
@@ -21,6 +22,7 @@ export const catalog = [
     image: photo.book, tint: 'none',
     synopsis: 'An overnight archivist uncovers a ledger of names that keep disappearing from the city records.',
     cast: ['Ivy Marsh', 'Daniel Okafor'],
+    crew: { director: 'Ruth Okonjo', writer: 'Leo Brandt' },
     reviews: [{ author: 'Sam', stars: 4, text: 'Moody and clever. Season 2 is the best one.' }],
   },
   {
@@ -29,6 +31,7 @@ export const catalog = [
     image: photo.sign, tint: 'none',
     synopsis: 'A highway billboard starts displaying warnings meant for one driver — and they keep coming true.',
     cast: ['Rhea Collins', 'Marcus Bell'],
+    crew: { director: 'Mateo Silva', writer: 'Hana Kurosawa' },
     reviews: [{ author: 'Priya', stars: 4, text: 'Simple premise, genuinely scary execution.' }],
   },
   {
@@ -37,6 +40,7 @@ export const catalog = [
     image: photo.light, tint: 'none',
     synopsis: 'A radio astronomer intercepts a transmission that seems to be coming from her own future.',
     cast: ['Noor Haddad', 'Felix Grant'],
+    crew: { director: 'Dara Whitfield', writer: 'Ben Osei' },
     reviews: [],
   },
   {
@@ -45,6 +49,7 @@ export const catalog = [
     image: photo.glass, tint: 'sepia(.9) hue-rotate(160deg) saturate(1.8)',
     synopsis: 'A widow moves into a lake house where the fog carries voices from the families who lived there before.',
     cast: ['Adele Park', 'Simon Reyes'],
+    crew: { director: 'Sofia Lindgren', writer: 'Sofia Lindgren' },
     reviews: [{ author: 'Chris', stars: 3, text: 'Gorgeous to look at, a little slow in the middle.' }],
   },
   {
@@ -53,6 +58,7 @@ export const catalog = [
     image: photo.book, tint: 'sepia(.8) hue-rotate(-20deg)',
     synopsis: 'A washed-up sketch writer gets one last week to save a late-night show nobody watches.',
     cast: ['Gus Lindqvist', 'Tamsin Oyelaran'],
+    crew: { director: 'Jules Carver', writer: 'Nina Patel' },
     reviews: [],
   },
   {
@@ -61,6 +67,7 @@ export const catalog = [
     image: photo.light, tint: 'hue-rotate(250deg) saturate(1.6)',
     synopsis: 'Two strangers keep hearing each other through a broken baby monitor — across two different decades.',
     cast: ['June Alvarez', 'Kit Moreau'],
+    crew: { director: 'Ama Mensah', writer: 'Coby Reyes' },
     reviews: [],
   },
   {
@@ -69,6 +76,7 @@ export const catalog = [
     image: photo.sign, tint: 'hue-rotate(320deg) saturate(1.8)',
     synopsis: 'A disgraced navigator has one night to sail a stolen cargo ship through a storm and out of the cartel’s reach.',
     cast: ['Owen Strand', 'Bea Kaminski'],
+    crew: { director: 'Viktor Hale', writer: 'Ray Donnelly' },
     reviews: [{ author: 'Alex', stars: 5, text: 'Non-stop. The storm sequence is unreal.' }],
   },
   {
@@ -77,6 +85,7 @@ export const catalog = [
     image: photo.light, tint: 'hue-rotate(40deg) saturate(1.8) brightness(1.15)',
     synopsis: 'Three cousins spend a summer keeping the lighthouse lit on an island where the lanterns grant small, strange wishes.',
     cast: ['Poppy Nakamura', 'Eli Brooks'],
+    crew: { director: 'Mei Tanaka', writer: 'Priya Raman' },
     reviews: [{ author: 'Dana', stars: 5, text: 'Our whole family watches this together.' }],
   },
 ]

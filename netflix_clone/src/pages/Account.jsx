@@ -3,15 +3,22 @@ import { Link } from 'react-router-dom'
 import { Field } from '../components/Field.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PlanPicker } from '../components/PlanPicker.jsx'
+import { billingSummary } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
 import { discountedPrice, findPromotion } from '../data/promotions.js'
 import { EMAIL_PATTERN, MIN_PASSWORD, useAuth } from '../state/authContext.js'
+import { Billing } from './account/Billing.jsx'
 import { focusFirstError } from './formUtils.js'
 
 const toggles = [
   { key: 'autoplayNext', label: 'Autoplay next episode', hint: 'Start the next episode automatically on all devices.' },
   { key: 'autoplayPreviews', label: 'Autoplay previews', hint: 'Play previews while you browse.' },
   { key: 'emailUpdates', label: 'Email me new releases', hint: 'News about titles we think you’ll love.' },
+]
+
+// Permissions from the outline (§8): users can opt out of data use for recommendations
+const privacyToggles = [
+  { key: 'personalized', label: 'Personalized recommendations', hint: 'Use what you save, favorite and rate to suggest titles on Home.' },
 ]
 
 function Status({ message }) {
@@ -111,6 +118,7 @@ export function Account() {
           <h2 id="membership-heading">Membership</h2>
           <p><b>{plan.name}</b> · {promo ? <><span className="sr-only">was </span><s className="muted">{plan.price}</s> <span className="sr-only">now </span>{discountedPrice(plan.price, promo.percent)}</> : plan.price}/month</p>
           {promo && <p className="muted">Code {promo.code}: {promo.percent}% off · <Link to="/info/promotions" className="inline-link">Manage</Link></p>}
+          <p className="muted">{billingSummary(user.billing)}</p>
           <p className="muted">Member since 2026 · {user.email}</p>
         </section>
 
@@ -122,6 +130,8 @@ export function Account() {
           <PlanPicker name="account-plan" value={user.plan} onChange={switchPlan} />
           <Status message={planStatus} />
         </section>
+
+        <Billing />
 
         <section className="settings-card" aria-labelledby="playback-heading">
           <h2 id="playback-heading">Playback &amp; notifications</h2>
@@ -141,10 +151,23 @@ export function Account() {
           </label>
         </section>
 
+        <section className="settings-card" aria-labelledby="privacy-heading">
+          <h2 id="privacy-heading">Privacy &amp; data</h2>
+          {privacyToggles.map(({ key, label, hint }) => (
+            <label key={key} className="switch-row">
+              <span><span className="switch-label">{label}</span><span className="muted">{hint}</span></span>
+              <input type="checkbox" role="switch" checked={user.preferences[key]} onChange={(e) => setPreference(key, e.target.checked)} />
+            </label>
+          ))}
+          <p className="muted">More choices: <Link to="/info/do-not-sell" className="inline-link">Do Not Sell My Information</Link> · <Link to="/info/privacy" className="inline-link">Privacy Policy</Link></p>
+        </section>
+
         <nav className="settings-card link-list" aria-label="Help">
           <Link to="/info/support">Customer Support</Link>
           <Link to="/info/faqs">FAQs</Link>
           <Link to="/info/promotions">Promotions &amp; Discounts</Link>
+          <Link to="/info/affiliate">Affiliate Program</Link>
+          <Link to="/info/legal">Legal &amp; Privacy</Link>
           <Link to="/logout" className="danger-link">Sign out</Link>
         </nav>
       </div>

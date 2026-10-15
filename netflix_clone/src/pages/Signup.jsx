@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell.jsx'
 import { Field } from '../components/Field.jsx'
 import { PlanPicker } from '../components/PlanPicker.jsx'
@@ -21,6 +21,9 @@ export function Signup() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', plan: 'standard' })
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState(null)
+  // Affiliate links land here as /signup?ref=CODE
+  const [params] = useSearchParams()
+  const referralCode = params.get('ref')?.replace(/[^A-Z0-9]/gi, '').slice(0, 12)
 
   if (user) return <Navigate to="/" replace />
 
@@ -39,6 +42,7 @@ export function Signup() {
 
   return (
     <AuthShell title="Create Account">
+      {referralCode && <p className="form-success" role="status">You were invited by a friend (code <b>{referralCode.toUpperCase()}</b>). Welcome!</p>}
       <form className="auth-form" onSubmit={submit} noValidate>
         {formError && <p className="form-alert" role="alert">{formError} <Link to="/login">Sign in instead</Link></p>}
         <Field label="Name" autoComplete="name" value={form.name} onChange={updateField('name')} error={errors.name} />

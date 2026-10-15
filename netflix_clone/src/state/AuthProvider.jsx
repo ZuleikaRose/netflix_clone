@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
+import { defaultBilling } from '../data/billing.js'
 import { AuthContext, demoAccount } from './authContext.js'
 
 // Front-end only: accounts live in memory and vanish on refresh. Never use this pattern with real credentials.
 
-const defaultPreferences = { autoplayNext: true, autoplayPreviews: false, emailUpdates: true, maturity: 'all' }
+// personalized: permission to use viewing activity for recommendations (outline §8)
+const defaultPreferences = { autoplayNext: true, autoplayPreviews: false, emailUpdates: true, personalized: true, maturity: 'all' }
 
 const normalizeEmail = (email) => email.trim().toLowerCase()
 
@@ -11,7 +13,7 @@ const normalizeEmail = (email) => email.trim().toLowerCase()
 const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
 
 export function AuthProvider({ children }) {
-  const [accounts, setAccounts] = useState(() => [{ ...demoAccount, password: randomSecret(), preferences: defaultPreferences }])
+  const [accounts, setAccounts] = useState(() => [{ ...demoAccount, password: randomSecret(), preferences: defaultPreferences, billing: defaultBilling }])
   const [currentEmail, setCurrentEmail] = useState(null)
   // Bumped on every sign-in/out so per-session stores (My List, ratings…) start fresh
   const [session, setSession] = useState(0)
@@ -37,7 +39,7 @@ export function AuthProvider({ children }) {
       signup({ name, email, password, plan }) {
         const key = normalizeEmail(email)
         if (accounts.some((a) => a.email === key)) return 'An account with this email already exists.'
-        setAccounts((all) => [...all, { name: name.trim(), email: key, password, plan, preferences: defaultPreferences }])
+        setAccounts((all) => [...all, { name: name.trim(), email: key, password, plan, preferences: defaultPreferences, billing: defaultBilling }])
         setCurrentEmail(key)
         setSession((n) => n + 1)
         return null
@@ -61,6 +63,7 @@ export function AuthProvider({ children }) {
       changePlan: (plan) => patchUser({ plan }),
       applyPromo: (code) => patchUser({ promo: code }),
       removePromo: () => patchUser({ promo: null }),
+      updateBilling: (patch) => patchUser({ billing: { ...user.billing, ...patch } }),
       setPreference: (key, val) => patchUser({ preferences: { ...user.preferences, [key]: val } }),
     }
   }, [accounts, currentEmail, session])
