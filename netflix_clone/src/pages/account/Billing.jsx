@@ -84,7 +84,7 @@ export function Billing() {
 
   return (
     <section className="settings-card" aria-labelledby="billing-heading">
-      <h2 id="billing-heading">Billing</h2>
+      <h2 id="billing-heading" tabIndex={-1}>Billing</h2>
       <p className={`billing-state ${billing.status}`}>{billingSummary(billing)}</p>
 
       <PaymentMethod card={billing.card} onSave={(card) => updateBilling({ card })} />

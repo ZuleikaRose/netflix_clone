@@ -10,7 +10,7 @@ const WCAG_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 const signedInRoutes = [
   '/', '/title/after-dark', '/title/after-dark?play=1', '/search', '/search?q=zzz', '/new', '/my-netflix', '/favorites', '/account',
   '/games', '/games/memory', '/games/trivia', '/does/not/exist',
-  ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell'].map((s) => `/info/${s}`),
+  ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell', 'accessibility'].map((s) => `/info/${s}`),
 ]
 
 // The fixed tab bar overlaps whatever content happens to scroll beneath it, which axe's target-size rule
@@ -42,6 +42,9 @@ test('signed-out pages meet WCAG 2.2 AA', async ({ page }) => {
     await page.goto(path)
     await audit(page, path)
   }
+  await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
+  await audit(page, 'accessibility menu (signed out)')
+  await page.keyboard.press('Escape')
   // Error states are where contrast and labelling most often break
   await page.getByRole('button', { name: 'Start Watching' }).click()
   await audit(page, '/signup with errors')
@@ -96,6 +99,27 @@ test('interactive states meet WCAG 2.2 AA', async ({ page }) => {
   await page.getByLabel(/I agree to the program terms/).check()
   await page.getByRole('button', { name: 'Apply now' }).click()
   await audit(page, 'affiliate dashboard')
+
+  await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
+  await page.getByRole('button', { name: /Low vision/ }).click()
+  await audit(page, 'accessibility menu with a profile on')
+  await page.getByRole('button', { name: 'Reset all settings' }).click()
+  await page.keyboard.press('Escape')
+
+  await navigateInApp(page, '/title/night-shift?play=1')
+  await expect(page.getByLabel('Seek')).not.toHaveAttribute('max', '0')
+  await page.getByRole('button', { name: 'Closed captions' }).click()
+  await page.getByLabel('Seek').fill('5')
+  await expect(page.locator('.captions')).toBeVisible()
+  await audit(page, 'player with captions')
+  await page.getByLabel('Seek').fill(await page.getByLabel('Seek').getAttribute('max'))
+  await expect(page.getByRole('group', { name: 'Playback finished' })).toBeVisible()
+  await audit(page, 'player end screen')
+
+  await navigateInApp(page, '/account')
+  await page.getByRole('button', { name: 'Delete account' }).click()
+  await page.getByRole('button', { name: 'Delete my account access' }).click()
+  await audit(page, 'delete account errors')
 })
 
 test('keyboard focus is never hidden behind the sticky header or tab bar (WCAG 2.4.11)', async ({ page }) => {

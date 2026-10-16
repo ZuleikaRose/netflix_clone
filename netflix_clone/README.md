@@ -13,7 +13,7 @@ npm run lint
 npm run build
 ```
 
-On the sign-in screen, choose **Use demo account**, or create an account with **Sign up**. The demo account's password is random on every page load, so the button is the only way into it.
+On the sign-in screen, choose **Use demo account**, or create an account with **Sign up**. The demo account's password is random on every page load; it's shown under the demo button and in Account → Change password.
 
 ### Demo data for trying features
 
@@ -25,6 +25,10 @@ On the sign-in screen, choose **Use demo account**, or create an account with **
 | Referral sign-up | `/signup?ref=ALEX26` shows the "invited by a friend" welcome |
 | Support chat | Ask about passwords, promo codes or devices; answers come from the FAQs |
 | Maturity filter | Account → Maturity rating → Kids leaves only *Lantern Island* |
+| Accessibility menu | The person icon at the top of any page (also on sign-in). Try the *Low vision* or *Dyslexia friendly* profile |
+| Captions and player | Every title plays a real sample clip. Press **CC** (or the **C** key) for its English captions; drag the seek bar to the end of a *Night Shift* episode to see Autoplay next episode |
+| Autoplay previews | Off by default: Home shows a **Preview** button. Turn on Account → Autoplay previews and previews start by themselves (never under reduced motion or *Stop animations*) |
+| Delete account | Account → Danger zone. Cancel the membership in Billing first, then type `alex@example.com` and the password shown in Change password. The demo button recreates the demo account |
 
 ### Troubleshooting
 
@@ -50,21 +54,22 @@ npm run test:e2e:report           # open the HTML report from the last run
 | `e2e/games.spec.js` | A full Poster Match playthrough, all five Plot Twist rounds |
 | `e2e/layout.spec.js` | Every route: heading present, no horizontal overflow, 44px touch targets, no console errors; keyboard focus order |
 | `e2e/features.spec.js` | Carousel, service banner, personalization opt-out, crew, release-year filter, Watch list/Favorites routes, billing, affiliate program, referral sign-up, legal hub |
-| `e2e/a11y.spec.js` | [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.2 AA audit of every page and key interactive states (form errors, chat, expanded FAQ, answered trivia, billing errors and cancel confirmation, affiliate form and dashboard); keyboard focus never hidden behind the sticky bars (2.4.11) |
+| `e2e/accessibility.spec.js` | Accessibility menu (signed out too, Escape, profiles, reset, no overflow at 150% text, reading guide), Accessibility Policy links, real clip playback and controls, captions from the clip's track (button, C key, menu, size), autoplay next episode on/off, autoplay previews vs. Stop animations and reduced motion, delete account (blocked until cancelled, email and password checks, data removal ticket) |
+| `e2e/a11y.spec.js` | [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.2 AA audit of every page and key interactive states (form errors, chat, expanded FAQ, answered trivia, billing errors and cancel confirmation, affiliate form and dashboard, accessibility menu, player with captions and end screen, delete account errors); keyboard focus never hidden behind the sticky bars (2.4.11) |
 
 CI (`.github/workflows/ci.yml`) runs lint, build and the full suite on every push to `main` and on pull requests, and uploads the HTML report as an artifact.
 
-Tests serve the production build with `e2e/serve.js`, a tiny static server with SPA fallback, rather than `vite preview`. Because all state lives in memory, tests sign in once and then use client-side navigation (`navigateInApp()` in `e2e/helpers.js`), since a full page load signs the user out.
+Tests serve the production build with `e2e/serve.js`, a tiny static server with SPA fallback and byte-range support (needed to seek video), rather than `vite preview`. Because all state lives in memory, tests sign in once and then use client-side navigation (`navigateInApp()` in `e2e/helpers.js`), since a full page load signs the user out.
 
 ## What's inside
 
 | Area | Routes | Highlights |
 | --- | --- | --- |
 | Auth | `/login`, `/signup`, `/logout` | Sign-in guard that returns you to the page you wanted; plan picker; accessible inline validation |
-| Browse | `/`, `/title/:id`, `/search`, `/new` | Featured carousel, maintenance banner, TV/Movie filters, Top 10, "Because You Liked…" recommendations, mock player, ratings & reviews, share, URL-driven search filters |
-| Library | `/my-netflix`, `/watchlist`, `/favorites`, `/account` | Watch list & Favorites pages; profile, password, plan, billing (payment method, billing date, pause, cancel), playback, maturity and privacy settings |
+| Browse | `/`, `/title/:id`, `/search`, `/new` | Featured carousel with previews, maintenance banner, TV/Movie filters, Top 10, "Because You Liked…" recommendations, mock player with captions and full controls, ratings & reviews, share, URL-driven search filters |
+| Library | `/my-netflix`, `/watchlist`, `/favorites`, `/account` | Watch list & Favorites pages; profile, password, plan, billing (payment method, billing date, pause, cancel), autoplay, maturity, accessibility and privacy settings, danger zone (delete account) |
 | Games | `/games`, `/games/:gameId` | Poster Match (memory) and Plot Twist (trivia), with best scores for the session |
-| Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Affiliate Program (join, referral dashboard, tiered commissions, marketing materials), Legal & Privacy hub, Terms, Privacy, Do Not Sell |
+| Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Affiliate Program (join, referral dashboard, tiered commissions, marketing materials), Legal & Privacy hub, Terms, Privacy, Do Not Sell, Accessibility Policy |
 
 The maturity setting in Account filters every catalog surface: Home, Search, New & Hot, related titles and games.
 
@@ -73,11 +78,12 @@ The maturity setting in Account filters every catalog surface: Home, Search, New
 ```
 src/
   components/   Layout (phone frame + tab bar + footer), PageHeader, Field, PosterCard, ShareButton,
-                useCopyToClipboard, useDocumentTitle
+                useCopyToClipboard, useDocumentTitle, Player, Preview/usePreview,
+                AccessibilityPanel, AccessibilityButton
   data/         Catalog, plans, billing, promotions, affiliate program, FAQs, legal copy, service status
                 (all sample content)
   pages/        One file per route; account/, info/ and games/ hold the sub-pages
-  state/        AuthProvider (accounts, billing, preferences, session) and LibraryProvider
+  state/        AuthProvider (accounts, billing, preferences, session), AccessibilityProvider (menu settings) and LibraryProvider
                 (per-session list, ratings, reviews, reports, affiliate account, dismissed notices)
 e2e/            Playwright specs, helpers and serve.js
 ```
@@ -91,8 +97,11 @@ Requirements and the outline-to-route map are in [`../CLAUDE.md`](../CLAUDE.md).
 - Designed for 390px phones. On wider screens the app renders inside a centered phone frame with its own scroll area, so the tab bar stays pinned.
 - One accent color (`#e50914`) for primary actions. Form errors use a distinct orange (`#e87c03`).
 - Touch targets are at least 44px, keyboard focus is always visible, and every input has a label. Motion is subtle and turned off under `prefers-reduced-motion`.
+- The accessibility menu's settings are applied as `data-a11y-*` attributes on `<html>` and reset on reload, like all other state. Its readable and dyslexia-friendly fonts are Atkinson Hyperlegible and Lexend from Google Fonts.
 
 ## Caveats
 
 - Authentication, billing and the affiliate program are mocks for demonstration only. Passwords are held in plain JavaScript memory and only a card's brand, last 4 digits and expiry are kept; never reuse these patterns with real data.
+- Sample clips (`public/media/`, about 17 MB) are excerpts of the Blender Foundation's open movies *Sintel* and *Tears of Steel* (CC BY 3.0) and *Elephants Dream* (CC BY 2.5), re-encoded to 360p. English captions come from Wikimedia Commons subtitles (CC BY-SA 4.0), re-timed to each excerpt and covering dialogue only. Credits appear under the player and in Legal & Privacy → Media credits.
+- Deleting an account removes it from memory only.
 - Titles, synopses, reviews and legal text are placeholder content. Posters reuse four Unsplash photos with CSS color filters.

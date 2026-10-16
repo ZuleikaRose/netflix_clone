@@ -12,6 +12,7 @@ export const infoPages = [
   { slug: 'terms', label: 'Terms of Service' },
   { slug: 'privacy', label: 'Privacy Policy' },
   { slug: 'do-not-sell', label: 'Do Not Sell My Information' },
+  { slug: 'accessibility', label: 'Accessibility Policy' },
 ]
 
 export const infoLabel = (slug) => infoPages.find((p) => p.slug === slug)?.label

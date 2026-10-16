@@ -28,7 +28,7 @@ test('a title can be saved, favorited, rated, reviewed and played', async ({ pag
   await page.getByRole('button', { name: 'Post review' }).click()
   await expect(page.locator('.review-list li').first()).toContainText('Creepy in the best way.')
 
-  await page.getByRole('button', { name: /Resume|Play/ }).click()
+  await page.getByRole('button', { name: /^\s*(Resume|Play)$/ }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Now playing · After Dark' })).toBeVisible()
 
   await tabBar(page).getByRole('link', { name: 'My Netflix' }).click()

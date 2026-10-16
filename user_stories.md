@@ -23,3 +23,11 @@ Today the app keeps all of this in memory and resets on refresh. These stories d
 15. As an affiliate, I want each click and sign-up from my referral link counted so that I can see my tier and earnings.
 16. As a user, I want my best score in each game saved so that I can try to beat it.
 17. As a user, I want to see when each review, ticket and referral was created so that I know how recent it is.
+18. As a user, I want to adjust text size, font, spacing, contrast and color, and turn on reading and navigation aids from an accessibility menu, so that the app works for how I see, read and move.
+19. As a user, I want one-tap accessibility profiles (seizure safe, low vision, ADHD friendly, dyslexia friendly, keyboard navigation, deaf and hard of hearing) so that I can set up several settings at once.
+20. As a user, I want to read an Accessibility Policy linked from the footer so that I know what the app supports and how to report a problem.
+21. As a viewer, I want to watch real video with controls (play, pause, seek, skip 10 seconds, mute, speed, full screen) that work with a keyboard so that I can watch comfortably.
+22. As a deaf or hard-of-hearing viewer, I want to turn closed captions on and choose their size so that I can follow along.
+23. As a user, I want to turn autoplaying previews and next episodes on or off, and have them stay off when I ask for reduced motion, so that video doesn't start without my say.
+24. As a user, I want to delete my account from a danger zone once my subscription is cancelled, by typing my email and entering my password to confirm, so that I can leave the service; deleting only removes my access.
+25. As a user, I want to contact support with a data removal ticket so that my stored data can be erased if I choose.

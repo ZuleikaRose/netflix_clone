@@ -29,6 +29,8 @@ Finally the execution of this app should happen in phases, phases should corresp
 
 Before writing any code, please confirm your understanding of the application by summarizing the user journey and listing the pages you plan to build.
 
+The app must also meet WCAG 2.2 AA and include: an Accessibility Policy page linked in the footer; an accessibility menu on every page (like the OneTap accessibility app) with one-tap profiles and settings for text size, fonts, spacing, contrast, color, highlighted links and headings, focus outline, cursor, reading guide, hiding images and stopping animations; a video player that plays short open-licensed clips (such as the Creative Commons Blender films) with real caption files, with player controls and a closed captions toggle; user control over autoplaying video (Autoplay previews and Autoplay next episode must actually work); and a red Delete Account button in a danger zone in account settings that requires a cancelled subscription, the user's typed email and their password, explains that it only removes access, and points to a support ticket for data removal.
+
 ---
 
 ## Shorter variant if you're short on class time

@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { catalog } from '../../data/catalog.js'
 import { useLibrary } from '../../state/libraryContext.js'
 import { focusFirstError } from '../formUtils.js'
 
-const types = ['Playback problem', 'Video or audio quality', 'App bug', 'Account or sign-in', 'Billing', 'Other']
+const types = ['Playback problem', 'Video or audio quality', 'Captions or accessibility', 'App bug', 'Account or sign-in', 'Billing', 'Data removal request', 'Other']
+// Links can preselect a type, e.g. /info/report-issue?type=data-removal from Delete account
+const typeParams = { 'data-removal': 'Data removal request', accessibility: 'Captions or accessibility' }
 
 // Attached automatically so support can reproduce the problem
 const deviceSummary = () => `${navigator.userAgentData?.platform || navigator.platform || 'Unknown OS'} · ${window.innerWidth}×${window.innerHeight} · ${navigator.onLine ? 'online' : 'offline'}`
@@ -12,7 +15,8 @@ const blank = { type: types[0], titleId: '', summary: '', steps: '' }
 
 export function ReportIssue() {
   const { issues, addIssue } = useLibrary()
-  const [form, setForm] = useState(blank)
+  const [params] = useSearchParams()
+  const [form, setForm] = useState(() => ({ ...blank, type: typeParams[params.get('type')] ?? blank.type }))
   const [errors, setErrors] = useState({})
   const [justFiled, setJustFiled] = useState(null)
   const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })

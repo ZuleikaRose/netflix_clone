@@ -12,9 +12,10 @@ app_outline/          Requirements (source of truth for features)
   style_guide.md      Visual rules (see "Design rules" below)
 netflix_clone/        The Vite app — run all npm commands here
   src/data/           Catalog, plans, billing, promotions, affiliate program, FAQs, legal copy, service status
-  src/state/          AuthProvider (accounts, billing, preferences) and LibraryProvider (per-session data)
+  src/state/          AuthProvider (accounts, billing, preferences), AccessibilityProvider (accessibility menu settings)
+                      and LibraryProvider (per-session data)
   src/pages/          One file per route; info/, games/ and account/ hold sub-pages
-  src/components/     Layout (phone frame, tab bar, footer), PageHeader, Field, hooks
+  src/components/     Layout (phone frame, tab bar, footer), PageHeader, Field, Player, Preview, AccessibilityPanel, hooks
   e2e/                Playwright specs + serve.js (static server used by the tests)
 .github/workflows/    CI: lint, build, Playwright on push/PR
 ```
@@ -37,15 +38,17 @@ npm run test:e2e:report
 | Outline page (§6) | Route | File |
 | --- | --- | --- |
 | Homepage | `/` | `pages/Home.jsx` (featured carousel, service banner, personalized row) |
-| Movie / TV Show detail | `/title/:id` | `pages/TitleDetail.jsx` |
+| Movie / TV Show detail (incl. video player, captions) | `/title/:id` (`?play=1` opens the player) | `pages/TitleDetail.jsx`, `components/Player.jsx`, `data/clips.js`, `public/media/` |
 | Search Results | `/search` | `pages/Search.jsx` (query, genre, type, release year, sort — all in the URL) |
 | Watch list / Favorites | `/watchlist`, `/favorites` (`/my-netflix` = watch list) | `pages/MyNetflix.jsx` |
-| Account Settings (incl. billing) | `/account` | `pages/Account.jsx`, `pages/account/Billing.jsx` |
+| Account Settings (incl. billing, autoplay, accessibility, delete account) | `/account` | `pages/Account.jsx`, `pages/account/Billing.jsx`, `pages/account/DeleteAccount.jsx` |
 | Login / Signup / Logout | `/login`, `/signup`, `/logout` | `pages/Login.jsx`, `Signup.jsx`, `Logout.jsx` |
 | Customer Support, FAQs, Feedback, Issue Reporting | `/info/support`, `/info/faqs`, `/info/feedback`, `/info/report-issue` | `pages/info/*` |
 | Promotions/Discounts, Technical Requirements, AI Integration | `/info/promotions`, `/info/tech-requirements`, `/info/ai` | `pages/info/*` |
 | Affiliate Program | `/info/affiliate` | `pages/info/Affiliate.jsx`, data in `data/affiliate.js` |
 | Legal and Privacy, Terms, Privacy Policy, Do Not Sell | `/info/legal`, `/info/terms`, `/info/privacy`, `/info/do-not-sell` | `pages/info/LegalHub.jsx`, `Legal.jsx`, `DoNotSell.jsx` |
+| Accessibility Policy | `/info/accessibility` | `pages/info/AccessibilityPolicy.jsx` |
+| Accessibility menu (every page) | header icon, `<dialog>` | `components/AccessibilityPanel.jsx`, `state/AccessibilityProvider.jsx`, `state/accessibilityContext.js` |
 | Error | any unknown route | `pages/NotFound.jsx` |
 | (extra) Games, New & Hot | `/games`, `/games/:gameId`, `/new` | `pages/Games.jsx`, `pages/NewHot.jsx` |
 
@@ -57,10 +60,27 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
 
 - **All state is in memory** — no backend, no localStorage. A full page load signs the user out and resets
   everything; this is a requirement, not a bug. `LibraryProvider` is keyed by the auth session.
-- **Demo account**: "Use demo account" on `/login`. Its password is random per page load (`crypto.getRandomValues`);
-  never hardcode credentials. Billing is simulated: store only card brand, last four and expiry, never full numbers or CVC.
+- **Demo account**: "Use demo account" on `/login`. Its password is random per page load (`crypto.getRandomValues`)
+  and shown on `/login` and in Account → Change password, so the demo user can change it or confirm deleting the
+  account; never hardcode credentials. Billing is simulated: store only card brand, last four and expiry, never full numbers or CVC.
 - **Forms**: use `components/Field.jsx`; validate on submit, then `focusFirstError(form)`; errors use `--error`
   (`#e87c03`), never the red accent.
+- **Accessibility menu**: settings live in `AccessibilityProvider` (above the routes, so they work signed out and survive
+  sign-in, but reset on reload). It mirrors them onto `<html>` as `data-a11y-*` attributes styled at the end of
+  `index.css`; text size uses CSS `zoom` on `.page`, and contrast/saturation use a `filter` on `<html>` (the only element
+  whose filter doesn't break fixed/sticky children). Add a setting in `accessibilityContext.js` (defaults, choices or
+  switches, profiles), then style its attribute.
+- **Video**: `public/media/` holds three short open-movie excerpts (Sintel, Tears of Steel, Elephants Dream; Blender
+  Foundation, CC BY) as WebM + MP4, with English `.vtt` captions from Wikimedia Commons (CC BY-SA 4.0) re-timed to each
+  excerpt. `data/clips.js` maps every catalog title to a clip and holds the credits; the player shows them and the Legal
+  hub lists them under "Media credits" (CC BY requires attribution, so keep both). The `<track>` is kept `hidden` and
+  `Player.jsx` draws the active cue itself. `e2e/serve.js` answers byte-range requests, which browsers need to seek
+  video. Playwright's Chromium only plays WebM, so keep the WebM source first. Autoplay
+  previews (`usePreview`) start only when `preferences.autoplayPreviews` is on **and** motion is allowed
+  (`useMotionAllowed`: no reduced motion, no "Stop animations"); every preview has a pause/play toggle.
+- **Delete account**: needs `billing.status === 'cancelled'`, the typed email and the account password; it removes the account from memory
+  only (data removal is a support ticket, `/info/report-issue?type=data-removal`). The sign-in notice comes from
+  `notice` in `AuthProvider`, because signing out redirects before a navigation state could arrive.
 - **Copy to clipboard**: use `useCopyToClipboard` — it handles a missing/blocked clipboard by showing the text.
 - **Non-component exports** go in `.js` files, not next to components (React Fast Refresh lint rule).
 - **Names**: hooks only for real hooks (`use*`); handlers are verbs (`applyCode`, `goToNextRound`).
@@ -72,12 +92,17 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
 - Touch targets ≥ 44px (use a `::before` hit area if the visual must be smaller); visible focus; labels on every input.
 - Motion is subtle and disabled under `prefers-reduced-motion`; no auto-advancing carousels (WCAG 2.2.2).
 - WCAG 2.2 AA is enforced by `e2e/a11y.spec.js` (axe-core) — keep it green.
+- Every page header has the accessibility menu button; the footer links the Accessibility Policy.
+- Destructive actions use `.delete-fill` (darker red `#c40812`), separate from the accent and the error orange.
 
 ## Testing
 
 - Every change should keep `npm run lint` and `npm run test:e2e` green; CI runs both.
 - Tests sign in once with `signInAsDemo()` and move with `navigateInApp()` (client-side), because a reload logs out.
-- New features get a spec (see `e2e/features.spec.js` for the latest outline-driven additions).
+- New features get a spec: `e2e/features.spec.js` (carousel, billing, affiliate…) and `e2e/accessibility.spec.js`
+  (accessibility menu, policy, player and captions, autoplay, delete account).
+- Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility
+  menu" also contains it.
 
 ## Environment gotchas
 

@@ -3,16 +3,18 @@ import { Link } from 'react-router-dom'
 import { Field } from '../components/Field.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PlanPicker } from '../components/PlanPicker.jsx'
+import { useAccessibility } from '../state/accessibilityContext.js'
 import { billingSummary } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
 import { discountedPrice, findPromotion } from '../data/promotions.js'
-import { EMAIL_PATTERN, MIN_PASSWORD, useAuth } from '../state/authContext.js'
+import { EMAIL_PATTERN, MIN_PASSWORD, demoAccount, useAuth } from '../state/authContext.js'
 import { Billing } from './account/Billing.jsx'
+import { DeleteAccount } from './account/DeleteAccount.jsx'
 import { focusFirstError } from './formUtils.js'
 
 const toggles = [
   { key: 'autoplayNext', label: 'Autoplay next episode', hint: 'Start the next episode automatically on all devices.' },
-  { key: 'autoplayPreviews', label: 'Autoplay previews', hint: 'Play previews while you browse.' },
+  { key: 'autoplayPreviews', label: 'Autoplay previews', hint: 'Start silent previews on Home and title pages by themselves. They never autoplay when Stop animations or reduced motion is on.' },
   { key: 'emailUpdates', label: 'Email me new releases', hint: 'News about titles we think you’ll love.' },
 ]
 
@@ -55,7 +57,7 @@ function ProfileForm({ user, updateProfile }) {
   )
 }
 
-function PasswordForm({ email, changePassword }) {
+function PasswordForm({ email, changePassword, demoPassword }) {
   const blank = { current: '', next: '', confirm: '' }
   const [form, setForm] = useState(blank)
   const [errors, setErrors] = useState({})
@@ -85,6 +87,7 @@ function PasswordForm({ email, changePassword }) {
   return (
     <form className="settings-card" onSubmit={submit} noValidate aria-labelledby="password-heading">
       <h2 id="password-heading">Change password</h2>
+      {demoPassword && <p className="demo-credentials">Demo account password for this page load: <code>{demoPassword}</code></p>}
       {/* Lets password managers associate the new password with this account */}
       <input type="text" name="username" autoComplete="username" value={email} readOnly hidden />
       <Field label="Current password" type="password" autoComplete="current-password" value={form.current} onChange={updateField('current')} error={errors.current} />
@@ -97,7 +100,8 @@ function PasswordForm({ email, changePassword }) {
 }
 
 export function Account() {
-  const { user, updateProfile, changePassword, changePlan, removePromo, setPreference } = useAuth()
+  const { user, demoPassword, updateProfile, changePassword, changePlan, removePromo, setPreference } = useAuth()
+  const { openMenu } = useAccessibility()
   const [planStatus, setPlanStatus] = useState('')
   const plan = findPlan(user.plan)
   const promo = findPromotion(user.promo)
@@ -123,7 +127,7 @@ export function Account() {
         </section>
 
         <ProfileForm user={user} updateProfile={updateProfile} />
-        <PasswordForm email={user.email} changePassword={changePassword} />
+        <PasswordForm email={user.email} changePassword={changePassword} demoPassword={user.email === demoAccount.email ? demoPassword : null} />
 
         <section className="settings-card" aria-labelledby="plan-heading">
           <h2 id="plan-heading">Plan</h2>
@@ -151,6 +155,13 @@ export function Account() {
           </label>
         </section>
 
+        <section className="settings-card" aria-labelledby="a11y-settings-heading">
+          <h2 id="a11y-settings-heading">Accessibility</h2>
+          <p className="muted">Text size, readable fonts, contrast, captions, reading aids and more. The menu is also behind the accessibility icon at the top of every page.</p>
+          <button type="button" className="cta" aria-haspopup="dialog" onClick={openMenu}>Open accessibility menu</button>
+          <Link to="/info/accessibility" className="ghost-cta">Read our Accessibility Policy</Link>
+        </section>
+
         <section className="settings-card" aria-labelledby="privacy-heading">
           <h2 id="privacy-heading">Privacy &amp; data</h2>
           {privacyToggles.map(({ key, label, hint }) => (
@@ -168,8 +179,11 @@ export function Account() {
           <Link to="/info/promotions">Promotions &amp; Discounts</Link>
           <Link to="/info/affiliate">Affiliate Program</Link>
           <Link to="/info/legal">Legal &amp; Privacy</Link>
+          <Link to="/info/accessibility">Accessibility Policy</Link>
           <Link to="/logout" className="danger-link">Sign out</Link>
         </nav>
+
+        <DeleteAccount />
       </div>
     </>
   )

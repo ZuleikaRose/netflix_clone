@@ -4,6 +4,9 @@ import { Logo } from '../components/Logo.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { PosterCard } from '../components/PosterCard.jsx'
+import { PreviewArt, PreviewToggle } from '../components/Preview.jsx'
+import { usePreview } from '../components/usePreview.js'
+import { AccessibilityButton } from '../components/AccessibilityButton.jsx'
 import { serviceStatus } from '../data/serviceStatus.js'
 import { useAuth } from '../state/authContext.js'
 import { useCatalog } from '../state/useCatalog.js'
@@ -41,6 +44,7 @@ export function Home() {
   const top10 = titles.filter((t) => t.top10).sort((a, b) => a.top10 - b.top10)
   const newReleases = titles.filter((t) => t.isNew && t.id !== featured?.id)
   const saved = featured && myList.includes(featured.id)
+  const preview = usePreview(featured ?? {})
   const [first, ...rest] = featured ? featured.title.toUpperCase().split(' ') : []
 
   // Personalized row: seed from the most recent favorite, then 4★+ ratings, then My List
@@ -58,6 +62,7 @@ export function Home() {
       <header className="topbar">
         <Link to="/" className="brand" aria-label="Home"><Logo size={34} /></Link>
         <div className="top-actions">
+          <AccessibilityButton />
           <Link to="/search" className="icon-button" aria-label="Search"><Icon name="search" /></Link>
           <Link to="/my-netflix" className="avatar-hit" aria-label="My Netflix profile"><span className="avatar" aria-hidden="true"><span /><span /><i /></span></Link>
         </div>
@@ -85,12 +90,13 @@ export function Home() {
       )}
 
       {featured && <section className="hero" aria-roledescription="carousel" aria-label="Featured titles">
-        <img src={featured.image} alt="" style={{ filter: featured.tint }} />
+        <PreviewArt title={featured} preview={preview} />
         <div className="hero-shade" />
         <div className="hero-copy">
           <p className="eyebrow"><b>N</b> {featured.type === 'show' ? 'SERIES' : 'FILM'}</p>
           <h1 className="hero-title">{first}<br />{rest.join(' ')}</h1>
           <p className="meta">{featured.mood.join('  ·  ')}</p>
+          <PreviewToggle title={featured} preview={preview} />
           <div className="hero-actions">
             <button className="play" onClick={() => navigate(`/title/${featured.id}?play=1`)}><span aria-hidden="true">▶</span> Play</button>
             <button className={saved ? 'secondary saved' : 'secondary'} aria-pressed={saved} onClick={() => toggleMyList(featured.id)}>

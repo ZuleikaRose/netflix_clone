@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { infoLabel } from '../data/infoPages.js'
+import { AccessibilityPolicy } from './info/AccessibilityPolicy.jsx'
 import { Affiliate } from './info/Affiliate.jsx'
 import { AiIntegration } from './info/AiIntegration.jsx'
 import { DoNotSell } from './info/DoNotSell.jsx'
@@ -27,6 +28,7 @@ const pages = {
   terms: <Legal doc="terms" />,
   privacy: <Legal doc="privacy" />,
   'do-not-sell': <DoNotSell />,
+  accessibility: <AccessibilityPolicy />,
 }
 
 export function InfoPage() {

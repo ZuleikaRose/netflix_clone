@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell.jsx'
 import { Field } from '../components/Field.jsx'
-import { EMAIL_PATTERN, useAuth } from '../state/authContext.js'
+import { EMAIL_PATTERN, demoAccount, useAuth } from '../state/authContext.js'
 import { focusFirstError } from './formUtils.js'
 
 export function Login() {
-  const { user, login, loginDemo } = useAuth()
+  const { user, notice, demoPassword, login, loginDemo } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
@@ -39,6 +39,7 @@ export function Login() {
 
   return (
     <AuthShell title="Sign In">
+      {notice && <p className="form-success" role="status">{notice}</p>}
       <form className="auth-form" onSubmit={submit} noValidate>
         {formError && <p className="form-alert" role="alert">{formError}</p>}
         <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={updateField('email')} error={errors.email} />
@@ -46,6 +47,7 @@ export function Login() {
         <button type="submit" className="cta">Sign In</button>
       </form>
       <button type="button" className="ghost-cta" onClick={signInWithDemo}>Use demo account</button>
+      {demoPassword && <p className="demo-credentials">Or sign in as <b>{demoAccount.email}</b> with password <code>{demoPassword}</code> (new on every reload).</p>}
       <p className="auth-switch">New to Netflix? <Link to="/signup">Sign up now.</Link></p>
     </AuthShell>
   )

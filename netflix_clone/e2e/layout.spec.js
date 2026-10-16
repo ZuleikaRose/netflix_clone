@@ -3,7 +3,7 @@ import { navigateInApp, signInAsDemo } from './helpers.js'
 
 const routes = [
   '/', '/title/behind-the-glass', '/search', '/new', '/my-netflix', '/watchlist', '/favorites', '/account', '/games', '/games/memory', '/games/trivia',
-  ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell'].map((s) => `/info/${s}`),
+  ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell', 'accessibility'].map((s) => `/info/${s}`),
 ]
 
 // Style guide: >= 44px touch targets. Counts ::before hit-area extensions and wrapping <label>s; inline links in prose are exempt (WCAG 2.5.8).
@@ -52,11 +52,11 @@ test('keyboard focus is visible and follows a logical order on Home', async ({ p
   // Start from the top of the document, not the just-removed sign-in button
   await page.evaluate(() => document.activeElement?.blur())
   const order = []
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     await page.keyboard.press('Tab')
     order.push(await page.evaluate(() => document.activeElement.getAttribute('aria-label') || document.activeElement.innerText))
   }
-  expect(order).toEqual(['Home', 'Search', 'My Netflix profile', 'TV Shows'])
+  expect(order).toEqual(['Home', 'Accessibility menu', 'Search', 'My Netflix profile', 'TV Shows'])
   const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)
   expect(outline).toBe('solid')
 })

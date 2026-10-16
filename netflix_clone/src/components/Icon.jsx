@@ -14,6 +14,14 @@ const iconPaths = {
   play: <path d="M7 4.5v15l12-7.5Z" />,
   pause: <path d="M8 5v14M16 5v14" />,
   share: <><circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="m8.2 10.8 7.6-4.6M8.2 13.2l7.6 4.6" /></>,
+  accessibility: <><circle cx="12" cy="12" r="10" /><circle cx="12" cy="6.8" r="1.4" /><path d="M7 9.6 12 11l5-1.4M12 11v3.2l-2.4 4.6M12 14.2l2.4 4.6" /></>,
+  captions: <><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6M17 10.2a2.2 2.2 0 1 0 0 3.6" /></>,
+  volume: <><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4Z" /><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></>,
+  mute: <><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4Z" /><path d="m16 9.5 5 5M21 9.5l-5 5" /></>,
+  rewind: <><path d="M4 12a8 8 0 1 0 2.4-5.7" /><path d="M4 4v4.5h4.5" /><path d="M10 10v5M13 10h2.5v5H13Z" /></>,
+  forward: <><path d="M20 12a8 8 0 1 1-2.4-5.7" /><path d="M20 4v4.5h-4.5" /><path d="M8.5 10v5M11.5 10H14v5h-2.5Z" /></>,
+  fullscreen: <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />,
+  exitFullscreen: <path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" />,
 }
 
 export function Icon({ name, filled = false }) {

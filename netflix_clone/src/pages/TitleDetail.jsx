@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
+import { Player } from '../components/Player.jsx'
+import { Preview } from '../components/Preview.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
 import { ShareButton } from '../components/ShareButton.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
@@ -10,21 +12,6 @@ import { useCatalog } from '../state/useCatalog.js'
 import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { NotFound } from './NotFound.jsx'
-
-function Player({ title, onClose }) {
-  const [paused, setPaused] = useState(false)
-  return (
-    <section className="player" aria-label={`Now playing: ${title.title}`}>
-      <img src={title.image} alt="" style={{ filter: `brightness(.5) ${title.tint}` }} />
-      <p className="player-status" role="status">{paused ? 'Paused' : 'Now playing'} · {title.title}</p>
-      <div className="player-controls">
-        <button className="icon-button" aria-label={paused ? 'Resume' : 'Pause'} onClick={() => setPaused(!paused)}><Icon name={paused ? 'play' : 'pause'} /></button>
-        <div className="progress player-progress"><span style={{ width: `${title.progress ?? 4}%` }} /></div>
-        <button className="icon-button" aria-label="Close player" onClick={onClose}><Icon name="close" /></button>
-      </div>
-    </section>
-  )
-}
 
 function StarRating({ value, onChange, label }) {
   return (
@@ -86,7 +73,7 @@ export function TitleDetail() {
         ? <Player title={title} onClose={() => setParams({}, { replace: true })} />
         : (
           <div className="detail-art">
-            <img src={title.image} alt="" style={{ filter: title.tint }} />
+            <Preview title={title} />
             <div className="hero-shade" />
           </div>
         )}
