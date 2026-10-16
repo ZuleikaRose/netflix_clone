@@ -19,10 +19,29 @@ CREATE TABLE netflix_tables (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE titles (
+  id varchar PRIMARY KEY, -- catalog slug, e.g. 'after-dark'
+  title varchar NOT NULL,
+  type varchar NOT NULL, -- 'movie' or 'show'
+  release_year smallint,
+  maturity_rating varchar, -- e.g. 'TV-14', 'PG-13'
+  seasons smallint, -- shows only
+  runtime varchar, -- movies only, e.g. '1h 52m'
+  genres text,
+  synopsis text,
+  cast_members text,
+  director varchar,
+  writer varchar,
+  popularity smallint,
+  is_new boolean NOT NULL DEFAULT false,
+  top10_rank smallint,
+  image_url varchar
+);
+
 CREATE TABLE watch_list_tables (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES netflix_tables (id),
-  title_id varchar NOT NULL, -- catalog slug, e.g. 'after-dark'
+  title_id varchar NOT NULL REFERENCES titles (id),
   added_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, title_id)
 );
@@ -30,7 +49,7 @@ CREATE TABLE watch_list_tables (
 CREATE TABLE favorites (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES netflix_tables (id),
-  title_id varchar NOT NULL,
+  title_id varchar NOT NULL REFERENCES titles (id),
   added_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, title_id)
 );
@@ -51,7 +70,7 @@ CREATE TABLE tickets (
 CREATE TABLE review (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES netflix_tables (id),
-  title_id varchar NOT NULL,
+  title_id varchar NOT NULL REFERENCES titles (id),
   rating smallint CHECK (rating BETWEEN 1 AND 5), -- star rating; a rating alone has no body
   body text,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -88,7 +107,7 @@ CREATE TABLE promo_codes (
 CREATE TABLE reminders (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES netflix_tables (id),
-  title_id varchar NOT NULL,
+  title_id varchar NOT NULL REFERENCES titles (id),
   release_date date,
   created_at timestamptz
 );
