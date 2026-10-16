@@ -5,6 +5,8 @@ const photo = {
   light: 'https://images.unsplash.com/photo-1614201842267-206a09286c3b?auto=format&fit=crop&w=500&q=80',
 }
 
+// Built-in catalog: shown until the Supabase `titles` request returns, and used on its own when Supabase isn't
+// configured or can't be reached. supabase/migrations/*_seed_titles.sql loads these same titles into the database.
 // `tint` is a CSS filter that keeps the four source photos from looking identical across titles
 export const catalog = [
   {
@@ -89,9 +91,5 @@ export const catalog = [
     reviews: [{ author: 'Dana', stars: 5, text: 'Our whole family watches this together.' }],
   },
 ]
-
-export const genres = [...new Set(catalog.flatMap((t) => t.genres))].sort()
-
-export const findTitle = (id) => catalog.find((t) => t.id === id)
 
 export const describeLength = (t) => (t.type === 'show' ? `${t.seasons} Season${t.seasons > 1 ? 's' : ''}` : t.runtime)

@@ -7,7 +7,7 @@ import { Preview } from '../components/Preview.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
 import { ShareButton } from '../components/ShareButton.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
-import { describeLength, findTitle } from '../data/catalog.js'
+import { describeLength } from '../data/catalog.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
@@ -33,7 +33,7 @@ export function TitleDetail() {
   const { myList, favorites, ratings, reviews, toggleMyList, toggleFavorite, rate, addReview } = useLibrary()
   const { user } = useAuth()
   const [draft, setDraft] = useState('')
-  const { titles: catalog, isAllowed } = useCatalog()
+  const { titles: catalog, isAllowed, findTitle } = useCatalog()
 
   const title = findTitle(id)
   // Runs after PageHeader's effect (parents run last), so the tab shows the show's name, not "TV Show"

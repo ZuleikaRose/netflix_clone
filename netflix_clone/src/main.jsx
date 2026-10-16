@@ -5,15 +5,18 @@ import './index.css'
 import App from './App.jsx'
 import { AccessibilityProvider } from './state/AccessibilityProvider.jsx'
 import { AuthProvider } from './state/AuthProvider.jsx'
+import { CatalogProvider } from './state/CatalogProvider.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <AccessibilityProvider>
-          <App />
-        </AccessibilityProvider>
-      </AuthProvider>
+      <CatalogProvider>
+        <AuthProvider>
+          <AccessibilityProvider>
+            <App />
+          </AccessibilityProvider>
+        </AuthProvider>
+      </CatalogProvider>
     </BrowserRouter>
   </StrictMode>,
 )

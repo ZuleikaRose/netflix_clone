@@ -2,9 +2,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
-import { findTitle } from '../data/catalog.js'
 import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
+import { useCatalog } from '../state/useCatalog.js'
 
 const tabs = [
   { key: 'list', path: '/watchlist', label: 'Watch list', empty: 'Tap “My List” on any title to add it to your watch list.' },
@@ -14,6 +14,7 @@ const tabs = [
 export function MyNetflix() {
   const library = useLibrary()
   const { user } = useAuth()
+  const { findTitle } = useCatalog()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   // /my-netflix and /watchlist show the watch list; /favorites shows favorites
@@ -52,7 +53,7 @@ export function MyNetflix() {
           )
           : (
             <div className="poster-grid">
-              {ids.map(findTitle).map((t) => (
+              {ids.map(findTitle).filter(Boolean).map((t) => (
                 <PosterCard key={t.id} title={t}>
                   <button className="remove" aria-label={`Remove ${t.title} from ${active.label}`} onClick={() => remove(t.id)}><Icon name="close" /></button>
                 </PosterCard>

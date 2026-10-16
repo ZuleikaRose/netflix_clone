@@ -1,7 +1,8 @@
 # Netflix Clone — project guide
 
-Mobile-first, front-end-only streaming app (React 19 + Vite 8 + React Router 7 `BrowserRouter`).
-Requirements live in `app_outline/`; the app lives in `netflix_clone/`.
+Mobile-first streaming app (React 19 + Vite 8 + React Router 7 `BrowserRouter`). The catalog is read from a
+Supabase database over its REST API; everything else is still front-end only, in memory.
+Requirements live in `app_outline/`; the app lives in `netflix_clone/`; the database lives in `supabase/`.
 
 ## Layout
 
@@ -12,11 +13,18 @@ app_outline/          Requirements (source of truth for features)
   style_guide.md      Visual rules (see "Design rules" below)
 netflix_clone/        The Vite app — run all npm commands here
   src/data/           Catalog, plans, billing, promotions, affiliate program, FAQs, legal copy, service status
-  src/state/          AuthProvider (accounts, billing, preferences), AccessibilityProvider (accessibility menu settings)
-                      and LibraryProvider (per-session data)
+  src/data/catalogApi.js  GET /rest/v1/titles → app title shape
+  src/lib/supabase.js Supabase client (null when .env.local isn't set)
+  src/state/          CatalogProvider (titles), AuthProvider (accounts, billing, preferences), AccessibilityProvider
+                      (accessibility menu settings) and LibraryProvider (per-session data)
   src/pages/          One file per route; info/, games/ and account/ hold sub-pages
   src/components/     Layout (phone frame, tab bar, footer), PageHeader, Field, Player, Preview, AccessibilityPanel, hooks
   e2e/                Playwright specs + serve.js (static server used by the tests)
+  .env.example        VITE_SUPABASE_URL + VITE_SUPABASE_PUBLISHABLE_KEY; copy to .env.local (git-ignored)
+supabase/             Supabase project czgzptjegmkvrxnxduxs ("eagle_platoon"); MCP config in supabase/.mcp.json
+  migrations/         Schema + RLS, FK indexes (CONCURRENTLY: run one statement at a time), catalog titles, fixes
+  seeds/              Development test data (6 example.com users, rows in every table); never run on production
+schema.sql, drawsql.png  The original design; migrations/…_initial_schema.sql lists where it differs
 .github/workflows/    CI: lint, build, Playwright on push/PR
 ```
 
@@ -58,8 +66,16 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
 
 ## Conventions
 
-- **All state is in memory** — no backend, no localStorage. A full page load signs the user out and resets
-  everything; this is a requirement, not a bug. `LibraryProvider` is keyed by the auth session.
+- **All user state is in memory** — no localStorage (the Supabase client runs with `persistSession: false`). A full
+  page load signs the user out and resets everything; this is a requirement, not a bug. `LibraryProvider` is keyed
+  by the auth session. Accounts, watch list etc. have database tables but the app doesn't use them yet.
+- **Catalog (Supabase)**: `CatalogProvider` renders the built-in `data/catalog.js` at once, then swaps in the
+  `titles` rows from the REST API; on any error it keeps the built-in list. Read titles through `useCatalog()`
+  (`titles`, `all`, `findTitle`, `genres`), never by importing `catalog` in a page. Sample reviews and watch progress
+  still come from `catalog.js`. Adding a title: add it to `catalog.js`, regenerate `…_seed_titles.sql`, apply it.
+- **Supabase security**: the project's default privileges grant anon/authenticated everything on new `public`
+  tables, so every migration must `revoke all` and grant only what its RLS policies need, and enable RLS. Use the
+  publishable key in the browser, never the secret/service_role key. Run `get_advisors` after schema changes.
 - **Demo account**: "Use demo account" on `/login`. Its password is random per page load (`crypto.getRandomValues`)
   and shown on `/login` and in Account → Change password, so the demo user can change it or confirm deleting the
   account; never hardcode credentials. Billing is simulated: store only card brand, last four and expiry, never full numbers or CVC.
@@ -99,6 +115,8 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
 
 - Every change should keep `npm run lint` and `npm run test:e2e` green; CI runs both.
 - Tests sign in once with `signInAsDemo()` and move with `navigateInApp()` (client-side), because a reload logs out.
+- `e2e/supabase.spec.js` checks the REST catalog; its live tests skip when `.env.local` isn't set (as in CI), and the
+  offline-fallback test always runs.
 - New features get a spec: `e2e/features.spec.js` (carousel, billing, affiliate…) and `e2e/accessibility.spec.js`
   (accessibility menu, policy, player and captions, autoplay, delete account).
 - Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility

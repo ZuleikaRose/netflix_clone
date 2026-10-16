@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { catalog } from '../../data/catalog.js'
 import { useLibrary } from '../../state/libraryContext.js'
+import { useCatalog } from '../../state/useCatalog.js'
 import { focusFirstError } from '../formUtils.js'
 
 const types = ['Playback problem', 'Video or audio quality', 'Captions or accessibility', 'App bug', 'Account or sign-in', 'Billing', 'Data removal request', 'Other']
@@ -15,6 +15,7 @@ const blank = { type: types[0], titleId: '', summary: '', steps: '' }
 
 export function ReportIssue() {
   const { issues, addIssue } = useLibrary()
+  const { all: catalog, findTitle } = useCatalog()
   const [params] = useSearchParams()
   const [form, setForm] = useState(() => ({ ...blank, type: typeParams[params.get('type')] ?? blank.type }))
   const [errors, setErrors] = useState({})
@@ -76,7 +77,7 @@ export function ReportIssue() {
               <li key={t.id}>
                 <p><b>{t.id}</b> <span className="ticket-status">{t.status}</span></p>
                 <p>{t.summary}</p>
-                <p className="muted">{t.type}{t.titleId && ` · ${catalog.find((c) => c.id === t.titleId)?.title}`}</p>
+                <p className="muted">{t.type}{t.titleId && ` · ${findTitle(t.titleId)?.title}`}</p>
               </li>
             ))}
           </ul>
