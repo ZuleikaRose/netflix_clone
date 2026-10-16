@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Logo } from './Logo.jsx'
 import { useDocumentTitle } from './useDocumentTitle.js'
 
 // Full-screen frame for signed-out pages: same phone chrome, no tab bar
@@ -8,7 +9,7 @@ export function AuthShell({ title, children }) {
     <main className="app-shell">
       <div className="phone auth">
         <header className="auth-header">
-          <Link to="/" className="wordmark" aria-label="Netflix home">NETFLIX</Link>
+          <Link to="/" className="brand" aria-label="Home"><Logo size={40} /></Link>
         </header>
         <div className="auth-body page">
           <h1>{title}</h1>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Logo } from '../components/Logo.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { PosterCard } from '../components/PosterCard.jsx'
@@ -55,7 +56,7 @@ export function Home() {
   return (
     <>
       <header className="topbar">
-        <Link to="/" className="brand" aria-label="Home">N</Link>
+        <Link to="/" className="brand" aria-label="Home"><Logo size={34} /></Link>
         <div className="top-actions">
           <Link to="/search" className="icon-button" aria-label="Search"><Icon name="search" /></Link>
           <Link to="/my-netflix" className="avatar-hit" aria-label="My Netflix profile"><span className="avatar" aria-hidden="true"><span /><span /><i /></span></Link>
