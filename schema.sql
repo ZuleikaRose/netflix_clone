@@ -5,44 +5,65 @@ CREATE TABLE netflix_tables (
   id uuid PRIMARY KEY,
   name varchar NOT NULL,
   email varchar NOT NULL UNIQUE,
-  "session time" timestamp,
-  date date,
-  accept_terms boolean,
-  accept_privacy boolean,
-  data_opt_out boolean,
-  cancel_membership boolean,
-  pause_membership boolean,
-  title varchar,
-  review smallint,
-  has_billing boolean,
-  has_free_plan boolean,
-  has_subscription boolean,
-  error_report bigint
+  password_hash varchar NOT NULL,
+  plan varchar NOT NULL, -- 'basic', 'standard' or 'premium'
+  membership_status varchar NOT NULL DEFAULT 'active', -- 'active', 'paused' or 'cancelled'
+  resumes_on date, -- set while paused
+  ends_on date, -- set once cancelled
+  billing_day smallint, -- 1 to 28
+  card_brand varchar, -- only brand, last four and expiry are stored, never the full number or CVC
+  card_last4 char(4),
+  card_exp char(5), -- MM/YY
+  data_opt_out boolean NOT NULL DEFAULT false, -- Do Not Sell
+  last_sign_in timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE watch_list_tables (
-  id uuid PRIMARY KEY REFERENCES netflix_tables (id),
-  has_watch_history boolean,
-  title varchar
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id),
+  title_id varchar NOT NULL, -- catalog slug, e.g. 'after-dark'
+  added_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, title_id)
 );
 
 CREATE TABLE favorites (
-  id uuid PRIMARY KEY REFERENCES netflix_tables (id),
-  title varchar
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id),
+  title_id varchar NOT NULL,
+  added_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, title_id)
 );
 
 CREATE TABLE tickets (
-  id uuid PRIMARY KEY REFERENCES netflix_tables (id),
-  ticket_number bigint,
-  name varchar,
-  subject text,
-  reason text,
-  days_open timestamptz
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id),
+  ticket_number varchar NOT NULL UNIQUE, -- e.g. 'NF-48210'
+  issue_type varchar NOT NULL,
+  title_id varchar, -- optional: the title the issue happened on
+  summary text NOT NULL,
+  steps text,
+  device varchar,
+  status varchar NOT NULL DEFAULT 'Open',
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE review (
-  id uuid PRIMARY KEY REFERENCES netflix_tables (id),
-  rating int
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id),
+  title_id varchar NOT NULL,
+  rating smallint CHECK (rating BETWEEN 1 AND 5), -- star rating; a rating alone has no body
+  body text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE feedback (
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id),
+  score smallint NOT NULL CHECK (score BETWEEN 1 AND 5),
+  area varchar NOT NULL,
+  message text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE preferences (
@@ -67,7 +88,7 @@ CREATE TABLE promo_codes (
 CREATE TABLE reminders (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES netflix_tables (id),
-  title varchar,
+  title_id varchar NOT NULL,
   release_date date,
   created_at timestamptz
 );
