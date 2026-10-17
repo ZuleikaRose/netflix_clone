@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test'
 
-// All app state is in memory, so a full page load signs the user out.
+// On the in-memory build (most specs) all app state is in memory, so a full page load signs the user out.
 // Tests sign in once, then move around with client-side navigation like a real user would.
 
 export async function signInAsDemo(page, path = '/') {

@@ -6,7 +6,7 @@ import { EMAIL_PATTERN, useAuth } from '../state/authContext.js'
 import { focusFirstError } from './formUtils.js'
 
 export function Login() {
-  const { backend, user, notice, demoEmail, demoPassword, login, loginDemo } = useAuth()
+  const { backend, ready, user, notice, demoEmail, demoPassword, login, loginDemo } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
@@ -17,6 +17,7 @@ export function Login() {
 
   // Return to the page that bounced the user here, if any
   const destination = location.state?.from?.pathname ?? '/'
+  if (!ready) return <p className="session-restoring" role="status">Signing you in…</p>
   if (user) return <Navigate to={destination} replace />
 
   const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })

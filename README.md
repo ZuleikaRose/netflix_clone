@@ -8,9 +8,9 @@ ratings, reviews, settings, tickets and affiliate data are saved in Postgres. Ev
 planning documents in [`app_outline/`](app_outline/), and every user journey is covered by Playwright end-to-end and
 WCAG 2.2 AA accessibility tests.
 
-> Sessions are kept in memory only, so refreshing the page signs you out. With Supabase your data is saved and comes
-> back when you sign in again. Without Supabase configured (as in CI) the app runs on a built-in catalog and in-memory
-> accounts that reset on refresh.
+> You stay signed in after a refresh until you choose **Sign out**: the browser keeps your Supabase session, and your
+> account, lists and settings load back from the database. Without Supabase configured (as in CI) the app runs on a
+> built-in catalog and in-memory accounts that reset on refresh.
 
 ## Quick start
 
@@ -40,7 +40,22 @@ password, shown on screen, deleted after 24 hours). Without it, the demo account
 
 See [`netflix_clone/README.md`](netflix_clone/README.md) for the full route list, demo data and test details.
 
-## Backend (Supabase)
+## Backend (Supabase) and the REST API
+
+The backend is [Supabase](https://supabase.com): a hosted Postgres database with Supabase Auth, Edge Functions and
+cron jobs. The React app has no server of its own; it talks to Supabase over HTTPS through
+[`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript), which calls these REST APIs:
+
+| API | Used for | Code |
+| --- | --- | --- |
+| **Data REST API** (PostgREST) `/rest/v1/<table>` | Reading the catalog (`GET /rest/v1/titles`), reviews; reading and saving each member's account, preferences, watch list, favorites, reminders, ratings, feedback, tickets, game scores, affiliate data and accessibility settings (`GET`, `POST`, `PATCH`, `DELETE`, upserts) | `src/data/catalogApi.js`, `accountApi.js`, `libraryApi.js`, `accessibilityApi.js` |
+| **Auth API** `/auth/v1` | Sign-up, sign-in, sign-out, token refresh, password change, password reset emails | `src/state/SupabaseAuthProvider.jsx` |
+| **Edge Functions** `/functions/v1/<name>` | Things the browser must not do itself: create demo accounts, delete account access, apply promo codes, count referral clicks | `callFunction()` in `src/data/accountApi.js` |
+
+Every request carries the project's **publishable key**, plus the member's access token once they're signed in.
+Postgres row-level security decides what each request may read or change, so the browser never needs the secret key.
+The session (access and refresh tokens) is kept in `localStorage`, which is what keeps members signed in after a
+refresh; signing out removes it.
 
 | Piece | What it does |
 | --- | --- |

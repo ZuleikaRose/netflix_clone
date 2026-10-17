@@ -24,7 +24,7 @@ async function signOut(page) {
   await page.getByRole('link', { name: 'Sign In Again' }).click()
 }
 
-test('the demo button creates a private demo account, and its changes are saved', async ({ page }) => {
+test('the demo button creates a private demo account; its changes are saved and a reload keeps it signed in', async ({ page }) => {
   await signInAsDemo(page)
   // The demo-account Edge Function adds two titles to the new account's watch list
   await navigateInApp(page, '/my-netflix')
@@ -50,14 +50,23 @@ test('the demo button creates a private demo account, and its changes are saved'
   expect(email).toMatch(/^demo-[a-z0-9]+@example\.com$/)
   const password = await page.locator('.demo-credentials code').textContent()
 
-  // A reload signs out and resets everything in the page; signing in loads it all back from the database
+  // A reload keeps the member signed in on the same page and loads everything back from the database
   await page.reload()
+  await expect(page).toHaveURL(/\/account$/)
+  await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(email)
+  await expect(page.locator('.demo-credentials code')).toHaveText(password)
+  await expect(page.locator('html')).toHaveAttribute('data-a11y-text-size', '130')
+  await navigateInApp(page, '/my-netflix')
+  await expect(page.getByText('3 saved · 0 favorites · 1 rated')).toBeVisible()
+
+  // Signing out clears the saved session, so the next reload stays signed out; signing in brings it all back
+  await signOut(page)
   await expect(page).toHaveURL(/\/login$/)
-  await expect(page.locator('html')).not.toHaveAttribute('data-a11y-text-size')
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible()
   await signIn(page, email, password)
   await navigateInApp(page, '/my-netflix')
   await expect(page.getByText('3 saved · 0 favorites · 1 rated')).toBeVisible()
-  await expect(page.locator('html')).toHaveAttribute('data-a11y-text-size', '130')
 })
 
 // Reset emails are mocked: Supabase's built-in email only reaches the project's team until custom SMTP is set up

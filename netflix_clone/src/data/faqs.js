@@ -3,7 +3,7 @@ export const faqCategories = ['Account', 'Billing', 'Watching', 'Devices', 'Priv
 export const faqs = [
   { category: 'Account', q: 'How do I change my password?', a: 'Go to My Netflix → Account → Change password. You’ll need your current password to set a new one.' },
   { category: 'Account', q: 'How do I update my name or email?', a: 'Open Account and edit the Profile section, then select “Save profile”.' },
-  { category: 'Account', q: 'Why was I signed out?', a: 'This demo keeps everything in your browser’s memory, so refreshing the page signs you out and resets your list.' },
+  { category: 'Account', q: 'Why was I signed out?', a: 'You stay signed in on this browser, even after a refresh, until you choose Sign out. You’ll be signed out if you changed your password, deleted your account, or cleared this site’s data. Your list and settings are saved to your account and come back when you sign in.' },
   { category: 'Billing', q: 'What plans are available?', a: 'Basic ($7.99), Standard ($15.49) and Premium ($22.99) per month. Switch any time from Account → Plan.' },
   { category: 'Billing', q: 'How do I use a promo code?', a: 'Open Promotions & Discounts, enter your code and select Apply. The discount shows on your membership in Account.' },
   { category: 'Watching', q: 'How do I save a title for later?', a: 'Select “My List” on any title. Everything you save appears under My Netflix → My List.' },

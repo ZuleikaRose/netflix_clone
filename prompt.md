@@ -17,8 +17,8 @@ Skills necessary for this application are as follows:
 
 There will be no API interactions and all data should be retained only at the browser level, meaning if I refresh/rerender my site all of the data should reset.
 
-> Later changed by the backend prompts below: the app now uses Supabase. Sessions still live only in the browser
-> (a refresh signs you out), but members' data is saved in the database.
+> Later changed by the backend prompts below: the app now uses Supabase. Members' data is saved in the database, and
+> since prompt 10 a refresh keeps them signed in.
 
 I have created a series of documents and images as a reference for what I would like this application to look like and isolated everything by pages. Take a look at this folder @./app_outline and read the `user_journey.md` file to get context for the users journey through the application. Then look at the `/home/zuleikarose/obsidian_wsl/netflix_clone/app_outline/netflix_mobile_wireframe` to visualize the entire application. Finally under pages, you'll find a wire-frame corresponding to each page along with a detailed user story for how a user would interact with this page. Additionally, when it comes to design style, you can read the `style_guide.md` and apply its guidelines as you see fit.
 
@@ -66,6 +66,10 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
 7. Merge PR #2.
 8. Update `user_stories.md`, `user_journey.md`, the READMEs, `CLAUDE.md`, `prompt.md`, `schema.sql` and `drawsql.png`
    to match all the changes.
+9. Update the SKILL.md file; show the stray root files; make sure Supabase has indexing turned on on all projects
+   (Index Advisor installed; every foreign key and query index on both); merge PR #3.
+10. In the README, remove "There is no backend…" and describe the Supabase backend and the REST API. Change the app so a
+    refresh doesn't sign you out.
 
 Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and rolling the latest
 migrations and functions out to production.

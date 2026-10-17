@@ -4,7 +4,7 @@
 
 Pulled from `app_outline/` (the user journey and each page's `user_journey.md`) into one list: one line per thing the app has to *remember*. Story 1 isn't on any single page; it's there so the database knows who owns what.
 
-These stories are what the Supabase database stores (see `schema.sql`, `drawsql.png` and `supabase/migrations/`). Without Supabase configured the app keeps the same data in memory, and it resets on refresh. Stories 26–31 were added with the Supabase backend.
+These stories are what the Supabase database stores (see `schema.sql`, `drawsql.png` and `supabase/migrations/`). Without Supabase configured the app keeps the same data in memory, and it resets on refresh. Stories 26–32 were added with the Supabase backend.
 
 1. As a user, I want an account with my name, email and password so that my private lists and settings belong to me, and no one else can see or change them. Reviews and ratings are readable by everyone. (Supabase Auth keeps the password; private data shows a member only their own rows, while the catalog and reviews are publicly readable.)
 2. As a user, I want to choose a membership plan (Basic, Standard or Premium) so that I know what I pay and what quality I get.
@@ -37,3 +37,4 @@ These stories are what the Supabase database stores (see `schema.sql`, `drawsql.
 29. As a reviewer, I want my real account name shown on my reviews, and no one able to post under someone else's name, so that reviews can be trusted.
 30. As a user, I want my promo code checked against the real offers and my plan so that only valid discounts are applied.
 31. As the site owner, I want the public features (demo accounts, referral clicks) limited per visitor so that no one can flood the service or inflate an affiliate's counts.
+32. As a member, I want to stay signed in when I refresh the page or come back later, until I choose Sign out, so that I don't have to sign in again every time.

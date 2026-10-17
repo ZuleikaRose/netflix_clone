@@ -2,7 +2,7 @@
 
 A mobile-first streaming app built with React 19, Vite and React Router (`BrowserRouter`) on Supabase. It was built in phases from the wireframes, user journey and style guide in `../app_outline`, then connected to Supabase (catalog from the REST API, Supabase Auth, member data in Postgres; see `../supabase`).
 
-**Sessions live in memory only**: refreshing the page signs you out. With Supabase your list, ratings, reviews and settings are saved and come back when you sign in. Without Supabase configured the app falls back to the built-in catalog and in-memory accounts, and a refresh resets everything.
+**You stay signed in after a refresh**: with Supabase the session is kept in the browser (`localStorage`) until you sign out, and your list, ratings, reviews and settings load back from the database. The app talks to Supabase through its REST APIs (Data API `/rest/v1`, Auth `/auth/v1`, Edge Functions `/functions/v1`) via `supabase-js`. Without Supabase configured the app falls back to the built-in catalog and in-memory accounts, and a refresh resets everything.
 
 ## Run it
 
@@ -69,14 +69,14 @@ npm run test:e2e:report           # open the HTML report from the last run
 | `e2e/features.spec.js` | Carousel, service banner, personalization opt-out, crew, release-year filter, Watch list/Favorites routes, billing, affiliate program, referral sign-up, legal hub |
 | `e2e/accessibility.spec.js` | Accessibility menu (signed out too, Escape, profiles, reset, no overflow at 150% text, reading guide), Accessibility Policy links, real clip playback and controls, captions from the clip's track (button, C key, menu, size), autoplay next episode on/off, autoplay previews vs. Stop animations and reduced motion, delete account (blocked until cancelled, email and password checks, data removal ticket) |
 | `e2e/supabase.spec.js` | Catalog from the Supabase REST API, and the built-in fallback when the API is unreachable |
-| `e2e/supabase-auth.spec.js` | Real Supabase sign-in (desktop, :4174): private demo account and saved changes after reload, saved accessibility settings, members' reviews, forgot/reset password with an emailed link, expired link, sign up → promo code → review → delete account |
+| `e2e/supabase-auth.spec.js` | Real Supabase sign-in (desktop, :4174): private demo account, staying signed in after a reload (and signed out after Sign out), saved accessibility settings, members' reviews, forgot/reset password with an emailed link, expired link, sign up → promo code → review → delete account |
 | `e2e/a11y.spec.js` | [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.2 AA audit of every page and key interactive states (form errors, chat, expanded FAQ, answered trivia, billing errors and cancel confirmation, affiliate form and dashboard, accessibility menu, player with captions and end screen, delete account errors, forgot and reset password); keyboard focus never hidden behind the sticky bars (2.4.11) |
 
 The two Supabase specs use the dev project and skip without `.env.development.local` (as in CI). Keep Supabase sign-ins in tests few: Auth rate-limits them per IP.
 
 CI (`.github/workflows/ci.yml`) runs lint, build and the full suite on every push to `main` and on pull requests, uploads the HTML report as an artifact, and runs the pgTAP database tests against a local Supabase.
 
-Tests serve the built app with `e2e/serve.js`, a tiny static server with SPA fallback and byte-range support (needed to seek video), rather than `vite preview`. Because sessions live in memory, tests sign in once and then use client-side navigation (`navigateInApp()` in `e2e/helpers.js`), since a full page load signs the user out.
+Tests serve the built app with `e2e/serve.js`, a tiny static server with SPA fallback and byte-range support (needed to seek video), rather than `vite preview`. Most specs run on the in-memory build, where a full page load signs the user out, so tests sign in once and then use client-side navigation (`navigateInApp()` in `e2e/helpers.js`).
 
 ## What's inside
 
@@ -116,7 +116,7 @@ Requirements and the outline-to-route map are in [`../CLAUDE.md`](../CLAUDE.md).
 - Designed for 390px phones. On wider screens the app renders inside a centered phone frame with its own scroll area, so the tab bar stays pinned.
 - One accent color (`#e50914`) for primary actions. Form errors use a distinct orange (`#e87c03`).
 - Touch targets are at least 44px, keyboard focus is always visible, and every input has a label. Motion is subtle and turned off under `prefers-reduced-motion`.
-- The accessibility menu's settings are applied as `data-a11y-*` attributes on `<html>`. They reset on reload; with Supabase, members' settings are saved and applied again at sign-in. Its readable and dyslexia-friendly fonts are Atkinson Hyperlegible and Lexend from Google Fonts.
+- The accessibility menu's settings are applied as `data-a11y-*` attributes on `<html>`. Signed out, they reset on reload; with Supabase, members' settings are saved and applied again at sign-in and after a reload. Its readable and dyslexia-friendly fonts are Atkinson Hyperlegible and Lexend from Google Fonts.
 
 ## Caveats
 

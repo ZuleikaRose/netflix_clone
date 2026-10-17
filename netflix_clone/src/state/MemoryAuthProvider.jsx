@@ -4,7 +4,7 @@ import { findPlan } from '../data/plans.js'
 import { findPromotion } from '../data/promotions.js'
 import { AuthContext, defaultPreferences, demoAccount, normalizeEmail } from './authContext.js'
 
-// Accounts in memory only: they vanish on refresh. Used when Supabase isn't configured (CI) and by the e2e suite.
+// Accounts in memory only: they vanish on refresh, which also signs the user out (there's nothing to restore from). Used when Supabase isn't configured (CI) and by the e2e suite.
 // Never use this pattern with real credentials. Same interface as SupabaseAuthProvider: actions are async and
 // resolve to an error message or null.
 
@@ -39,6 +39,7 @@ export function MemoryAuthProvider({ children }) {
 
     return {
       backend: 'memory',
+      ready: true,
       user,
       session,
       notice,

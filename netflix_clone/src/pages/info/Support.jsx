@@ -11,7 +11,7 @@ const topics = [
   { to: '/info/tech-requirements', title: 'Technical requirements', body: 'Supported devices and recommended speeds.' },
 ]
 
-// Canned replies: the demo has no backend, so the "agent" answers from the FAQ list
+// Canned replies: there's no live agent, so the "agent" answers from the FAQ list
 function replyTo(text) {
   const words = text.toLowerCase().split(/\W+/).filter((w) => w.length > 3)
   const match = faqs.find((f) => words.some((w) => f.q.toLowerCase().includes(w)))

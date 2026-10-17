@@ -46,7 +46,7 @@ export function AccessibilityPolicy() {
 
       <section aria-labelledby="limits">
         <h2 id="limits">Known limitations</h2>
-        <p>This is a demo: every title plays a short sample clip from an open movie, with that film’s English captions. The captions cover dialogue only, without sound descriptions. Audio description is not available yet. Your accessibility settings reset when the page reloads.</p>
+        <p>This is a demo: every title plays a short sample clip from an open movie, with that film’s English captions. The captions cover dialogue only, without sound descriptions. Audio description is not available yet. When you’re signed in, your accessibility settings are saved to your account and come back on every device and after a refresh; when you’re signed out, they reset when the page reloads.</p>
       </section>
 
       <section aria-labelledby="contact">
