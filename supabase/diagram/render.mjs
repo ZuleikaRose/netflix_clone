@@ -24,6 +24,10 @@ try {
   if (overlaps.length) console.warn('Tables too close, move them in erd.html:', overlaps.join(', '))
   await page.locator('#board').screenshot({ path: here('../../drawsql.png') })
   console.log('Wrote drawsql.png')
+} catch (error) {
+  // e.g. Chromium not installed (npx playwright install chromium) or drawsql.png not writable
+  console.error('Couldn’t redraw drawsql.png:', error.message)
+  process.exitCode = 1
 } finally {
   await browser.close()
 }
