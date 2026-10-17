@@ -44,7 +44,7 @@ See [`netflix_clone/README.md`](netflix_clone/README.md) for the full route list
 
 | Piece | What it does |
 | --- | --- |
-| Postgres tables | 16 tables in `public` ([`schema.sql`](schema.sql), diagram [`drawsql.png`](drawsql.png)), every one with row-level security: members see and change only their own rows |
+| Postgres tables | 16 tables in `public` ([`schema.sql`](schema.sql), diagram [`drawsql.png`](drawsql.png)) with row-level security: catalog titles and reviews (including ratings) are readable by anyone; private account data and lists are owner-only; promotions and rate-limit hits are server-only |
 | Supabase Auth | Sign-up, sign-in, password reset emails and password rules; the sign-up trigger creates the member's account, preferences and referral sign-up |
 | Edge Functions | `demo-account` (private demo accounts), `delete-account` (removes access), `apply-promo` (checks codes against `promotions`), `record-referral` (counts link clicks); the public ones are rate limited per IP |
 | Cron jobs | Delete demo accounts after 24 hours; delete old rate-limit hits |

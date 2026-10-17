@@ -6,7 +6,7 @@ Pulled from `app_outline/` (the user journey and each page's `user_journey.md`) 
 
 These stories are what the Supabase database stores (see `schema.sql`, `drawsql.png` and `supabase/migrations/`). Without Supabase configured the app keeps the same data in memory, and it resets on refresh. Stories 26–31 were added with the Supabase backend.
 
-1. As a user, I want an account with my name, email and password so that my list, ratings and settings belong to me, and no one else can see or change them. (Supabase Auth keeps the password; every table only shows a member their own rows.)
+1. As a user, I want an account with my name, email and password so that my private lists and settings belong to me, and no one else can see or change them. Reviews and ratings are readable by everyone. (Supabase Auth keeps the password; private data shows a member only their own rows, while the catalog and reviews are publicly readable.)
 2. As a user, I want to choose a membership plan (Basic, Standard or Premium) so that I know what I pay and what quality I get.
 3. As a user, I want to save a payment method (only the card brand, last four digits and expiry) and a billing day so that I'm charged on a date that suits me.
 4. As a user, I want to pause, cancel or restart my membership so that I only pay when I'm watching.
