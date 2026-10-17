@@ -11,5 +11,11 @@ export function useAuth() {
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const MIN_PASSWORD = 8
 
-// No password here: AuthProvider generates a random one per page load, and the demo button signs in via loginDemo()
+export const normalizeEmail = (email) => email.trim().toLowerCase()
+
+// personalized: permission to use viewing activity for recommendations (outline §8)
+export const defaultPreferences = { autoplayNext: true, autoplayPreviews: false, emailUpdates: true, personalized: true, maturity: 'all' }
+
+// In-memory backend only. No password here: MemoryAuthProvider generates a random one per page load, and the demo
+// button signs in via loginDemo(). With Supabase, each visitor gets their own demo account instead.
 export const demoAccount = { name: 'Alex', email: 'alex@example.com', plan: 'standard' }

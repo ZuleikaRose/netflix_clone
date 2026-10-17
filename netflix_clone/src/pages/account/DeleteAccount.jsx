@@ -31,19 +31,21 @@ export function DeleteAccount() {
     setErrors({})
   }
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
+    const form = e.currentTarget
     const next = {}
     if (!cancelled) next.membership = 'Your membership is still active. Cancel it in Billing before deleting your account.'
     if (email.trim().toLowerCase() !== user.email) next.email = 'This doesn’t match your account email.'
     if (!password) next.password = 'Please enter your password.'
     if (!Object.keys(next).length) {
-      // Signing out sends the user to /login, which shows the deletion notice
-      const error = deleteAccount(password)
-      if (error) next.password = error
+      // Signing out sends the user to /login, which shows the deletion notice (and unmounts this form)
+      const error = await deleteAccount(password)
+      if (!error) return
+      next.password = error
     }
     setErrors(next)
-    if (next.email || next.password) focusFirstError(e.currentTarget)
+    if (next.email || next.password) focusFirstError(form)
   }
 
   return (

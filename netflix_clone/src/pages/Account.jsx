@@ -7,7 +7,7 @@ import { useAccessibility } from '../state/accessibilityContext.js'
 import { billingSummary } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
 import { discountedPrice, findPromotion } from '../data/promotions.js'
-import { EMAIL_PATTERN, MIN_PASSWORD, demoAccount, useAuth } from '../state/authContext.js'
+import { EMAIL_PATTERN, MIN_PASSWORD, useAuth } from '../state/authContext.js'
 import { Billing } from './account/Billing.jsx'
 import { DeleteAccount } from './account/DeleteAccount.jsx'
 import { focusFirstError } from './formUtils.js'
@@ -32,18 +32,19 @@ function ProfileForm({ user, updateProfile }) {
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('')
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
+    const formElement = e.currentTarget
     const next = {}
     if (!form.name.trim()) next.name = 'Please enter your name.'
     if (!EMAIL_PATTERN.test(form.email.trim())) next.email = 'Please enter a valid email address.'
     if (!Object.keys(next).length) {
-      const error = updateProfile(form)
+      const error = await updateProfile(form)
       if (error) next.email = error
     }
     setErrors(next)
     setStatus(Object.keys(next).length ? '' : 'Profile saved')
-    if (Object.keys(next).length) focusFirstError(e.currentTarget)
+    if (Object.keys(next).length) focusFirstError(formElement)
   }
 
   return (
@@ -64,20 +65,21 @@ function PasswordForm({ email, changePassword, demoPassword }) {
   const [status, setStatus] = useState('')
   const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
+    const formElement = e.currentTarget
     const next = {}
     if (!form.current) next.current = 'Please enter your current password.'
     if (form.next.length < MIN_PASSWORD) next.next = `Password must be at least ${MIN_PASSWORD} characters.`
     if (form.confirm !== form.next) next.confirm = 'Passwords don’t match.'
     if (!Object.keys(next).length) {
-      const error = changePassword(form.current, form.next)
+      const error = await changePassword(form.current, form.next)
       if (error) next.current = error
     }
     setErrors(next)
     if (Object.keys(next).length) {
       setStatus('')
-      focusFirstError(e.currentTarget)
+      focusFirstError(formElement)
     } else {
       setForm(blank)
       setStatus('Password updated')
@@ -87,7 +89,7 @@ function PasswordForm({ email, changePassword, demoPassword }) {
   return (
     <form className="settings-card" onSubmit={submit} noValidate aria-labelledby="password-heading">
       <h2 id="password-heading">Change password</h2>
-      {demoPassword && <p className="demo-credentials">Demo account password for this page load: <code>{demoPassword}</code></p>}
+      {demoPassword && <p className="demo-credentials">Demo account password: <code>{demoPassword}</code></p>}
       {/* Lets password managers associate the new password with this account */}
       <input type="text" name="username" autoComplete="username" value={email} readOnly hidden />
       <Field label="Current password" type="password" autoComplete="current-password" value={form.current} onChange={updateField('current')} error={errors.current} />
@@ -100,7 +102,7 @@ function PasswordForm({ email, changePassword, demoPassword }) {
 }
 
 export function Account() {
-  const { user, demoPassword, updateProfile, changePassword, changePlan, removePromo, setPreference } = useAuth()
+  const { user, demoEmail, demoPassword, updateProfile, changePassword, changePlan, removePromo, setPreference } = useAuth()
   const { openMenu } = useAccessibility()
   const [planStatus, setPlanStatus] = useState('')
   const plan = findPlan(user.plan)
@@ -127,7 +129,7 @@ export function Account() {
         </section>
 
         <ProfileForm user={user} updateProfile={updateProfile} />
-        <PasswordForm email={user.email} changePassword={changePassword} demoPassword={user.email === demoAccount.email ? demoPassword : null} />
+        <PasswordForm email={user.email} changePassword={changePassword} demoPassword={user.email === demoEmail ? demoPassword : null} />
 
         <section className="settings-card" aria-labelledby="plan-heading">
           <h2 id="plan-heading">Plan</h2>

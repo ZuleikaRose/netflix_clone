@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { catalog } from '../../data/catalog.js'
 import { useLibrary } from '../../state/libraryContext.js'
+import { useCatalog } from '../../state/useCatalog.js'
 import { focusFirstError } from '../formUtils.js'
 
 const types = ['Playback problem', 'Video or audio quality', 'Captions or accessibility', 'App bug', 'Account or sign-in', 'Billing', 'Data removal request', 'Other']
@@ -15,22 +15,27 @@ const blank = { type: types[0], titleId: '', summary: '', steps: '' }
 
 export function ReportIssue() {
   const { issues, addIssue } = useLibrary()
+  const { all: catalog, findTitle } = useCatalog()
   const [params] = useSearchParams()
   const [form, setForm] = useState(() => ({ ...blank, type: typeParams[params.get('type')] ?? blank.type }))
   const [errors, setErrors] = useState({})
   const [justFiled, setJustFiled] = useState(null)
   const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     const next = {}
     if (form.summary.trim().length < 5) next.summary = 'Please describe the issue in a few words.'
     setErrors(next)
     if (Object.keys(next).length) return focusFirstError(e.currentTarget)
-    const ticket = { ...form, id: `NF-${48210 + issues.length}`, device: deviceSummary(), status: 'Open' }
-    addIssue(ticket)
-    setJustFiled(ticket.id)
-    setForm(blank)
+    try {
+      // The ticket number comes back from the library (the database numbers it when Supabase is connected)
+      const filed = await addIssue({ ...form, device: deviceSummary(), status: 'Open' })
+      setJustFiled(filed.id)
+      setForm(blank)
+    } catch {
+      setErrors({ summary: 'Your report couldn’t be sent. Please try again.' })
+    }
   }
 
   return (
@@ -76,7 +81,7 @@ export function ReportIssue() {
               <li key={t.id}>
                 <p><b>{t.id}</b> <span className="ticket-status">{t.status}</span></p>
                 <p>{t.summary}</p>
-                <p className="muted">{t.type}{t.titleId && ` · ${catalog.find((c) => c.id === t.titleId)?.title}`}</p>
+                <p className="muted">{t.type}{t.titleId && ` · ${findTitle(t.titleId)?.title}`}</p>
               </li>
             ))}
           </ul>

@@ -86,7 +86,7 @@ function JoinForm({ onJoin }) {
   )
 }
 
-function Dashboard({ affiliate, link, onReferral, copied, copy }) {
+function Dashboard({ affiliate, link, onReferral, canSimulateSignups, copied, copy }) {
   const earnings = earningsFor(affiliate.signups)
   const tier = tierFor(affiliate.signups)
   const nextTier = commissionTiers.find((t) => t.min > affiliate.signups)
@@ -121,7 +121,9 @@ function Dashboard({ affiliate, link, onReferral, copied, copy }) {
       <div className="demo-tools" role="group" aria-labelledby="demo-tools-heading">
         <p id="demo-tools-heading" className="switch-label">Demo tools <span className="muted">(simulate referral tracking)</span></p>
         <button type="button" className="ghost-cta" onClick={() => onReferral('click')}>Simulate a click</button>
-        <button type="button" className="ghost-cta" onClick={() => onReferral('signup')}>Simulate a sign-up</button>
+        {canSimulateSignups
+          ? <button type="button" className="ghost-cta" onClick={() => onReferral('signup')}>Simulate a sign-up</button>
+          : <p className="muted">Sign-ups are counted when someone creates an account from your link.</p>}
       </div>
     </section>
   )
@@ -129,7 +131,7 @@ function Dashboard({ affiliate, link, onReferral, copied, copy }) {
 
 export function Affiliate() {
   const { user } = useAuth()
-  const { affiliate, joinAffiliate, recordReferral } = useLibrary()
+  const { affiliate, joinAffiliate, recordReferral, canSimulateSignups } = useLibrary()
   const { copied, copy } = useCopyToClipboard()
   const link = affiliate ? `${window.location.origin}/signup?ref=${affiliate.code}` : ''
 
@@ -144,7 +146,7 @@ export function Affiliate() {
       </ol>
 
       {affiliate
-        ? <Dashboard affiliate={affiliate} link={link} onReferral={recordReferral} copied={copied} copy={copy} />
+        ? <Dashboard affiliate={affiliate} link={link} onReferral={recordReferral} canSimulateSignups={canSimulateSignups} copied={copied} copy={copy} />
         : <JoinForm onJoin={(application) => joinAffiliate({ ...application, code: affiliateCode(user.name) })} />}
 
       <section className="settings-card" aria-labelledby="commission-heading">
