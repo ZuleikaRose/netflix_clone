@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(32);
+select plan(37);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
@@ -18,6 +18,8 @@ select ok((select count(*) from public.review where body is not null) > 0, 'anon
 select throws_ok('select 1 from public.netflix_tables', '42501', null, 'anon cannot read accounts');
 select throws_ok('select 1 from public.watch_list_tables', '42501', null, 'anon cannot read watch lists');
 select throws_ok($$insert into public.titles (id, title, type) values ('x', 'x', 'movie')$$, '42501', null, 'anon cannot add titles');
+select throws_ok($$select public.hit_rate_limit('x', 1, 60)$$, '42501', null, 'anon cannot use the rate limiter');
+select throws_ok('select 1 from public.rate_limit_hits', '42501', null, 'anon cannot read rate-limit hits');
 select throws_ok('select 1 from public.promotions', '42501', null, 'anon cannot read the valid promo codes');
 
 -- Alex, signed in --------------------------------------------------------------------------------------------------
@@ -80,6 +82,14 @@ select is((select count(*) from auth.users where id = 'b0000000-0000-4000-8000-0
   'the cleanup job deletes demo accounts older than 24 hours');
 select is((select count(*) from public.netflix_tables where id = 'b0000000-0000-4000-8000-000000000001'), 1::bigint,
   'the cleanup job keeps ordinary accounts');
+
+-- Rate limiter (as the Edge Functions call it, with the secret key) -------------------------------------------------
+set local role service_role;
+select ok(public.hit_rate_limit('pgtap:203.0.113.7', 2, 60) and public.hit_rate_limit('pgtap:203.0.113.7', 2, 60),
+  'the rate limiter allows hits up to the limit');
+select is(public.hit_rate_limit('pgtap:203.0.113.7', 2, 60), false, 'the rate limiter refuses the next hit in the window');
+select is(public.hit_rate_limit('pgtap:198.51.100.9', 2, 60), true, 'other keys have their own limit');
+reset role;
 
 -- Indexes ----------------------------------------------------------------------------------------------------------
 select has_index('public', 'review', 'review_title_id_created_at_idx', 'title page reviews are indexed');

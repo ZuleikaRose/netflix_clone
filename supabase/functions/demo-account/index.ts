@@ -1,9 +1,11 @@
 // POST /functions/v1/demo-account → { email, password, expiresAt }
 // Creates a private demo account for one visitor: random email and password, a little sample data, deleted after
 // 24 hours by the delete-expired-demo-accounts cron job. The browser then signs in with the returned password.
-import { admin, json, serve } from '../_shared/supabase.ts'
+import { admin, allowRequest, clientIp, json, serve } from '../_shared/supabase.ts'
 
-// Plenty for a demo; stops a script from creating accounts without limit
+// Plenty for a demo (and for running the e2e suite a few times an hour); stops a script from creating accounts
+// without limit: per visitor IP, and overall
+const MAX_PER_IP_PER_HOUR = 20
 const MAX_PER_HOUR = 300
 const LIFETIME_HOURS = 24
 // No 0/O/o/1/l/I/i: the password is shown on screen and typed back in to change it or delete the account
@@ -26,7 +28,10 @@ function randomPassword() {
   return chars.join('')
 }
 
-serve(async () => {
+serve(async (req) => {
+  if (!(await allowRequest(`demo-account:${clientIp(req)}`, MAX_PER_IP_PER_HOUR, 3600))) {
+    return json({ error: 'You’ve created several demo accounts recently. Please try again in an hour, or sign up.' }, 429)
+  }
   const hourAgo = new Date(Date.now() - 3600_000).toISOString()
   const { count, error: countError } = await admin.from('netflix_tables').select('id', { count: 'exact', head: true })
     .like('email', 'demo-%@example.com').gte('created_at', hourAgo)

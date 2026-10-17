@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout.jsx'
 import { RequireAuth } from './components/RequireAuth.jsx'
 import { Account } from './pages/Account.jsx'
+import { ForgotPassword } from './pages/ForgotPassword.jsx'
 import { Home } from './pages/Home.jsx'
 import { InfoPage } from './pages/InfoPage.jsx'
 import { Login } from './pages/Login.jsx'
@@ -9,6 +10,7 @@ import { Logout } from './pages/Logout.jsx'
 import { MyNetflix } from './pages/MyNetflix.jsx'
 import { NewHot } from './pages/NewHot.jsx'
 import { NotFound } from './pages/NotFound.jsx'
+import { ResetPassword } from './pages/ResetPassword.jsx'
 import { Games } from './pages/Games.jsx'
 import { Search } from './pages/Search.jsx'
 import { Signup } from './pages/Signup.jsx'
@@ -24,6 +26,8 @@ function App() {
       <Route path="login" element={<Login />} />
       <Route path="signup" element={<Signup />} />
       <Route path="logout" element={<Logout />} />
+      <Route path="forgot-password" element={<ForgotPassword />} />
+      <Route path="reset-password" element={<ResetPassword />} />
       <Route element={<RequireAuth />}>
         {/* Keyed by session so each sign-in starts with an empty list, ratings and reviews */}
         <Route element={<LibraryProvider key={session}><Layout /></LibraryProvider>}>

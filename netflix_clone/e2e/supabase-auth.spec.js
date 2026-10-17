@@ -38,17 +38,71 @@ test('the demo button creates a private demo account, and its changes are saved'
   await page.locator('label', { has: page.getByRole('radio', { name: '4 stars' }) }).click()
   await ratingSaved
 
+  // Accessibility menu settings are saved for the member too
+  const a11ySaved = saved(page, 'accessibility_settings')
+  await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Accessibility' }).getByRole('radio', { name: '130%' }).check()
+  await a11ySaved
+  await page.keyboard.press('Escape')
+
   await navigateInApp(page, '/account')
   const email = await page.getByRole('textbox', { name: 'Email' }).inputValue()
   expect(email).toMatch(/^demo-[a-z0-9]+@example\.com$/)
   const password = await page.locator('.demo-credentials code').textContent()
 
-  // A new session (the same as after a reload) loads everything back from the database
-  await signOut(page)
-  await expect(page.locator('.demo-credentials')).toContainText(email)
+  // A reload signs out and resets everything in the page; signing in loads it all back from the database
+  await page.reload()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.locator('html')).not.toHaveAttribute('data-a11y-text-size')
   await signIn(page, email, password)
   await navigateInApp(page, '/my-netflix')
   await expect(page.getByText('3 saved · 0 favorites · 1 rated')).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('data-a11y-text-size', '130')
+})
+
+// Reset emails are mocked: Supabase's built-in email only reaches the project's team until custom SMTP is set up
+test('forgot password sends a reset email, and the emailed link sets a new password', async ({ page }) => {
+  let recoverRequest
+  await page.route('**/auth/v1/recover*', async (route) => {
+    recoverRequest = route.request()
+    await route.fulfill({ json: {} })
+  })
+  await page.goto('/forgot-password')
+  await page.getByLabel('Email').fill('Robin@example.com')
+  await page.getByRole('button', { name: 'Send reset link' }).click()
+  await expect(page.getByRole('status')).toContainText('If there’s an account for robin@example.com')
+  await expect(page.getByRole('link', { name: 'Open the reset link' })).toHaveCount(0)
+  expect(recoverRequest.postDataJSON().email).toBe('robin@example.com')
+  expect(decodeURIComponent(recoverRequest.url())).toContain(`redirect_to=http://localhost:${SUPABASE_E2E_PORT}/reset-password`)
+
+  // The emailed link carries a one-time recovery session in the URL hash
+  const user = { id: 'b0000000-0000-4000-8000-0000000000e2', email: 'robin@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {} }
+  const claims = { sub: user.id, email: user.email, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 }
+  const accessToken = [{ alg: 'HS256', typ: 'JWT' }, claims].map((part) => Buffer.from(JSON.stringify(part)).toString('base64url')).join('.') + `.${Buffer.from('test-signature').toString('base64url')}`
+  let newPassword
+  await page.route('**/auth/v1/user', async (route) => {
+    if (route.request().method() === 'PUT') newPassword = route.request().postDataJSON().password
+    await route.fulfill({ json: user })
+  })
+  await page.route('**/auth/v1/logout*', (route) => route.fulfill({ status: 204 }))
+
+  await page.goto(`/reset-password#access_token=${accessToken}&refresh_token=e2e-refresh&expires_in=3600&token_type=bearer&type=recovery`)
+  await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible()
+  await expect(page.getByText('For robin@example.com.')).toBeVisible()
+  expect(page.url()).not.toContain('access_token')
+  await page.getByLabel('New password', { exact: true }).fill('Brand-new-pass-42')
+  await page.getByLabel('Confirm new password').fill('Brand-new-pass-42')
+  await page.getByRole('button', { name: 'Save new password' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('status')).toHaveText('Your password has been changed. Sign in with your new password.')
+  expect(newPassword).toBe('Brand-new-pass-42')
+})
+
+test('an expired reset link asks for a new one', async ({ page }) => {
+  await page.goto('/reset-password#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired')
+  await expect(page.getByRole('alert')).toHaveText('This reset link has expired. Please request a new one.')
+  await page.getByRole('link', { name: 'Request a new link' }).click()
+  await expect(page).toHaveURL(/\/forgot-password$/)
 })
 
 test('title pages show members’ reviews from the database', async ({ page }) => {

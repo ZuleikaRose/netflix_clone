@@ -174,6 +174,53 @@ export function SupabaseAuthProvider({ children }) {
         if (user.isDemo) setDemo((d) => d && { ...d, password: next })
         return null
       },
+      // Supabase emails a link to /reset-password. Same answer whether or not the account exists.
+      async requestPasswordReset(email) {
+        try {
+          const supabase = await connect()
+          const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), {
+            redirectTo: `${window.location.origin}/reset-password`,
+          })
+          return { error: error ? authErrorMessage(error) : null }
+        } catch (error) {
+          warn(error)
+          return { error: 'We couldn’t send the email. Check your connection and try again.' }
+        }
+      },
+      // The email link lands with a one-time recovery session in the URL hash (#access_token=…&type=recovery), or an
+      // error such as an expired link. Resolves to { email } or { error }.
+      async beginPasswordReset(link) {
+        const params = new URLSearchParams(link.hash.replace(/^#/, ''))
+        if (params.get('error_code') === 'otp_expired') return { error: 'This reset link has expired. Please request a new one.' }
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+        if (params.get('error') || params.get('type') !== 'recovery' || !accessToken || !refreshToken) {
+          return { error: 'This reset link is invalid or has expired. Please request a new one.' }
+        }
+        try {
+          const supabase = await connect()
+          const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          if (error) return { error: 'This reset link is invalid or has expired. Please request a new one.' }
+          return { error: null, email: data.user.email }
+        } catch (error) {
+          warn(error)
+          return { error: 'We couldn’t check your reset link. Check your connection and try again.' }
+        }
+      },
+      async completePasswordReset(password) {
+        try {
+          const { error } = await client.auth.updateUser({ password })
+          if (error) return authErrorMessage(error)
+          // The recovery session was only for this; the member signs in again with the new password
+          await client.auth.signOut({ scope: 'local' }).catch(warn)
+        } catch (error) {
+          warn(error)
+          return 'Your password couldn’t be changed. Check your connection and try again.'
+        }
+        endSession()
+        setNotice('Your password has been changed. Sign in with your new password.')
+        return null
+      },
       changePlan: (plan) => saveOptimistically({ plan }, (sb) => saveAccount(sb, user.id, { plan })),
       async applyPromo(code) {
         const { data, error } = await callFunction(client, 'apply-promo', { code })

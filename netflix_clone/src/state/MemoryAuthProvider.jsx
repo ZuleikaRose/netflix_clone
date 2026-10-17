@@ -9,8 +9,8 @@ import { AuthContext, defaultPreferences, demoAccount, normalizeEmail } from './
 // resolve to an error message or null.
 
 // A new demo password on every page load, short enough to type (it's shown on the sign-in screen and in Account so the
-// demo user can change their password or confirm deleting the account). getRandomValues also works on plain-HTTP
-// origins (randomUUID needs a secure context, e.g. fails on a LAN IP).
+// demo user can change their password or confirm deleting the account); also used for reset-link tokens.
+// getRandomValues also works on plain-HTTP origins (randomUUID needs a secure context, e.g. fails on a LAN IP).
 const READABLE = 'abcdefghjkmnpqrstuvwxyz23456789'
 const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(10)), (b) => READABLE[b % READABLE.length]).join('')
 
@@ -23,6 +23,9 @@ export function MemoryAuthProvider({ children }) {
   const [session, setSession] = useState(0)
   // Message for the sign-in screen after a signed-in action ends the session (e.g. deleting the account)
   const [notice, setNotice] = useState(null)
+  // Password reset links handed out this session (token → email) and the account the open reset page is for
+  const [resetLinks, setResetLinks] = useState({})
+  const [resettingEmail, setResettingEmail] = useState(null)
 
   const value = useMemo(() => {
     const user = accounts.find((a) => a.email === currentEmail) ?? null
@@ -88,6 +91,29 @@ export function MemoryAuthProvider({ children }) {
         patchUser({ password: next })
         return null
       },
+      // No email without a backend, so the reset link is handed back for the page to show. Every address gets a
+      // link (it only works for an existing account), so the form doesn't reveal which accounts exist.
+      async requestPasswordReset(email) {
+        const token = randomSecret()
+        setResetLinks((links) => ({ ...links, [token]: normalizeEmail(email) }))
+        return { error: null, demoLink: `/reset-password?demo_token=${token}` }
+      },
+      // `link` is the page location; resolves to { email } or { error }
+      async beginPasswordReset(link) {
+        const email = resetLinks[new URLSearchParams(link.search).get('demo_token')]
+        if (!email || !accounts.some((a) => a.email === email)) return { error: 'This reset link is invalid or has expired. Please request a new one.' }
+        setResettingEmail(email)
+        return { error: null, email }
+      },
+      async completePasswordReset(password) {
+        if (!resettingEmail) return 'This reset link is invalid or has expired. Please request a new one.'
+        setAccounts((all) => all.map((a) => (a.email === resettingEmail ? { ...a, password } : a)))
+        // One use per link
+        setResetLinks((links) => Object.fromEntries(Object.entries(links).filter(([, email]) => email !== resettingEmail)))
+        setResettingEmail(null)
+        setNotice('Your password has been changed. Sign in with your new password.')
+        return null
+      },
       async changePlan(plan) {
         patchUser({ plan })
       },
@@ -110,7 +136,7 @@ export function MemoryAuthProvider({ children }) {
       // Referral clicks are only simulated (Affiliate → Demo tools) without Supabase
       recordReferralClick() {},
     }
-  }, [accounts, currentEmail, session, notice])
+  }, [accounts, currentEmail, session, notice, resetLinks, resettingEmail])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

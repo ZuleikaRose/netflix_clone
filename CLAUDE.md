@@ -26,14 +26,15 @@ netflix_clone/        The Vite app — run all npm commands here
 supabase/             Supabase CLI project (config.toml); MCP config in supabase/.mcp.json (not committed)
   migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron)
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
-  functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral (+ _shared/)
+  functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral (+ _shared/: clients,
+                      CORS, caller check, per-IP rate limits via public.hit_rate_limit)
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, indexes
 schema.sql, drawsql.png  The original design; migrations/…_initial_schema.sql lists where it differs
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
 ```
 
-Supabase projects (org "Zuleika LLC", Free plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
+Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
 
@@ -64,6 +65,7 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | Watch list / Favorites | `/watchlist`, `/favorites` (`/my-netflix` = watch list) | `pages/MyNetflix.jsx` |
 | Account Settings (incl. billing, autoplay, accessibility, delete account) | `/account` | `pages/Account.jsx`, `pages/account/Billing.jsx`, `pages/account/DeleteAccount.jsx` |
 | Login / Signup / Logout | `/login`, `/signup`, `/logout` | `pages/Login.jsx`, `Signup.jsx`, `Logout.jsx` |
+| (extra) Forgot / reset password | `/forgot-password`, `/reset-password` | `pages/ForgotPassword.jsx`, `ResetPassword.jsx` |
 | Customer Support, FAQs, Feedback, Issue Reporting | `/info/support`, `/info/faqs`, `/info/feedback`, `/info/report-issue` | `pages/info/*` |
 | Promotions/Discounts, Technical Requirements, AI Integration | `/info/promotions`, `/info/tech-requirements`, `/info/ai` | `pages/info/*` |
 | Affiliate Program | `/info/affiliate` | `pages/info/Affiliate.jsx`, data in `data/affiliate.js` |
@@ -89,7 +91,9 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
   null) from the auth context and writes through it.
 - **Edge Functions** (`supabase/functions`, `verify_jwt = false`, callers checked in `_shared/supabase.ts`) do what
   the browser must not: create demo accounts, delete account access (ban + revoke sessions, data kept), apply promo
-  codes (valid codes are in `public.promotions`, which clients can't read) and count referral clicks. Call them with
+  codes (valid codes are in `public.promotions`, which clients can't read) and count referral clicks. The public ones
+  are rate limited per IP with `allowRequest()` (demo accounts: 20/hour per IP, 300/hour overall; referral clicks:
+  one per IP per link per hour); old hits are deleted hourly by cron. Call them with
   `callFunction()`. Every PostgREST UPDATE/DELETE needs a filter (`.eq('id', …)`), or PostgREST rejects it.
 - **Catalog (Supabase)**: `CatalogProvider` renders the built-in `data/catalog.js` at once, then swaps in the
   `titles` rows from the REST API; on any error it keeps the built-in list. Read titles through `useCatalog()`
@@ -108,8 +112,17 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
   hardcode credentials. Billing is simulated: store only card brand, last four and expiry, never full numbers or CVC.
 - **Forms**: use `components/Field.jsx`; validate on submit, then `focusFirstError(form)`; errors use `--error`
   (`#e87c03`), never the red accent.
+- **Passwords**: new passwords go through `passwordProblem()` / `PASSWORD_HINT` in `state/authContext.js`: 13+
+  characters with lowercase, uppercase, a digit and a symbol — the same rules as Supabase Auth on both projects and
+  in `supabase/config.toml`. Change all three together. Supabase also rejects leaked passwords (`weak_password`,
+  reason `pwned`). Test passwords must meet the rules too (e.g. `Brand-new-pass-42`).
+- **Password reset**: `requestPasswordReset` → email link → `/reset-password` → `beginPasswordReset` (Supabase: the
+  recovery session in the URL hash; memory: a `?demo_token=` link the page shows instead of an email) →
+  `completePasswordReset`, which signs out and leaves a notice for `/login`. The page strips the token from the URL.
+  Supabase's Auth → URL Configuration must allow `<site>/reset-password` as a redirect URL.
 - **Accessibility menu**: settings live in `AccessibilityProvider` (above the routes, so they work signed out and survive
-  sign-in, but reset on reload). It mirrors them onto `<html>` as `data-a11y-*` attributes styled at the end of
+  sign-in, but reset on reload). With Supabase they're also saved per member (`accessibility_settings`,
+  `data/accessibilityApi.js`): saved settings apply at sign-in, or the current ones are saved the first time. It mirrors them onto `<html>` as `data-a11y-*` attributes styled at the end of
   `index.css`; text size uses CSS `zoom` on `.page`, and contrast/saturation use a `filter` on `<html>` (the only element
   whose filter doesn't break fixed/sticky children). Add a setting in `accessibilityContext.js` (defaults, choices or
   switches, profiles), then style its attribute.

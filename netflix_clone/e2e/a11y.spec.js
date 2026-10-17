@@ -38,7 +38,8 @@ async function audit(page, label) {
 }
 
 test('signed-out pages meet WCAG 2.2 AA', async ({ page }) => {
-  for (const path of ['/login', '/signup']) {
+  // /reset-password without a token shows its "invalid link" state; /signup stays last for the error-state check below
+  for (const path of ['/login', '/forgot-password', '/reset-password', '/signup']) {
     await page.goto(path)
     await audit(page, path)
   }

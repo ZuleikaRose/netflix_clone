@@ -56,6 +56,7 @@ export function Login() {
         <Field label="Password" type="password" autoComplete="current-password" value={form.password} onChange={updateField('password')} error={errors.password} />
         <button type="submit" className="cta" disabled={pending}>Sign In</button>
       </form>
+      <p className="auth-switch"><Link to="/forgot-password">Forgot your password?</Link></p>
       <button type="button" className="ghost-cta" onClick={() => finish(loginDemo)} disabled={pending}>Use demo account</button>
       {demoPassword
         ? <p className="demo-credentials">Or sign in as <b>{demoEmail}</b> with password <code>{demoPassword}</code> ({backend === 'supabase' ? 'your private demo account, deleted after 24 hours' : 'new on every reload'}).</p>
