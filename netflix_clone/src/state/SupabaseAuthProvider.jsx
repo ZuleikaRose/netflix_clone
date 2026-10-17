@@ -1,11 +1,12 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { authErrorMessage, billingColumns, callFunction, loadAccount, saveAccount, savePreference } from '../data/accountApi.js'
 import { libraryApi } from '../data/libraryApi.js'
-import { getSupabase } from '../lib/supabaseConfig.js'
+import { getSupabase, hasStoredSession, readStored, writeStored } from '../lib/supabaseConfig.js'
 import { AuthContext, normalizeEmail } from './authContext.js'
 
-// Supabase Auth. The session is kept in memory only (see lib/supabase.js), so a reload still signs the user out, but
-// the account and library are saved in the database and come back on the next sign-in.
+// Supabase Auth. The session is saved in the browser (see lib/supabase.js) and restored on page load, so a reload keeps
+// the member signed in; their account and library come back from the database. `ready` is false while that restore
+// runs, so guarded routes wait instead of bouncing to /login.
 // Same interface as MemoryAuthProvider: actions are async and resolve to an error message or null.
 
 const warn = (error) => {
@@ -15,14 +16,25 @@ const warn = (error) => {
 // A visitor opening /signup?ref=CODE counts as one click, even if React renders the page twice
 const countedReferrals = new Set()
 
+// This visitor's demo account { email, password, expiresAt }, kept so the password stays on screen after a reload
+const DEMO_STORAGE_KEY = 'netflix-clone-demo'
+function storedDemo() {
+  const demo = readStored(DEMO_STORAGE_KEY)
+  return demo?.email && demo?.password && Date.parse(demo.expiresAt) > Date.now() ? demo : null
+}
+
 export function SupabaseAuthProvider({ children }) {
   const [client, setClient] = useState(null)
   const [user, setUser] = useState(null)
   const [session, setSession] = useState(0)
   const [notice, setNotice] = useState(null)
-  // The demo account created for this visitor on this page load: { email, password }
-  const [demo, setDemo] = useState(null)
+  const [demo, setDemo] = useState(storedDemo)
+  // Nothing to restore without a stored session, so the app is ready at once
+  const [ready, setReady] = useState(() => !hasStoredSession())
   const listening = useRef(false)
+  const restoring = useRef(false)
+
+  useEffect(() => writeStored(DEMO_STORAGE_KEY, demo), [demo])
 
   // Rebuilt only when the signed-in user changes, not on every profile edit
   const userId = user?.id
@@ -85,8 +97,25 @@ export function SupabaseAuthProvider({ children }) {
       }
     }
 
+    // Page load with a saved session: sign the member back in. A session that can't be used (expired, revoked, or
+    // the account can't be loaded) is cleared, and they see the sign-in page.
+    const restoreSession = async () => {
+      try {
+        const supabase = await connect()
+        const { data, error } = await supabase.auth.getSession()
+        if (error) throw error
+        if (data.session) await startSession(supabase, data.session.user)
+      } catch (error) {
+        warn(error)
+      } finally {
+        setReady(true)
+      }
+    }
+
     return {
       backend: 'supabase',
+      ready,
+      restoreSession,
       user,
       session,
       notice,
@@ -95,12 +124,12 @@ export function SupabaseAuthProvider({ children }) {
       library,
       login: signIn,
       async loginDemo() {
-        // Reuse this page load's demo account; make a new one the first time (or if it was deleted)
+        // Reuse this visitor's demo account; make a new one the first time (or once it has expired or been deleted)
         if (demo && !(await signIn(demo.email, demo.password))) return null
         try {
           const { data, error } = await callFunction(await connect(), 'demo-account')
           if (error) return error
-          setDemo({ email: data.email, password: data.password })
+          setDemo({ email: data.email, password: data.password, expiresAt: data.expiresAt })
           return signIn(data.email, data.password)
         } catch (error) {
           warn(error)
@@ -253,7 +282,15 @@ export function SupabaseAuthProvider({ children }) {
         }
       },
     }
-  }, [client, user, session, notice, demo, library])
+  }, [client, user, session, notice, demo, library, ready])
+
+  const { restoreSession } = value
+  useEffect(() => {
+    // Once per page load (React runs effects twice in development)
+    if (ready || restoring.current) return
+    restoring.current = true
+    restoreSession()
+  }, [ready, restoreSession])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

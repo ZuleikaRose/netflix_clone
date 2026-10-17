@@ -87,9 +87,13 @@ after editing.
 
 ## Conventions
 
-- **Sessions are in memory only** — no localStorage (the Supabase client runs with `persistSession: false`). A full
-  page load signs the user out; this is a requirement, not a bug. With Supabase the user's data is saved and comes
-  back on the next sign-in; in memory mode a reload resets everything. `LibraryProvider` is keyed by the auth session.
+- **Sessions survive a reload (Supabase)** — the client runs with `persistSession: true` under the localStorage key
+  `AUTH_STORAGE_KEY` (`lib/supabaseConfig.js`). On page load `SupabaseAuthProvider` restores the session and loads the
+  account; `ready` is false meanwhile, and `RequireAuth`/`Login` show "Signing you in…" instead of redirecting. Without
+  a stored session the supabase-js chunk isn't loaded at all (`hasStoredSession()`). Sign out (or a revoked session)
+  clears it. The demo account's credentials are kept too (`netflix-clone-demo`, dropped after `expiresAt`). Memory mode
+  still resets on reload. Use `readStored`/`writeStored` (they tolerate blocked storage) for anything else kept in the
+  browser. `LibraryProvider` is keyed by the auth session.
 - **Two auth backends, one interface**: `lib/supabaseConfig.js` picks `SupabaseAuthProvider` when the Supabase env is
   set, else `MemoryAuthProvider`; `VITE_AUTH_BACKEND=memory` forces memory (the main e2e build). Auth actions are
   async and resolve to an error message or null (`signup` to `{ error, confirmEmail? }`); pages await them. Keep both
@@ -128,7 +132,7 @@ after editing.
   `completePasswordReset`, which signs out and leaves a notice for `/login`. The page strips the token from the URL.
   Supabase's Auth → URL Configuration must allow `<site>/reset-password` as a redirect URL.
 - **Accessibility menu**: settings live in `AccessibilityProvider` (above the routes, so they work signed out and survive
-  sign-in, but reset on reload). With Supabase they're also saved per member (`accessibility_settings`,
+  sign-in, but reset on reload while signed out). With Supabase they're also saved per member (`accessibility_settings`,
   `data/accessibilityApi.js`): saved settings apply at sign-in, or the current ones are saved the first time. It mirrors them onto `<html>` as `data-a11y-*` attributes styled at the end of
   `index.css`; text size uses CSS `zoom` on `.page`, and contrast/saturation use a `filter` on `<html>` (the only element
   whose filter doesn't break fixed/sticky children). Add a setting in `accessibilityContext.js` (defaults, choices or
@@ -162,7 +166,8 @@ after editing.
 ## Testing
 
 - Every change should keep `npm run lint`, `npm run test:e2e` and the pgTAP tests green; CI runs all three.
-- Tests sign in once with `signInAsDemo()` and move with `navigateInApp()` (client-side), because a reload logs out.
+- Tests sign in once with `signInAsDemo()` and move with `navigateInApp()` (client-side), because a reload logs out on
+  the in-memory build (the Supabase build stays signed in; `supabase-auth.spec.js` checks that).
 - Most specs run on the in-memory build (:4173). `e2e/supabase.spec.js` (REST catalog) and `e2e/supabase-auth.spec.js`
   (real sign-in, saved data, Edge Functions; desktop only, on :4174) use the dev project and skip without
   `.env.development.local` (as in CI). Keep Supabase sign-ins in tests few: Auth rate-limits them per IP.

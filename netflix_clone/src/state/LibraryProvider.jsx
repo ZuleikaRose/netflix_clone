@@ -3,8 +3,9 @@ import { useAuth } from './authContext.js'
 import { LibraryContext } from './libraryContext.js'
 
 // The signed-in user's lists, ratings, scores and reports. Changes show at once; with Supabase (`library` from the
-// auth context) they are also saved and loaded back on the next sign-in. Without it everything stays in memory and a
-// refresh resets it, as before. Keyed by the auth session, so each sign-in starts from that user's data.
+// auth context) they are also saved and loaded back at sign-in, including the automatic sign-in after a reload. Without
+// it everything stays in memory and a refresh resets it. Keyed by the auth session, so each sign-in starts from that
+// user's data.
 
 const warn = (error) => {
   if (import.meta.env.DEV) console.warn('Supabase:', error)

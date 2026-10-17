@@ -497,5 +497,6 @@ html[data-a11y-stop-animations] *, html[data-a11y-stop-animations] *::before, ht
 .credit-list { display: grid; gap: 8px; margin: 0; padding-left: 18px; color: #d4d4d4; font-size: 14px; line-height: 1.5; }
 .demo-credentials { margin: 0; color: #bcbcbc; font-size: 13px; line-height: 1.5; }
 .demo-credentials code { padding: 1px 6px; border-radius: 4px; color: #fff; background: #262626; font: 600 13px ui-monospace, monospace; }
+.session-restoring { margin: 0; padding: 48px 16px; color: #bcbcbc; font-size: 15px; text-align: center; }
 .auth-body .demo-credentials { margin-top: 12px; }
 .credit-list p { margin: 0; }
