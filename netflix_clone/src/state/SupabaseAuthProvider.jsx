@@ -197,8 +197,13 @@ export function SupabaseAuthProvider({ children }) {
       async recordReferralClick(code) {
         if (!code || countedReferrals.has(code)) return
         countedReferrals.add(code)
-        const { error } = await callFunction(await getSupabase(), 'record-referral', { code })
-        if (error) warn(error)
+        try {
+          const { error } = await callFunction(await getSupabase(), 'record-referral', { code })
+          if (error) warn(error)
+        } catch (error) {
+          // Loading the client failed (e.g. offline); a missed click count isn't worth bothering the visitor about
+          warn(error)
+        }
       },
     }
   }, [client, user, session, notice, demo, library])
