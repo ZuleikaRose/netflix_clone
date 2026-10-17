@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(37);
+select plan(38);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
@@ -95,6 +95,7 @@ reset role;
 select has_index('public', 'review', 'review_title_id_created_at_idx', 'title page reviews are indexed');
 select has_index('public', 'referrals', 'referrals_affiliate_id_kind_idx', 'affiliate counts are indexed');
 select has_index('public', 'watch_list_tables', 'watch_list_tables_title_id_idx', 'watch list title FK is indexed');
+select has_extension('extensions', 'index_advisor', 'Index Advisor is installed');
 
 select * from finish();
 rollback;

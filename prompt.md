@@ -17,6 +17,9 @@ Skills necessary for this application are as follows:
 
 There will be no API interactions and all data should be retained only at the browser level, meaning if I refresh/rerender my site all of the data should reset.
 
+> Later changed by the backend prompts below: the app now uses Supabase. Sessions still live only in the browser
+> (a refresh signs you out), but members' data is saved in the database.
+
 I have created a series of documents and images as a reference for what I would like this application to look like and isolated everything by pages. Take a look at this folder @./app_outline and read the `user_journey.md` file to get context for the users journey through the application. Then look at the `/home/zuleikarose/obsidian_wsl/netflix_clone/app_outline/netflix_mobile_wireframe` to visualize the entire application. Finally under pages, you'll find a wire-frame corresponding to each page along with a detailed user story for how a user would interact with this page. Additionally, when it comes to design style, you can read the `style_guide.md` and apply its guidelines as you see fit.
 
 Take a look at the @../user_stories.md. Gather all details.
@@ -39,3 +42,30 @@ Same as above, but add at the end:
 
 > Keep it to 2 phases for this demo: Phase 1 = app shell + routing + Home page. Phase 2 = Log Workout, History, and Workout Detail.
 >
+
+---
+
+## Backend prompts (Supabase phase)
+
+These came after the front end was built, in this order. Skills used: PostgreSQL Table Design
+(`supabase/.claude/skills/`), plus the Supabase MCP server and CLI.
+
+1. Connect to Supabase project `czgzptjegmkvrxnxduxs` via MCP and create tables based on `drawsql.png` and
+   `schema.sql`. Connect the REST API to the front end of the Netflix Clone app. Test, summarize what's been done
+   and recommend what to do next.
+2. Give the app test data so it populates the database. List any errors and recommendations how to fix them, and ask
+   any questions.
+3. Commit and push to GitHub. Do recommendations 1–7. Move sign-in to Supabase Auth (a private demo account per
+   visitor; a reload still signs out; a second free project for development; email confirmation off). Make sure
+   indexing is set up.
+4. Turn on leaked password protection for all projects (needs the Pro plan).
+5. Open a pull request from `supabase-backend` to `main`; test, check for errors, show recommendations and ask
+   questions; commit and push.
+6. Do every recommendation except custom SMTP (saved for later). Make the password rules the same strict rules as the
+   dev project. Build a Forgot Password feature and page. Save hosting for later and merge PR #1. Commit and push.
+7. Merge PR #2.
+8. Update `user_stories.md`, `user_journey.md`, the READMEs, `CLAUDE.md`, `prompt.md`, `schema.sql` and `drawsql.png`
+   to match all the changes.
+
+Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and rolling the latest
+migrations and functions out to production.

@@ -4,9 +4,9 @@
 
 Pulled from `app_outline/` (the user journey and each page's `user_journey.md`) into one list: one line per thing the app has to *remember*. Story 1 isn't on any single page; it's there so the database knows who owns what.
 
-Today the app keeps all of this in memory and resets on refresh. These stories describe what a database would need to store.
+These stories are what the Supabase database stores (see `schema.sql`, `drawsql.png` and `supabase/migrations/`). Without Supabase configured the app keeps the same data in memory, and it resets on refresh. Stories 26–31 were added with the Supabase backend.
 
-1. As a user, I want an account with my name, email and password so that my list, ratings and settings belong to me.
+1. As a user, I want an account with my name, email and password so that my private lists and settings belong to me, and no one else can see or change them. Reviews and ratings are readable by everyone. (Supabase Auth keeps the password; private data shows a member only their own rows, while the catalog and reviews are publicly readable.)
 2. As a user, I want to choose a membership plan (Basic, Standard or Premium) so that I know what I pay and what quality I get.
 3. As a user, I want to save a payment method (only the card brand, last four digits and expiry) and a billing day so that I'm charged on a date that suits me.
 4. As a user, I want to pause, cancel or restart my membership so that I only pay when I'm watching.
@@ -23,7 +23,7 @@ Today the app keeps all of this in memory and resets on refresh. These stories d
 15. As an affiliate, I want each click and sign-up from my referral link counted so that I can see my tier and earnings.
 16. As a user, I want my best score in each game saved so that I can try to beat it.
 17. As a user, I want to see when each review, ticket and referral was created so that I know how recent it is.
-18. As a user, I want to adjust text size, font, spacing, contrast and color, and turn on reading and navigation aids from an accessibility menu, so that the app works for how I see, read and move.
+18. As a user, I want to adjust text size, font, spacing, contrast and color, and turn on reading and navigation aids from an accessibility menu, so that the app works for how I see, read and move; as a member, I want these settings saved so that they come back when I sign in.
 19. As a user, I want one-tap accessibility profiles (seizure safe, low vision, ADHD friendly, dyslexia friendly, keyboard navigation, deaf and hard of hearing) so that I can set up several settings at once.
 20. As a user, I want to read an Accessibility Policy linked from the footer so that I know what the app supports and how to report a problem.
 21. As a viewer, I want to watch real video with controls (play, pause, seek, skip 10 seconds, mute, speed, full screen) that work with a keyboard so that I can watch comfortably.
@@ -31,3 +31,9 @@ Today the app keeps all of this in memory and resets on refresh. These stories d
 23. As a user, I want to turn autoplaying previews and next episodes on or off, and have them stay off when I ask for reduced motion, so that video doesn't start without my say.
 24. As a user, I want to delete my account from a danger zone once my subscription is cancelled, by typing my email and entering my password to confirm, so that I can leave the service; deleting only removes my access.
 25. As a user, I want to contact support with a data removal ticket so that my stored data can be erased if I choose.
+26. As a user who forgot my password, I want to request a reset link by email and choose a new password so that I can get back into my account.
+27. As a user, I want the app to require a strong password (13+ characters with lowercase, uppercase, a digit and a symbol) and refuse passwords found in data leaks so that my account is hard to break into.
+28. As a visitor, I want to try the app with my own private demo account, without signing up, so that I can explore every feature; the demo account is deleted after 24 hours.
+29. As a reviewer, I want my real account name shown on my reviews, and no one able to post under someone else's name, so that reviews can be trusted.
+30. As a user, I want my promo code checked against the real offers and my plan so that only valid discounts are applied.
+31. As the site owner, I want the public features (demo accounts, referral clicks) limited per visitor so that no one can flood the service or inflate an affiliate's counts.
