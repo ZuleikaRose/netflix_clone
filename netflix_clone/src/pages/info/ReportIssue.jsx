@@ -22,16 +22,20 @@ export function ReportIssue() {
   const [justFiled, setJustFiled] = useState(null)
   const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     const next = {}
     if (form.summary.trim().length < 5) next.summary = 'Please describe the issue in a few words.'
     setErrors(next)
     if (Object.keys(next).length) return focusFirstError(e.currentTarget)
-    const ticket = { ...form, id: `NF-${48210 + issues.length}`, device: deviceSummary(), status: 'Open' }
-    addIssue(ticket)
-    setJustFiled(ticket.id)
-    setForm(blank)
+    try {
+      // The ticket number comes back from the library (the database numbers it when Supabase is connected)
+      const filed = await addIssue({ ...form, device: deviceSummary(), status: 'Open' })
+      setJustFiled(filed.id)
+      setForm(blank)
+    } catch {
+      setErrors({ summary: 'Your report couldn’t be sent. Please try again.' })
+    }
   }
 
   return (

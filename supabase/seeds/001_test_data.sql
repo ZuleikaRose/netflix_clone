@@ -11,7 +11,6 @@ delete from auth.users where id in (
   'a1e00000-0000-4000-8000-000000000003', 'a1e00000-0000-4000-8000-000000000004',
   'a1e00000-0000-4000-8000-000000000005', 'a1e00000-0000-4000-8000-000000000006'
 );
-delete from public.promo_codes where code in ('WELCOME50', 'STUDENT20', 'FAMILY15');
 
 -- Auth users. The on_auth_user_created trigger creates each netflix_tables row from email + metadata.
 -- The token columns must be '' rather than null, or Supabase Auth fails to load the user.
@@ -36,7 +35,7 @@ select gen_random_uuid(), u.id, u.id::text, 'email',
 from auth.users u
 where u.id::text like 'a1e00000-0000-4000-8000-00000000000_';
 
--- Accounts: billing (brand, last four and expiry only), membership states and sign-in times
+-- The sign-up trigger creates each account and preferences row; this sets billing (brand, last four and expiry only), membership states and sign-in times
 update public.netflix_tables n set
   billing_day = v.billing_day, card_brand = v.brand, card_last4 = v.last4, card_exp = v.exp,
   membership_status = v.status, resumes_on = v.resumes_on, ends_on = v.ends_on,
@@ -58,7 +57,9 @@ values
   ('a1e00000-0000-4000-8000-000000000003', false, false, true, false, 'teen'),
   ('a1e00000-0000-4000-8000-000000000004', true, false, true, true, 'all'),
   ('a1e00000-0000-4000-8000-000000000005', true, false, false, false, 'all'),
-  ('a1e00000-0000-4000-8000-000000000006', true, false, true, true, 'kids');
+  ('a1e00000-0000-4000-8000-000000000006', true, false, true, true, 'kids')
+on conflict (user_id) do update set autoplay_next = excluded.autoplay_next, autoplay_previews = excluded.autoplay_previews,
+  email_updates = excluded.email_updates, personalized = excluded.personalized, maturity_rating = excluded.maturity_rating;
 
 -- Defaults everywhere except a few users who use the accessibility menu
 insert into public.accessibility_settings (user_id, text_size, font, line_height, letter_spacing, contrast,
@@ -121,15 +122,14 @@ insert into public.tickets (user_id, ticket_number, issue_type, title_id, summar
   ('a1e00000-0000-4000-8000-000000000005', 'NF-48302', 'Data removal request', null, 'Please delete all data for my cancelled account.',
     null, null, 'Open', now() - interval '1 day');
 
--- Codes are issued server-side; one has been applied by a user, the others are unused
+-- The code applied to each account (valid codes live in private.promotions); Dana and Jordan have one
 insert into public.promo_codes (user_id, code, percent_off, plan, applied_at) values
   ('a1e00000-0000-4000-8000-000000000006', 'WELCOME50', 50, null, now() - interval '20 days'),
-  (null, 'STUDENT20', 20, null, null),
-  (null, 'FAMILY15', 15, 'premium', null);
+  ('a1e00000-0000-4000-8000-000000000002', 'FAMILY15', 15, 'premium', now() - interval '60 days');
 
 insert into public.affiliates (id, user_id, referral_code, website_url, channels, accepted_terms, tier) values
-  ('afa00000-0000-4000-8000-000000000001', 'a1e00000-0000-4000-8000-000000000002', 'JORDAN-7Q2K', 'https://jordan-watches.example.com', 'Blog or website, YouTube', true, 'Pro'),
-  ('afa00000-0000-4000-8000-000000000002', 'a1e00000-0000-4000-8000-000000000004', 'PRIYA-3M8D', null, 'Instagram, TikTok', true, 'Starter');
+  ('afa00000-0000-4000-8000-000000000001', 'a1e00000-0000-4000-8000-000000000002', 'JORDAN7Q2K', 'https://jordan-watches.example.com', 'Blog or website, YouTube', true, 'Pro'),
+  ('afa00000-0000-4000-8000-000000000002', 'a1e00000-0000-4000-8000-000000000004', 'PRIYA3M8D', null, 'Instagram, TikTok', true, 'Starter');
 
 insert into public.referrals (affiliate_id, kind, created_at)
 select 'afa00000-0000-4000-8000-000000000001'::uuid, case when n % 3 = 0 then 'signup' else 'click' end, now() - n * interval '1 day'

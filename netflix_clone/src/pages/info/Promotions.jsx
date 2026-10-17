@@ -11,13 +11,11 @@ export function Promotions() {
   const plan = findPlan(user.plan)
   const active = findPromotion(user.promo)
 
-  const applyCode = (value) => {
-    const promo = findPromotion(value)
-    if (!promo) return setError('That code isn’t valid. Check the spelling and try again.')
-    if (promo.plan && promo.plan !== user.plan) return setError(`${promo.code} only works with the ${findPlan(promo.plan).name} plan.`)
-    setError('')
-    setCode('')
-    applyPromo(promo.code)
+  // The auth backend checks the code (with Supabase, the apply-promo Edge Function does)
+  const applyCode = async (value) => {
+    const failure = await applyPromo(value)
+    setError(failure ?? '')
+    if (!failure) setCode('')
   }
 
   return (

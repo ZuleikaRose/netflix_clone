@@ -53,3 +53,32 @@ jobs:
           name: playwright-report
           path: netflix_clone/playwright-report/
           retention-days: 14
+
+  # Builds a throwaway local Supabase (Docker) from supabase/migrations, non_transactional/ and seeds/, then runs the
+  # pgTAP tests in supabase/tests: access rules, triggers, the cleanup job and indexes. No secrets or hosted project.
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: .
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+
+      - name: Start the local database
+        run: supabase db start
+
+      - name: Apply migrations and test data
+        run: supabase db reset --local
+
+      - name: Add indexes (CREATE INDEX CONCURRENTLY can't run inside a migration)
+        run: for f in supabase/non_transactional/*.sql; do psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$f"; done
+
+      - name: Database tests
+        run: supabase test db

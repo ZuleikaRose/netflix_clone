@@ -11,6 +11,7 @@ import { describeLength } from '../data/catalog.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
+import { useReviews } from '../state/useReviews.js'
 import { NotFound } from './NotFound.jsx'
 
 function StarRating({ value, onChange, label }) {
@@ -30,12 +31,14 @@ function StarRating({ value, onChange, label }) {
 export function TitleDetail() {
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
-  const { myList, favorites, ratings, reviews, toggleMyList, toggleFavorite, rate, addReview } = useLibrary()
+  const { myList, favorites, ratings, toggleMyList, toggleFavorite, rate } = useLibrary()
   const { user } = useAuth()
   const [draft, setDraft] = useState('')
+  const [reviewError, setReviewError] = useState(null)
   const { titles: catalog, isAllowed, findTitle } = useCatalog()
 
   const title = findTitle(id)
+  const { reviews: allReviews, addReview } = useReviews(title)
   // Runs after PageHeader's effect (parents run last), so the tab shows the show's name, not "TV Show"
   useDocumentTitle(title?.title)
   if (!title) return <NotFound />
@@ -55,14 +58,14 @@ export function TitleDetail() {
   const saved = myList.includes(id)
   const favorite = favorites.includes(id)
   const myRating = ratings[id] ?? 0
-  const allReviews = [...(reviews[id] ?? []), ...title.reviews]
   const related = catalog.filter((t) => t.id !== id && t.genres.some((g) => title.genres.includes(g)))
 
-  const submitReview = (e) => {
+  const submitReview = async (e) => {
     e.preventDefault()
     if (!draft.trim()) return
-    addReview(id, { author: user.name, stars: myRating || null, text: draft.trim() })
-    setDraft('')
+    const error = await addReview({ author: user.name, stars: myRating || null, text: draft.trim() })
+    setReviewError(error ?? null)
+    if (!error) setDraft('')
   }
 
   return (
@@ -110,6 +113,7 @@ export function TitleDetail() {
             <label htmlFor="review">Write a review</label>
             <textarea id="review" rows="3" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What did you think?" />
             <button type="submit" className="play wide" disabled={!draft.trim()}>Post review</button>
+            {reviewError && <p className="form-alert" role="alert">{reviewError}</p>}
           </form>
           {allReviews.length === 0
             ? <p className="muted">No reviews yet — be the first.</p>

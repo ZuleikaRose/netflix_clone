@@ -1,5 +1,7 @@
 -- Indexes on foreign keys not already covered by a unique constraint's leading column.
--- CONCURRENTLY cannot run inside a transaction: run these one statement at a time, not as one migration block.
+-- CREATE INDEX CONCURRENTLY cannot run inside a transaction, and the Supabase CLI wraps every migration in one, so
+-- these live outside migrations/. Apply after migrations with psql (autocommit, one statement at a time):
+--   psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/non_transactional/001_foreign_key_indexes.sql
 
 create index concurrently if not exists watch_list_tables_title_id_idx on public.watch_list_tables (title_id);
 create index concurrently if not exists favorites_title_id_idx on public.favorites (title_id);

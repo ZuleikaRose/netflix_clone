@@ -1,14 +1,11 @@
 import { expect, test } from '@playwright/test'
-import { loadEnv } from 'vite'
 import { navigateInApp, signInAsDemo } from './helpers.js'
+import { supabaseConfigured as configured } from './ports.js'
 
-// Same variables `vite build` bakes in. CI has no .env.local, so the app (and these checks) run on the built-in catalog.
-const env = loadEnv('production', process.cwd(), 'VITE_')
-const configured = Boolean(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_PUBLISHABLE_KEY)
 const titlesEndpoint = '**/rest/v1/titles*'
 
 test.describe('catalog from the Supabase REST API', () => {
-  test.skip(!configured, 'Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.local to run these')
+  test.skip(!configured, 'Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.development.local to run these')
 
   test('the app loads titles from /rest/v1/titles', async ({ page }) => {
     const response = page.waitForResponse((r) => r.url().includes('/rest/v1/titles'))
@@ -27,7 +24,10 @@ test.describe('catalog from the Supabase REST API', () => {
       rows.find((t) => t.id === 'after-dark').title = 'After Dark (from Supabase)'
       await route.fulfill({ response, json: rows })
     })
+    // The app shows the built-in catalog until this arrives, which can take a while when the suite runs in parallel
+    const titlesLoaded = page.waitForResponse((r) => r.url().includes('/rest/v1/titles'))
     await signInAsDemo(page)
+    await titlesLoaded
     await navigateInApp(page, '/title/after-dark')
     await expect(page.getByRole('heading', { name: 'After Dark (from Supabase)' }).first()).toBeVisible()
   })

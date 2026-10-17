@@ -1,7 +1,8 @@
 # Netflix Clone — project guide
 
-Mobile-first streaming app (React 19 + Vite 8 + React Router 7 `BrowserRouter`). The catalog is read from a
-Supabase database over its REST API; everything else is still front-end only, in memory.
+Mobile-first streaming app (React 19 + Vite 8 + React Router 7 `BrowserRouter`) on Supabase: the catalog comes from
+the REST API, members sign in with Supabase Auth and their lists, reviews, settings and tickets are saved in Postgres.
+Without Supabase configured (CI) it falls back to a built-in catalog and in-memory accounts.
 Requirements live in `app_outline/`; the app lives in `netflix_clone/`; the database lives in `supabase/`.
 
 ## Layout
@@ -13,20 +14,28 @@ app_outline/          Requirements (source of truth for features)
   style_guide.md      Visual rules (see "Design rules" below)
 netflix_clone/        The Vite app — run all npm commands here
   src/data/           Catalog, plans, billing, promotions, affiliate program, FAQs, legal copy, service status
-  src/data/catalogApi.js  GET /rest/v1/titles → app title shape
-  src/lib/supabase.js Supabase client (null when .env.local isn't set)
-  src/state/          CatalogProvider (titles), AuthProvider (accounts, billing, preferences), AccessibilityProvider
-                      (accessibility menu settings) and LibraryProvider (per-session data)
+  src/data/catalogApi.js, accountApi.js, libraryApi.js   Supabase queries ↔ the shapes the pages use
+  src/lib/            supabaseConfig.js (config, authBackend, lazy getSupabase()), supabase.js (the client)
+  src/state/          CatalogProvider (titles), AuthProvider → SupabaseAuthProvider or MemoryAuthProvider (accounts,
+                      billing, preferences), LibraryProvider (lists, ratings, scores, tickets…), useReviews,
+                      AccessibilityProvider (accessibility menu settings)
   src/pages/          One file per route; info/, games/ and account/ hold sub-pages
   src/components/     Layout (phone frame, tab bar, footer), PageHeader, Field, Player, Preview, AccessibilityPanel, hooks
-  e2e/                Playwright specs + serve.js (static server used by the tests)
-  .env.example        VITE_SUPABASE_URL + VITE_SUPABASE_PUBLISHABLE_KEY; copy to .env.local (git-ignored)
-supabase/             Supabase project czgzptjegmkvrxnxduxs ("eagle_platoon"); MCP config in supabase/.mcp.json
-  migrations/         Schema + RLS, FK indexes (CONCURRENTLY: run one statement at a time), catalog titles, fixes
+  e2e/                Playwright specs, serve.js (static server), ports.js (ports + dev project config)
+  .env.example        Copy to .env.development.local (dev project) and .env.production.local (production); git-ignored
+supabase/             Supabase CLI project (config.toml); MCP config in supabase/.mcp.json (not committed)
+  migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron)
+  non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
+  functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral (+ _shared/)
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
+  tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, indexes
 schema.sql, drawsql.png  The original design; migrations/…_initial_schema.sql lists where it differs
-.github/workflows/    CI: lint, build, Playwright on push/PR
+.github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
 ```
+
+Supabase projects (org "Zuleika LLC", Free plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
+**eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
+non_transactional file and function to dev first, then production, with the same migration version on both.
 
 The repo root also has a stray `package.json`/`package-lock.json`/`node_modules` from an early misplaced
 install. They are intentionally **not committed**; don't add them.
@@ -37,9 +46,13 @@ install. They are intentionally **not committed**; don't add them.
 npm run dev            # http://localhost:5173
 npm run lint
 npm run build
-npm run test:e2e       # builds, serves dist/ via e2e/serve.js on :4173, runs all specs at 390px and 1280px
+npm run test:e2e       # two builds: :4173 in-memory accounts, :4174 Supabase Auth; all specs at 390px and 1280px
 npm run test:e2e:report
 ```
+
+Database (from the repo root, Supabase CLI v2.119.0 in `~/.local/bin`): `supabase db start`, `supabase db reset --local`,
+then the `non_transactional/` files with psql, then `supabase test db` — the same steps CI runs. Docker is needed
+locally (it isn't installed in this WSL distro, so CI is where these run today).
 
 ## Outline page → route map
 
@@ -66,19 +79,33 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
 
 ## Conventions
 
-- **All user state is in memory** — no localStorage (the Supabase client runs with `persistSession: false`). A full
-  page load signs the user out and resets everything; this is a requirement, not a bug. `LibraryProvider` is keyed
-  by the auth session. Accounts, watch list etc. have database tables but the app doesn't use them yet.
+- **Sessions are in memory only** — no localStorage (the Supabase client runs with `persistSession: false`). A full
+  page load signs the user out; this is a requirement, not a bug. With Supabase the user's data is saved and comes
+  back on the next sign-in; in memory mode a reload resets everything. `LibraryProvider` is keyed by the auth session.
+- **Two auth backends, one interface**: `lib/supabaseConfig.js` picks `SupabaseAuthProvider` when the Supabase env is
+  set, else `MemoryAuthProvider`; `VITE_AUTH_BACKEND=memory` forces memory (the main e2e build). Auth actions are
+  async and resolve to an error message or null (`signup` to `{ error, confirmEmail? }`); pages await them. Keep both
+  providers' behaviour and messages in step. LibraryProvider gets `library` (the libraryApi for the signed-in user, or
+  null) from the auth context and writes through it.
+- **Edge Functions** (`supabase/functions`, `verify_jwt = false`, callers checked in `_shared/supabase.ts`) do what
+  the browser must not: create demo accounts, delete account access (ban + revoke sessions, data kept), apply promo
+  codes (valid codes are in `public.promotions`, which clients can't read) and count referral clicks. Call them with
+  `callFunction()`. Every PostgREST UPDATE/DELETE needs a filter (`.eq('id', …)`), or PostgREST rejects it.
 - **Catalog (Supabase)**: `CatalogProvider` renders the built-in `data/catalog.js` at once, then swaps in the
   `titles` rows from the REST API; on any error it keeps the built-in list. Read titles through `useCatalog()`
-  (`titles`, `all`, `findTitle`, `genres`), never by importing `catalog` in a page. Sample reviews and watch progress
-  still come from `catalog.js`. Adding a title: add it to `catalog.js`, regenerate `…_seed_titles.sql`, apply it.
-- **Supabase security**: the project's default privileges grant anon/authenticated everything on new `public`
-  tables, so every migration must `revoke all` and grant only what its RLS policies need, and enable RLS. Use the
-  publishable key in the browser, never the secret/service_role key. Run `get_advisors` after schema changes.
-- **Demo account**: "Use demo account" on `/login`. Its password is random per page load (`crypto.getRandomValues`)
-  and shown on `/login` and in Account → Change password, so the demo user can change it or confirm deleting the
-  account; never hardcode credentials. Billing is simulated: store only card brand, last four and expiry, never full numbers or CVC.
+  (`titles`, `all`, `findTitle`, `genres`), never by importing `catalog` in a page. Watch progress (and, in memory
+  mode, sample reviews) still come from `catalog.js`; with Supabase, `useReviews` reads members' reviews from the
+  `review` table. Adding a title: add it to `catalog.js`, regenerate `…_seed_titles.sql`, apply it.
+- **Supabase security**: new `public` tables get no anon/authenticated grants by default (migration
+  `…_supabase_auth_support`), so every migration grants only what its RLS policies need and enables RLS. Use the
+  publishable key in the browser, never the secret/service_role key. Run `get_advisors` after schema changes. The MCP
+  server cancels DELETE/DROP statements in this session (it can't show its confirmation), so give those to the user
+  to run in the dashboard SQL editor.
+- **Demo account**: "Use demo account" on `/login`. In memory mode it's `alex@example.com` with a random password per
+  page load; with Supabase the `demo-account` function creates a private account per visitor (random email and
+  password, deleted after 24 hours by the `delete-expired-demo-accounts` cron job). Either way the password is shown on
+  `/login` and in Account → Change password, so the demo user can change it or confirm deleting the account; never
+  hardcode credentials. Billing is simulated: store only card brand, last four and expiry, never full numbers or CVC.
 - **Forms**: use `components/Field.jsx`; validate on submit, then `focusFirstError(form)`; errors use `--error`
   (`#e87c03`), never the red accent.
 - **Accessibility menu**: settings live in `AccessibilityProvider` (above the routes, so they work signed out and survive
@@ -94,9 +121,10 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
   video. Playwright's Chromium only plays WebM, so keep the WebM source first. Autoplay
   previews (`usePreview`) start only when `preferences.autoplayPreviews` is on **and** motion is allowed
   (`useMotionAllowed`: no reduced motion, no "Stop animations"); every preview has a pause/play toggle.
-- **Delete account**: needs `billing.status === 'cancelled'`, the typed email and the account password; it removes the account from memory
-  only (data removal is a support ticket, `/info/report-issue?type=data-removal`). The sign-in notice comes from
-  `notice` in `AuthProvider`, because signing out redirects before a navigation state could arrive.
+- **Delete account**: needs `billing.status === 'cancelled'`, the typed email and the account password; it removes
+  access only (Supabase: `delete-account` bans the user and sets `access_removed_at`; memory: drops the account). Data
+  removal is a support ticket, `/info/report-issue?type=data-removal`. The sign-in notice comes from `notice` in the
+  auth provider, because signing out redirects before a navigation state could arrive.
 - **Copy to clipboard**: use `useCopyToClipboard` — it handles a missing/blocked clipboard by showing the text.
 - **Non-component exports** go in `.js` files, not next to components (React Fast Refresh lint rule).
 - **Names**: hooks only for real hooks (`use*`); handlers are verbs (`applyCode`, `goToNextRound`).
@@ -113,10 +141,11 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
 
 ## Testing
 
-- Every change should keep `npm run lint` and `npm run test:e2e` green; CI runs both.
+- Every change should keep `npm run lint`, `npm run test:e2e` and the pgTAP tests green; CI runs all three.
 - Tests sign in once with `signInAsDemo()` and move with `navigateInApp()` (client-side), because a reload logs out.
-- `e2e/supabase.spec.js` checks the REST catalog; its live tests skip when `.env.local` isn't set (as in CI), and the
-  offline-fallback test always runs.
+- Most specs run on the in-memory build (:4173). `e2e/supabase.spec.js` (REST catalog) and `e2e/supabase-auth.spec.js`
+  (real sign-in, saved data, Edge Functions; desktop only, on :4174) use the dev project and skip without
+  `.env.development.local` (as in CI). Keep Supabase sign-ins in tests few: Auth rate-limits them per IP.
 - New features get a spec: `e2e/features.spec.js` (carousel, billing, affiliate…) and `e2e/accessibility.spec.js`
   (accessibility menu, policy, player and captions, autoplay, delete account).
 - Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility

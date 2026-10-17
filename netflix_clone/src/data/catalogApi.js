@@ -1,3 +1,4 @@
+import { getSupabase } from '../lib/supabaseConfig.js'
 import { catalog as localCatalog } from './catalog.js'
 
 const columns = 'id, title, type, release_year, maturity_rating, seasons, runtime, genres, mood, synopsis, cast_members, '
@@ -35,9 +36,8 @@ function toTitle(row) {
 const byCatalogOrder = (a, b) => (localIndex.get(a.id) ?? Infinity) - (localIndex.get(b.id) ?? Infinity) || b.popularity - a.popularity
 
 // GET /rest/v1/titles with the publishable key. Returns null when Supabase isn't configured.
-// The client is imported on demand so its ~200 kB stays out of the first page load.
 export async function fetchCatalog() {
-  const { supabase } = await import('../lib/supabase.js')
+  const supabase = await getSupabase()
   if (!supabase) return null
   const { data, error } = await supabase.from('titles').select(columns)
   if (error) throw error
