@@ -29,7 +29,9 @@ serve(async (req, body) => {
   // The current access token stays valid until it expires (1 hour), so the app signs out locally too.
   const { error: banError } = await admin.auth.admin.updateUserById(user.id, { ban_duration: '876000h' })
   if (banError) throw banError
-  await admin.auth.admin.signOut(token, 'global')
+  // Not fatal: the ban already stops this user's tokens from being refreshed. Logged so it shows in the function logs.
+  const { error: signOutError } = await admin.auth.admin.signOut(token, 'global')
+  if (signOutError) console.error('delete-account: revoking sessions failed', signOutError)
 
   return json({ ok: true })
 })
