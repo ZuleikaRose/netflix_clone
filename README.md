@@ -69,7 +69,7 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 
 - **120 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present).
 - **Accessibility:** an axe-core WCAG 2.2 AA audit of every page and key interactive state (including the accessibility menu, the player with captions, the delete-account form and the password reset pages), plus checks for 44px touch targets, visible keyboard focus, and focus never hidden behind the sticky bars.
-- **Database:** 37 pgTAP tests of the access rules, triggers, cleanup job, rate limiter and indexes.
+- **Database:** 38 pgTAP tests of the access rules, triggers, cleanup job, rate limiter and indexes. Every foreign key is indexed, and Supabase's Index Advisor is installed on both projects.
 - **CI** runs lint, build, the Playwright suite and the pgTAP tests on GitHub Actions; `main` requires both to pass.
 
 ## Notes

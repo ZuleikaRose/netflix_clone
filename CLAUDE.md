@@ -26,6 +26,7 @@ netflix_clone/        The Vite app — run all npm commands here
 supabase/             Supabase CLI project (config.toml); MCP config in supabase/.mcp.json (not committed)
   migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
+                      (Index Advisor is installed on both projects: dashboard → Query Performance suggests missing ones)
   functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral (+ _shared/: clients,
                       CORS, caller check, per-IP rate limits via public.hit_rate_limit)
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
