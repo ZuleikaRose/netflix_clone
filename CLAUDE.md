@@ -24,13 +24,16 @@ netflix_clone/        The Vite app — run all npm commands here
   e2e/                Playwright specs, serve.js (static server), ports.js (ports + dev project config)
   .env.example        Copy to .env.development.local (dev project) and .env.production.local (production); git-ignored
 supabase/             Supabase CLI project (config.toml); MCP config in supabase/.mcp.json (not committed)
-  migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron)
+  migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
   functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral (+ _shared/: clients,
                       CORS, caller check, per-IP rate limits via public.hit_rate_limit)
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
-  tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, indexes
-schema.sql, drawsql.png  The original design; migrations/…_initial_schema.sql lists where it differs
+  tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
+  diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
+schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 16 public tables)
+user_stories.md       What the database stores, one story per thing the app remembers
+prompt.md             The original build prompt and the Supabase-phase prompts
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
 ```
 
@@ -65,7 +68,7 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | Watch list / Favorites | `/watchlist`, `/favorites` (`/my-netflix` = watch list) | `pages/MyNetflix.jsx` |
 | Account Settings (incl. billing, autoplay, accessibility, delete account) | `/account` | `pages/Account.jsx`, `pages/account/Billing.jsx`, `pages/account/DeleteAccount.jsx` |
 | Login / Signup / Logout | `/login`, `/signup`, `/logout` | `pages/Login.jsx`, `Signup.jsx`, `Logout.jsx` |
-| (extra) Forgot / reset password | `/forgot-password`, `/reset-password` | `pages/ForgotPassword.jsx`, `ResetPassword.jsx` |
+| Forgot / Reset Password | `/forgot-password`, `/reset-password` | `pages/ForgotPassword.jsx`, `ResetPassword.jsx` |
 | Customer Support, FAQs, Feedback, Issue Reporting | `/info/support`, `/info/faqs`, `/info/feedback`, `/info/report-issue` | `pages/info/*` |
 | Promotions/Discounts, Technical Requirements, AI Integration | `/info/promotions`, `/info/tech-requirements`, `/info/ai` | `pages/info/*` |
 | Affiliate Program | `/info/affiliate` | `pages/info/Affiliate.jsx`, data in `data/affiliate.js` |
@@ -78,6 +81,8 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 When the outline changes: diff `app_outline/user_journey.md` (`git diff --word-diff`), map each change to this
 table, add or extend the page, add `/info/<slug>` pages to `data/infoPages.js` (that also adds the footer link)
 and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.js` and `e2e/a11y.spec.js`.
+Every `app_outline/pages/<Page>/user_journey.md` is a copy of `app_outline/user_journey.md`; copy it to all of them
+after editing.
 
 ## Conventions
 
@@ -102,7 +107,8 @@ and `pages/InfoPage.jsx`, then add the route to the sweeps in `e2e/layout.spec.j
   `review` table. Adding a title: add it to `catalog.js`, regenerate `…_seed_titles.sql`, apply it.
 - **Supabase security**: new `public` tables get no anon/authenticated grants by default (migration
   `…_supabase_auth_support`), so every migration grants only what its RLS policies need and enables RLS. Use the
-  publishable key in the browser, never the secret/service_role key. Run `get_advisors` after schema changes. The MCP
+  publishable key in the browser, never the secret/service_role key. Run `get_advisors` after schema changes, and update
+  `schema.sql`, `supabase/diagram/erd.html` (then redraw `drawsql.png`) and `user_stories.md` to match. The MCP
   server cancels DELETE/DROP statements in this session (it can't show its confirmation), so give those to the user
   to run in the dashboard SQL editor.
 - **Demo account**: "Use demo account" on `/login`. In memory mode it's `alex@example.com` with a random password per

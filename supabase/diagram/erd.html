@@ -1,0 +1,117 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Netflix Clone database</title>
+<!-- Source of ../../drawsql.png: edit the tables/links below to match the migrations, then run render.mjs -->
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "DejaVu Sans", "Segoe UI", sans-serif; background: #f7f8fb;
+    background-image: radial-gradient(#d5d9e2 1px, transparent 1px); background-size: 18px 18px; }
+  #board { position: relative; width: 1410px; }
+  .t { position: absolute; width: 322px; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    border-top: 4px solid var(--c); overflow: hidden; }
+  .t h2 { margin: 0; padding: 11px 0 12px; text-align: center; font-size: 19px; color: var(--c); background: var(--bg); letter-spacing: .3px; }
+  .t .note { font-size: 11.5px; color: #6b7280; text-align: center; padding: 0 10px 8px; background: var(--bg); margin-top: -6px; }
+  .r { display: flex; justify-content: space-between; height: 29.6px; align-items: center; padding: 0 12px 0 28px;
+    font-size: 15.5px; color: #333; position: relative; }
+  .r .ty { color: #8a8f99; font-size: 15px; }
+  .r.pk { font-weight: 700; } .r.pk .ty { font-weight: 700; }
+  .r.pk::before { content: "🔑"; position: absolute; left: 6px; font-size: 12px; filter: hue-rotate(10deg) saturate(1.5); }
+  .r.uq::before { content: "✱"; position: absolute; left: 9px; font-size: 11px; color: #8a8f99; }
+  .r.fk .nm { color: #1e3a8a; }
+  .r.new .nm::after { content: " NEW"; font-size: 9.5px; font-weight: 700; color: #b45309; vertical-align: 2px; letter-spacing: .4px; }
+  svg { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #title { position: absolute; left: 50px; top: 18px; font-size: 22px; font-weight: 700; color: #1f2937; }
+  #sub { position: absolute; left: 50px; top: 50px; font-size: 13.5px; color: #6b7280; }
+  #legend { position: absolute; font-size: 13px; color: #4b5563; line-height: 1.7; background: #fff; padding: 12px 16px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.18); width: 322px; }
+</style></head>
+<body><div id="board"></div>
+<script>
+// [name, color, bg, x, y, rows, note]; row = 'name:type:flags'  flags: p=pk f=fk u=unique n=new
+const C = {
+  orange: ['#c2621a', '#fdf0e3'], gold: ['#8a6d0b', '#fbf5df'], green: ['#3f7d20', '#ebf5e3'], cyan: ['#16708a', '#e2f3f9'],
+  red: ['#b4342c', '#fbe6e4'], pink: ['#b42d5c', '#fbe3ec'], brick: ['#9b2d22', '#f8e4e1'], slate: ['#4b5563', '#eceff2'],
+  purple: ['#5b3c99', '#efe9f8'], indigo: ['#2f3f91', '#e5e8f7'], blue: ['#1e5fa8', '#e2edf9'], teal: ['#14766a', '#e1f4f1'],
+  lav: ['#5b3c99', '#efe9f8'], sea: ['#0f6e5e', '#def3ee'], gray: ['#374151', '#e5e7eb'], amber: ['#92400e', '#fdf3e0'],
+}
+const L = 50, M = 544, R = 1038
+const tables = [
+  ['preferences', 'orange', L, 100, ['id:uuid:p', 'user_id:uuid:fu', 'autoplay_next:boolean', 'autoplay_previews:boolean', 'email_updates:boolean', 'personalized:boolean', 'maturity_rating:varchar']],
+  ['promo_codes', 'gold', L, 400, ['id:uuid:p', 'user_id:uuid:fu', 'code:varchar', 'percent_off:smallint', 'plan:varchar', 'applied_at:timestamptz']],
+  ['promotions', 'amber', L, 670, ['code:varchar:p', 'percent_off:smallint', 'plan:varchar'], 'NEW · valid codes, read only by apply-promo'],
+  ['reminders', 'green', L, 860, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'release_date:date', 'created_at:timestamptz']],
+  ['game_scores', 'cyan', L, 1100, ['id:uuid:p', 'user_id:uuid:f', 'game:varchar', 'best_score:int', 'created_at:timestamptz']],
+  ['affiliates', 'red', L, 1340, ['id:uuid:p', 'user_id:uuid:fu', 'referral_code:varchar:u', 'website_url:varchar', 'channels:text', 'payout_method:varchar:n', 'audience_size:varchar:n', 'accepted_terms:boolean', 'tier:varchar', 'created_at:timestamptz']],
+  ['auth.users', 'gray', M, 100, ['id:uuid:p', 'email:varchar', 'encrypted_password:varchar', 'last_sign_in_at:timestamptz'], 'Supabase Auth: passwords live here'],
+  ['netflix_tables', 'pink', M, 330, ['id:uuid:pf', 'name:varchar', 'email:varchar:u', 'plan:varchar', 'membership_status:varchar', 'resumes_on:date', 'ends_on:date', 'billing_day:smallint', 'card_brand:varchar', 'card_last4:char(4)', 'card_exp:char(5)', 'data_opt_out:boolean', 'last_sign_in:timestamptz', 'access_removed_at:timestamptz', 'created_at:timestamptz']],
+  ['titles', 'brick', M, 880, ['id:varchar:p', 'title:varchar', 'type:varchar', 'release_year:smallint', 'maturity_rating:varchar', 'seasons:smallint', 'runtime:varchar', 'genres:text[]', 'mood:text[]:n', 'synopsis:text', 'cast_members:text[]', 'director:varchar', 'writer:varchar', 'popularity:smallint', 'is_new:boolean', 'top10_rank:smallint:u', 'image_url:varchar', 'tint:varchar:n']],
+  ['referrals', 'slate', M, 1500, ['id:uuid:p', 'affiliate_id:uuid:f', 'kind:varchar', 'created_at:timestamptz']],
+  ['watch_list_tables', 'purple', R, 100, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'added_at:timestamptz']],
+  ['favorites', 'indigo', R, 290, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'added_at:timestamptz']],
+  ['tickets', 'blue', R, 480, ['id:uuid:p', 'user_id:uuid:f', 'ticket_number:varchar:u', 'issue_type:varchar', 'title_id:varchar:f', 'summary:text', 'steps:text', 'device:varchar', 'status:varchar', 'created_at:timestamptz']],
+  ['review', 'teal', R, 850, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'rating:smallint', 'body:text', 'author_name:varchar:n', 'created_at:timestamptz']],
+  ['feedback', 'lav', R, 1130, ['id:uuid:p', 'user_id:uuid:f', 'score:smallint', 'area:varchar', 'message:text', 'created_at:timestamptz']],
+  ['accessibility_settings', 'sea', R, 1395, ['id:uuid:p', 'user_id:uuid:fu', 'text_size:smallint', 'font:varchar', 'line_height:varchar', 'letter_spacing:varchar', 'align_left:boolean', 'contrast:varchar', 'saturation:varchar', 'highlight_links:boolean', 'highlight_headings:boolean', 'strong_focus:boolean', 'big_cursor:boolean', 'reading_guide:boolean', 'hide_images:boolean', 'stop_animations:boolean', 'captions:boolean', 'caption_size:varchar', 'updated_at:timestamptz']],
+  ['rate_limit_hits', 'gray', M, 1690, ['id:bigint:p', 'key:varchar', 'hit_at:timestamptz'], 'NEW · Edge Function rate limits'],
+]
+// [from table, from column, to table, to column]
+const links = [
+  ['netflix_tables', 'id', 'auth.users', 'id'],
+  ...['preferences', 'promo_codes', 'reminders', 'game_scores', 'affiliates', 'watch_list_tables', 'favorites', 'tickets', 'review', 'feedback', 'accessibility_settings']
+    .map(t => [t, 'user_id', 'netflix_tables', 'id']),
+  ...['reminders', 'watch_list_tables', 'favorites', 'tickets', 'review'].map(t => [t, 'title_id', 'titles', 'id']),
+  ['referrals', 'affiliate_id', 'affiliates', 'id'],
+]
+
+const board = document.getElementById('board')
+board.insertAdjacentHTML('beforeend', '<div id="title">Netflix Clone database</div><div id="sub">Supabase Postgres (eagle_platoon / eagle_platoon_dev) · every table has RLS · updated 2026-10-17</div>')
+for (const [name, color, x, y, rows, note] of tables) {
+  const [c, bg] = C[color]
+  const el = document.createElement('div')
+  el.className = 't'; el.id = 't-' + name
+  el.style.cssText = `left:${x}px;top:${y}px;--c:${c};--bg:${bg}`
+  el.innerHTML = `<h2>${name}</h2>` + (note ? `<div class="note">${note}</div>` : '') + rows.map(r => {
+    const [nm, ty, f = ''] = r.split(':')
+    const cls = [f.includes('p') && 'pk', !f.includes('p') && f.includes('u') && 'uq', f.includes('f') && 'fk', f.includes('n') && 'new'].filter(Boolean).join(' ')
+    return `<div class="r ${cls}" data-col="${nm}"><span class="nm">${nm}</span><span class="ty">${ty}</span></div>`
+  }).join('')
+  board.appendChild(el)
+}
+const legend = document.createElement('div')
+legend.id = 'legend'; legend.style.left = L + 'px'; legend.style.top = '1720px'
+legend.innerHTML = '🔑 primary key · ✱ unique · <span style="color:#1e3a8a">blue</span> = foreign key<br>' +
+  '<b style="color:#b45309;font-size:11px">NEW</b> = added since the first design<br>' +
+  'Foreign keys cascade on delete (tickets.title_id: set null). password_hash was removed: Supabase Auth stores and checks passwords.'
+board.appendChild(legend)
+
+const height = Math.max(...[...document.querySelectorAll('.t, #legend')].map(e => e.offsetTop + e.offsetHeight)) + 50
+board.style.height = height + 'px'
+const NS = 'http://www.w3.org/2000/svg'
+const svg = document.createElementNS(NS, 'svg')
+svg.setAttribute('width', 1410); svg.setAttribute('height', height)
+board.appendChild(svg)
+
+const rowPos = (t, col) => {
+  const box = document.getElementById('t-' + t)
+  const row = box.querySelector(`[data-col="${col}"]`)
+  return { left: box.offsetLeft, right: box.offsetLeft + box.offsetWidth, y: box.offsetTop + row.offsetTop + row.offsetHeight / 2 }
+}
+// Each link gets its own vertical lane in the gap it crosses
+const lanes = { leftGap: 0, rightGap: 0, around: 0 }
+const path = d => { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#8f96a3'); p.setAttribute('stroke-width', '1.6'); svg.appendChild(p) }
+for (const [ft, fc, tt, tc] of links) {
+  const a = rowPos(ft, fc), b = rowPos(tt, tc)
+  if (a.left === b.left) { // same column: go around the right side
+    const x = a.right + 14 + 6 * lanes.around++
+    path(`M${a.right} ${a.y} H${x} V${b.y} H${b.right}`)
+  } else if (a.left < b.left) { // left → middle
+    const x = a.right + 22 + 9 * lanes.leftGap++
+    path(`M${a.right} ${a.y} H${x} V${b.y} H${b.left}`)
+  } else if (b.left < a.left && a.left === M) { // middle → left (referrals → affiliates)
+    const x = b.right + 22 + 9 * lanes.leftGap++
+    path(`M${a.left} ${a.y} H${x} V${b.y} H${b.right}`)
+  } else { // right → middle
+    const x = a.left - 22 - 9 * lanes.rightGap++
+    path(`M${a.left} ${a.y} H${x} V${b.y} H${b.right}`)
+  }
+}
+document.body.dataset.ready = '1'
+</script></body></html>
