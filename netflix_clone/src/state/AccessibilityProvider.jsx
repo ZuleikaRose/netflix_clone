@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AccessibilityPanel } from '../components/AccessibilityPanel.jsx'
+import { loadAccessibility, saveAccessibility } from '../data/accessibilityApi.js'
+import { getSupabase } from '../lib/supabaseConfig.js'
 import { AccessibilityContext, defaultA11y } from './accessibilityContext.js'
+import { useAuth } from './authContext.js'
 
 const kebab = (key) => key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
 
@@ -32,11 +35,50 @@ function ReadingGuide() {
   return <div className="reading-guide" aria-hidden="true" style={{ top: y ?? '40%' }} />
 }
 
+const warn = (error) => {
+  if (import.meta.env.DEV) console.warn('Supabase:', error)
+}
+
+// Signed in with Supabase, the settings are saved per member: their saved settings apply when they sign in (or, the
+// first time, what they picked while signed out is saved), and every change is saved. Otherwise they stay in memory.
+function useSavedSettings(settings, setSettings) {
+  const { backend, user } = useAuth()
+  const userId = backend === 'supabase' ? user?.id : null
+  // The settings known to be saved, and for whom; null userId until the sign-in load finishes
+  const synced = useRef({ userId: null, json: null })
+  const latest = useRef(settings)
+  useEffect(() => { latest.current = settings }, [settings])
+
+  useEffect(() => {
+    synced.current = { userId: null, json: null }
+    if (!userId) return
+    let ignore = false
+    getSupabase().then(async (supabase) => {
+      const saved = await loadAccessibility(supabase, userId)
+      if (ignore) return
+      const current = saved ?? latest.current
+      if (!saved) await saveAccessibility(supabase, userId, current)
+      synced.current = { userId, json: JSON.stringify(current) }
+      if (saved) setSettings(saved)
+    }).catch(warn)
+    return () => { ignore = true }
+  }, [userId, setSettings])
+
+  useEffect(() => {
+    if (!userId || synced.current.userId !== userId) return
+    const json = JSON.stringify(settings)
+    if (json === synced.current.json) return
+    synced.current.json = json
+    getSupabase().then((supabase) => saveAccessibility(supabase, userId, settings)).catch(warn)
+  }, [userId, settings])
+}
+
 export function AccessibilityProvider({ children }) {
   const [settings, setSettings] = useState(defaultA11y)
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => applyToDocument(settings), [settings])
+  useSavedSettings(settings, setSettings)
 
   const value = useMemo(() => ({
     settings,

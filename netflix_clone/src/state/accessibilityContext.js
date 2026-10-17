@@ -3,8 +3,8 @@ import { createContext, useContext } from 'react'
 export const AccessibilityContext = createContext(null)
 export const useAccessibility = () => useContext(AccessibilityContext)
 
-// Accessibility menu settings. They apply to the whole app (signed in or not) and, like everything else,
-// reset when the page reloads.
+// Accessibility menu settings. They apply to the whole app (signed in or not); signed in with Supabase they are
+// saved per member (AccessibilityProvider), otherwise they reset when the page reloads.
 export const defaultA11y = {
   textSize: 100,
   font: 'default',

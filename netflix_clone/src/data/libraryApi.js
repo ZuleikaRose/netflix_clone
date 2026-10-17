@@ -1,5 +1,3 @@
-import { callFunction } from './accountApi.js'
-
 // A signed-in user's library in Supabase, in the shapes LibraryProvider keeps in state. RLS limits every query to the
 // user's own rows; user_id is still sent because PostgREST needs a filter on UPDATE and DELETE.
 
@@ -109,13 +107,6 @@ export function libraryApi(supabase, userId) {
         if (error.code !== '23505') throw error
       }
       throw new Error('Could not create a unique referral code')
-    },
-
-    // The same Edge Function a visitor's click on the referral link calls
-    async recordClick(code) {
-      const { error } = await callFunction(supabase, 'record-referral', { code })
-      if (error) throw new Error(error)
-      return loadAffiliate()
     },
   }
 }

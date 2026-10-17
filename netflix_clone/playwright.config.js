@@ -6,6 +6,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // Video playback and the Supabase round trips can take longer than the default 5 s while two builds and every spec
+  // share the CPU
+  expect: { timeout: 10_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: `http://localhost:${E2E_PORT}`,

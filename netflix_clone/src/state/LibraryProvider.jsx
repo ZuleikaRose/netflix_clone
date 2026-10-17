@@ -66,8 +66,8 @@ export function LibraryProvider({ children }) {
       bestScores,
       affiliate,
       dismissedNotices,
-      // Sign-ups only arrive through a real referral link when the database tracks them
-      canSimulateSignups: !remote,
+      // With the database, clicks and sign-ups are tracked for real (record-referral, sign-up trigger)
+      canSimulateReferrals: !remote,
       toggleMyList: toggleSaved(myList, setMyList, 'myList'),
       toggleFavorite: toggleSaved(favorites, setFavorites, 'favorites'),
       toggleReminder: toggleSaved(reminders, setReminders, 'reminders'),
@@ -102,13 +102,10 @@ export function LibraryProvider({ children }) {
         if (!remote) return setAffiliate({ ...application, clicks: 0, signups: 0 })
         await remote.joinAffiliate(application).then(setAffiliate, warn)
       },
-      // Demo tools: a click goes through the real tracking endpoint when the database is connected
-      async recordReferral(kind) {
-        if (!remote) {
-          setAffiliate((a) => a && ({ ...a, clicks: a.clicks + 1, signups: a.signups + (kind === 'signup' ? 1 : 0) }))
-          return
-        }
-        if (kind === 'click') await remote.recordClick(affiliate.code).then(setAffiliate, warn)
+      // Demo tools (in-memory only): stand-ins for real referral tracking
+      recordReferral: (kind) => {
+        if (remote) return
+        setAffiliate((a) => a && ({ ...a, clicks: a.clicks + 1, signups: a.signups + (kind === 'signup' ? 1 : 0) }))
       },
     }
   }, [remote, myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices])

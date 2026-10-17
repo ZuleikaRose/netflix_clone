@@ -7,7 +7,7 @@ import { useAccessibility } from '../state/accessibilityContext.js'
 import { billingSummary } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
 import { discountedPrice, findPromotion } from '../data/promotions.js'
-import { EMAIL_PATTERN, MIN_PASSWORD, useAuth } from '../state/authContext.js'
+import { EMAIL_PATTERN, PASSWORD_HINT, passwordProblem, useAuth } from '../state/authContext.js'
 import { Billing } from './account/Billing.jsx'
 import { DeleteAccount } from './account/DeleteAccount.jsx'
 import { focusFirstError } from './formUtils.js'
@@ -70,7 +70,8 @@ function PasswordForm({ email, changePassword, demoPassword }) {
     const formElement = e.currentTarget
     const next = {}
     if (!form.current) next.current = 'Please enter your current password.'
-    if (form.next.length < MIN_PASSWORD) next.next = `Password must be at least ${MIN_PASSWORD} characters.`
+    const weakness = passwordProblem(form.next)
+    if (weakness) next.next = weakness
     if (form.confirm !== form.next) next.confirm = 'Passwords don’t match.'
     if (!Object.keys(next).length) {
       const error = await changePassword(form.current, form.next)
@@ -93,7 +94,7 @@ function PasswordForm({ email, changePassword, demoPassword }) {
       {/* Lets password managers associate the new password with this account */}
       <input type="text" name="username" autoComplete="username" value={email} readOnly hidden />
       <Field label="Current password" type="password" autoComplete="current-password" value={form.current} onChange={updateField('current')} error={errors.current} />
-      <Field label="New password" type="password" autoComplete="new-password" value={form.next} onChange={updateField('next')} error={errors.next} hint={`At least ${MIN_PASSWORD} characters.`} />
+      <Field label="New password" type="password" autoComplete="new-password" value={form.next} onChange={updateField('next')} error={errors.next} hint={PASSWORD_HINT} />
       <Field label="Confirm new password" type="password" autoComplete="new-password" value={form.confirm} onChange={updateField('confirm')} error={errors.confirm} />
       <button type="submit" className="cta">Update password</button>
       <Status message={status} />

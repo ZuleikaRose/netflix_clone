@@ -3,14 +3,15 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell.jsx'
 import { Field } from '../components/Field.jsx'
 import { PlanPicker } from '../components/PlanPicker.jsx'
-import { EMAIL_PATTERN, MIN_PASSWORD, useAuth } from '../state/authContext.js'
+import { EMAIL_PATTERN, PASSWORD_HINT, passwordProblem, useAuth } from '../state/authContext.js'
 import { focusFirstError } from './formUtils.js'
 
 function validateSignup(form) {
   const errors = {}
   if (!form.name.trim()) errors.name = 'Please enter your name.'
   if (!EMAIL_PATTERN.test(form.email.trim())) errors.email = 'Please enter a valid email address.'
-  if (form.password.length < MIN_PASSWORD) errors.password = `Password must be at least ${MIN_PASSWORD} characters.`
+  const weakness = passwordProblem(form.password)
+  if (weakness) errors.password = weakness
   if (form.confirm !== form.password) errors.confirm = 'Passwords don’t match.'
   return errors
 }
@@ -65,7 +66,7 @@ export function Signup() {
         {formError && <p className="form-alert" role="alert">{formError} <Link to="/login">Sign in instead</Link></p>}
         <Field label="Name" autoComplete="name" value={form.name} onChange={updateField('name')} error={errors.name} />
         <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={updateField('email')} error={errors.email} />
-        <Field label="Password" type="password" autoComplete="new-password" value={form.password} onChange={updateField('password')} error={errors.password} hint={`At least ${MIN_PASSWORD} characters.`} />
+        <Field label="Password" type="password" autoComplete="new-password" value={form.password} onChange={updateField('password')} error={errors.password} hint={PASSWORD_HINT} />
         <Field label="Confirm password" type="password" autoComplete="new-password" value={form.confirm} onChange={updateField('confirm')} error={errors.confirm} />
         <PlanPicker value={form.plan} onChange={(plan) => setForm({ ...form, plan })} />
         <button type="submit" className="cta" disabled={pending}>Start Watching</button>

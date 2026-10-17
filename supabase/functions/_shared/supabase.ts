@@ -32,6 +32,16 @@ export async function callerFrom(req: Request): Promise<{ user: User; token: str
   return error || !data.user ? null : { user: data.user, token }
 }
 
+// The caller's IP as the platform's proxy reports it (first address in X-Forwarded-For)
+export const clientIp = (req: Request) => req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+
+// Counts a request against a per-key limit (public.hit_rate_limit); false once `maxHits` fall in `windowSeconds`
+export async function allowRequest(key: string, maxHits: number, windowSeconds: number): Promise<boolean> {
+  const { data, error } = await admin.rpc('hit_rate_limit', { key, max_hits: maxHits, window_seconds: windowSeconds })
+  if (error) throw error
+  return data === true
+}
+
 // Wraps a POST handler with CORS preflight, method check and a JSON body
 export function serve(handler: (req: Request, body: Record<string, unknown>) => Promise<Response>) {
   Deno.serve(async (req) => {
