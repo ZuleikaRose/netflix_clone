@@ -25,13 +25,14 @@ serve(async (req, body) => {
   const { error: updateError } = await admin.from('netflix_tables')
     .update({ access_removed_at: new Date().toISOString() }).eq('id', user.id)
   if (updateError) throw updateError
-  // ~100 years. Banning blocks new sign-ins and refreshes; signOut revokes the refresh tokens already issued.
-  // The current access token stays valid until it expires (1 hour), so the app signs out locally too.
-  const { error: banError } = await admin.auth.admin.updateUserById(user.id, { ban_duration: '876000h' })
-  if (banError) throw banError
-  // Not fatal: the ban already stops this user's tokens from being refreshed. Logged so it shows in the function logs.
+  // Revoke every session first: banning removes them too, after which signOut finds nothing to revoke. Not fatal,
+  // because the ban below also stops refreshes; logged so it shows in the function logs.
   const { error: signOutError } = await admin.auth.admin.signOut(token, 'global')
   if (signOutError) console.error('delete-account: revoking sessions failed', signOutError)
+  // ~100 years: blocks new sign-ins. The current access token stays valid until it expires (1 hour), so the app
+  // signs out locally too.
+  const { error: banError } = await admin.auth.admin.updateUserById(user.id, { ban_duration: '876000h' })
+  if (banError) throw banError
 
   return json({ ok: true })
 })

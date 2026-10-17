@@ -6,10 +6,25 @@ import { admin, json, serve } from '../_shared/supabase.ts'
 // Plenty for a demo; stops a script from creating accounts without limit
 const MAX_PER_HOUR = 300
 const LIFETIME_HOURS = 24
-// No 0/o/1/l/i: the password is shown on screen and typed back in to change it or delete the account
-const READABLE = 'abcdefghjkmnpqrstuvwxyz23456789'
-const randomString = (length: number) =>
-  Array.from(crypto.getRandomValues(new Uint8Array(length)), (b) => READABLE[b % READABLE.length]).join('')
+// No 0/O/o/1/l/I/i: the password is shown on screen and typed back in to change it or delete the account
+const LOWER = 'abcdefghjkmnpqrstuvwxyz'
+const UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+const DIGITS = '23456789'
+const SYMBOLS = '!@#$%*?-_'
+const randomIndex = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
+const pick = (chars: string) => chars[randomIndex(chars.length)]
+const randomString = (length: number, chars = LOWER + DIGITS) => Array.from({ length }, () => pick(chars)).join('')
+
+// 16 characters with at least one of each kind, so it passes the strictest Auth password rules (13+ characters,
+// lower, upper, digit and symbol required)
+function randomPassword() {
+  const chars = [pick(LOWER), pick(UPPER), pick(DIGITS), pick(SYMBOLS), ...randomString(12, LOWER + UPPER + DIGITS + SYMBOLS)]
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomIndex(i + 1)
+    ;[chars[i], chars[j]] = [chars[j], chars[i]]
+  }
+  return chars.join('')
+}
 
 serve(async () => {
   const hourAgo = new Date(Date.now() - 3600_000).toISOString()
@@ -19,7 +34,7 @@ serve(async () => {
   if ((count ?? 0) >= MAX_PER_HOUR) return json({ error: 'The demo is busy right now. Please try again in a few minutes.' }, 429)
 
   const email = `demo-${randomString(10)}@example.com`
-  const password = randomString(12)
+  const password = randomPassword()
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,

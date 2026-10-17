@@ -89,6 +89,16 @@ export async function callFunction(supabase, name, body = {}) {
   }
 }
 
+// Supabase Auth's weak_password error: reasons 'length', 'characters' and/or 'pwned'; the minimum length is only in
+// the message ("Password should be at least 13 characters…") and depends on the project's settings
+function weakPasswordMessage({ reasons = [], message = '' }) {
+  if (reasons.includes('pwned')) return 'This password has appeared in a data breach. Please choose a different one.'
+  const needs = []
+  if (reasons.includes('length')) needs.push(`at least ${message.match(/at least (\d+) characters/)?.[1] ?? 'more'} characters`)
+  if (reasons.includes('characters')) needs.push('a lowercase letter, an uppercase letter, a number and a symbol')
+  return needs.length ? `Your password needs ${needs.join(' and ')}.` : 'Please choose a stronger password.'
+}
+
 // Supabase Auth errors as the messages the forms show
 export function authErrorMessage(error) {
   switch (error.code) {
@@ -98,6 +108,8 @@ export function authErrorMessage(error) {
     case 'user_already_exists':
     case 'email_exists': return 'An account with this email already exists.'
     case 'same_password': return 'Choose a password you haven’t used for this account.'
+    // The project's Auth password rules (length, required characters, leaked-password check) are stricter than the form's
+    case 'weak_password': return weakPasswordMessage(error)
     // Supabase's built-in email only delivers to the project's team until custom SMTP is set up
     case 'email_address_not_authorized': return 'We can’t send a confirmation email to this address yet. Please try again later.'
     case 'over_request_rate_limit':

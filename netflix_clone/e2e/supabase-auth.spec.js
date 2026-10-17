@@ -63,7 +63,8 @@ test('sign up, apply a promo code, review, then delete the account', async ({ pa
 
   const email = `e2e-${Date.now()}@example.com`
   // A fresh throwaway password each run, so none is kept in the repository
-  const password = `e2e-${crypto.randomUUID()}`
+  // (with every kind of character, for projects that require them)
+  const password = `E2e-${crypto.randomUUID()}`
   await page.goto('/signup?ref=JORDAN7Q2K')
   await expect(page.getByText('code JORDAN7Q2K')).toBeVisible()
   await page.getByLabel('Name').fill('Robin')
