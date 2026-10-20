@@ -92,5 +92,8 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
 21. Add a new table and columns (saving TMDB titles to lists, the player volume per member) and previous/next
     episode buttons in the player; update `drawsql.png`, `schema.sql`, `user_journey.md`, `user_stories.md`, the
     style guide, `CLAUDE.md`, `prompt.md`, both Supabase projects and the README, committing and pushing after each.
+22. Make sure `drawsql.png`, `schema.sql`, the READMEs, `user_journey.md`, `user_stories.md`, `prompt.md`, `CLAUDE.md`,
+    the style guide and both Supabase databases are up to date with the changes; commit and push. (Both projects
+    already ran the same 7 migrations and 7 functions; only this file needed the new entry.)
 
 Still to do: custom SMTP for Auth emails, hosting and CAPTCHA on sign-up and sign-in.
