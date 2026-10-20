@@ -24,7 +24,8 @@ npm run test:e2e     # full Playwright suite (first time: npx playwright install
 ```
 
 With Supabase configured, **Use demo account** creates a private demo account just for you (random email and
-password, shown on screen, deleted after 24 hours). Without it, the demo account lives in memory.
+password, shown on screen, deleted after 24 hours), and Home and Search add real movies and TV shows from TMDB.
+Without it, the demo account lives in memory and the TMDB sections don't appear.
 
 ## What you can do
 

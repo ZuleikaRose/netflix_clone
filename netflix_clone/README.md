@@ -1,6 +1,6 @@
 # Netflix Clone
 
-A mobile-first streaming app built with React 19, Vite and React Router (`BrowserRouter`) on Supabase. It was built in phases from the wireframes, user journey and style guide in `../app_outline`, then connected to Supabase (catalog from the REST API, Supabase Auth, member data in Postgres; see `../supabase`).
+A mobile-first streaming app built with React 19, Vite and React Router (`BrowserRouter`) on Supabase. It was built in phases from the wireframes, user journey and style guide in `../app_outline`, then connected to Supabase (catalog from the REST API, Supabase Auth, member data in Postgres; see `../supabase`). Real trending, popular and searchable movies and TV shows come from [TMDB](https://www.themoviedb.org) through the `tmdb` Edge Function, which keeps the TMDB key on the server.
 
 **You stay signed in after a refresh**: with Supabase the session is kept in the browser (`localStorage`) until you sign out, and your list, ratings, reviews and settings load back from the database. The app talks to Supabase through its REST APIs (Data API `/rest/v1`, Auth `/auth/v1`, Edge Functions `/functions/v1`) via `supabase-js`. Without Supabase configured the app falls back to the built-in catalog and in-memory accounts, and a refresh resets everything.
 
@@ -36,7 +36,8 @@ New passwords need 13+ characters with lowercase, uppercase, a digit and a symbo
 | Forgot password | `/forgot-password`. With Supabase the link arrives by email; in memory mode the page shows a demo link |
 | Referral sign-up | `/signup?ref=ALEX26` shows the "invited by a friend" welcome |
 | Support chat | Ask about passwords, promo codes or devices; answers come from the FAQs |
-| Maturity filter | Account → Maturity rating → Kids leaves only *Lantern Island* |
+| TMDB movies and TV shows | With Supabase configured: scroll Home past *New on Netflix* for the Trending and Popular rows (the TV Shows and Movies chips filter them), search for `breaking bad`, or open `/tmdb/show/1399`. The project needs its `TMDB_API_FREE` Edge Function setting; without Supabase the TMDB sections don't appear |
+| Maturity filter | Account → Maturity rating → Kids leaves only *Lantern Island*, and hides the TMDB rows and results (they're unrated until opened) |
 | Accessibility menu | The person icon at the top of any page (also on sign-in). Try the *Low vision* or *Dyslexia friendly* profile |
 | Captions and player | Every title plays a real sample clip. Press **CC** (or the **C** key) for its English captions; drag the seek bar to the end of a *Night Shift* episode to see Autoplay next episode |
 | Autoplay previews | Off by default: Home shows a **Preview** button. Turn on Account → Autoplay previews and previews start by themselves (never under reduced motion or *Stop animations*) |
