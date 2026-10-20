@@ -368,6 +368,31 @@ textarea { resize: vertical; }
 .answer.right { border-color: #46d369; background: #0f1d14; }
 .answer.wrong { border-color: var(--error); background: #2a1806; }
 .answer-feedback { min-height: 20px; }
+/* Timeline */
+.timeline-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.timeline-item { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 8px; border: 1px solid #3a3a3a; border-radius: 8px; background: #161616; }
+.timeline-item img { width: 44px; height: 62px; border-radius: 4px; object-fit: cover; }
+.timeline-copy { display: grid; gap: 2px; }
+.timeline-moves { display: flex; }
+.timeline-moves .icon-button { width: 44px; height: 44px; border-radius: 50%; color: #fff; font-size: 14px; }
+.timeline-moves .icon-button:hover:not([aria-disabled="true"]) { background: #ffffff1a; }
+.timeline-moves .icon-button[aria-disabled="true"] { opacity: .35; cursor: default; }
+.timeline-item.right { border-color: #46d369; background: #0f1d14; }
+.timeline-item.wrong { border-color: var(--error); background: #2a1806; }
+/* Higher or Lower */
+.hl-pair { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+.hl-card { display: grid; gap: 8px; margin: 0; }
+.hl-card img { width: 100%; aspect-ratio: 124 / 178; border-radius: 6px; object-fit: cover; }
+.hl-card figcaption { display: grid; gap: 2px; text-align: center; }
+.hl-score { color: #f5c518; font-family: Anton, Impact, sans-serif; font-size: 28px; line-height: 1.1; }
+.hl-vs { color: #a3a3a3; font-family: Anton, Impact, sans-serif; font-size: 18px; }
+.hl-note { margin: 0; text-align: center; }
+.hl-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+.hl-actions > * { margin-top: 0; }
+/* Title Scramble */
+.scramble-letters { margin: 0; padding: 16px 8px; border-radius: 8px; background: #181818; font-family: ui-monospace, monospace; font-size: 24px; font-weight: 700; letter-spacing: .25em; text-align: center; overflow-wrap: anywhere; }
+.scramble-hint { margin: 0; padding: 10px 14px; border-left: 3px solid #f5c518; border-radius: 0 8px 8px 0; background: #181818; color: #e5e5e5; font-size: 14px; }
+.scramble-form { display: grid; gap: 10px; }
 @media (prefers-reduced-motion: reduce) { .memory-inner { transition: none; } }
 .game-bar { scroll-margin-top: 76px; }
 

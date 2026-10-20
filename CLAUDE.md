@@ -83,7 +83,7 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | Accessibility Policy | `/info/accessibility` | `pages/info/AccessibilityPolicy.jsx` |
 | Accessibility menu (every page) | header icon, `<dialog>` | `components/AccessibilityPanel.jsx`, `state/AccessibilityProvider.jsx`, `state/accessibilityContext.js` |
 | Error | any unknown route | `pages/NotFound.jsx` |
-| (extra) Games, New & Hot | `/games`, `/games/:gameId`, `/new` | `pages/Games.jsx`, `pages/NewHot.jsx` |
+| (extra) Games, New & Hot | `/games`, `/games/:gameId` (`memory`, `trivia`, `timeline`, `cast`, `higher-lower`, `scramble`), `/new` | `pages/Games.jsx` (the list: name, art, blurb, `canPlay`, score label), `pages/games/*`, `pages/NewHot.jsx` |
 | (extra) TMDB movie / TV show | `/tmdb/:type/:tmdbId` (`movie` or `show`) | `pages/TmdbTitle.jsx`, `data/tmdbApi.js`, `state/useTmdb.js` |
 
 When the outline changes: diff `app_outline/user_journey.md` (`git diff --word-diff`), map each change to this

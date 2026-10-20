@@ -40,7 +40,7 @@ Without it, the demo account lives in memory and the TMDB sections don't appear.
 - **Get help:** support hub with live chat, FAQs, feedback, issue reporting with ticket numbers from the database, technical requirements and a maintenance banner.
 - **Save money and earn:** promo codes that discount your plan (checked on the server), and an **Affiliate Program** with a referral dashboard, tiered commissions and marketing materials; clicks and sign-ups on your link are counted.
 - **Read the legal pages:** Legal & Privacy hub, Terms of Service, Privacy Policy, Accessibility Policy and a Do Not Sell opt-out.
-- **Play:** two small games built from the catalog, with your best scores saved.
+- **Play:** six small games built from the catalog, with your best scores saved: Poster Match (memory), Plot Twist (guess the title from its synopsis), Timeline (put titles in release order), Cast Call (match an actor to their title), Higher or Lower (which title is more popular, as a streak) and Title Scramble (unscramble a title, with an optional hint).
 
 See [`netflix_clone/README.md`](netflix_clone/README.md) for the full route list, demo data and test details.
 
@@ -86,7 +86,7 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 
 ## Quality checks
 
-- **132 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present).
+- **144 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present).
 - **Accessibility:** an axe-core WCAG 2.2 AA audit of every page and key interactive state (including the accessibility menu, the player with captions, the delete-account form and the password reset pages), plus checks for 44px touch targets, visible keyboard focus, and focus never hidden behind the sticky bars.
 - **Database:** 38 pgTAP tests of the access rules, triggers, cleanup job, rate limiter and indexes. Every foreign key is indexed, and Supabase's Index Advisor is installed on both projects.
 - **CI** runs lint, build, the Playwright suite and the pgTAP tests on GitHub Actions; `main` requires both to pass.
