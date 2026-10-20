@@ -29,11 +29,11 @@ Without it, the demo account lives in memory and the TMDB sections don't appear.
 
 ## What you can do
 
-- **Browse and watch:** featured carousel with previews, a Top 10 (the catalog's ranked titles, filled up to ten with TMDB's trending movies and shows), "Because You Liked…" recommendations, and title pages with synopsis, cast, crew, ratings and members' reviews. Every title plays a real sample clip from a Blender open movie, with real English captions, in a player with play/pause, seek, skip 10 seconds, mute and a volume slider (↑/↓ keys; the level is remembered), speed, full screen, closed captions, keyboard shortcuts and autoplay of the next episode.
-- **Discover real titles:** new, trending and popular movies and TV shows from TMDB on Home (New on TMDB alternates new movies in theaters with TV shows airing this week), TMDB titles in Search (all of them to browse with no query, or matches for a query) with the same Type, Released, genre and Sort filters, and a TMDB page for each with its poster, overview, rating, maturity rating, length, cast and crew. TMDB titles are for discovery: they can't be played, saved or reviewed.
+- **Browse and watch:** featured carousel with previews, a Top 10 (the catalog's ranked titles, filled up to ten with TMDB's trending movies and shows), "Because You Liked…" recommendations, and title pages with synopsis, cast, crew, ratings and members' reviews. Every title plays a real sample clip from a Blender open movie, with real English captions, in a player with play/pause, seek, skip 10 seconds, mute and a volume slider (↑/↓ keys; a member's level follows them to any device), speed, previous and next episode for TV shows (Shift+P / Shift+N), full screen, closed captions, keyboard shortcuts and autoplay of the next episode.
+- **Discover real titles:** new, trending and popular movies and TV shows from TMDB on Home (New on TMDB alternates new movies in theaters with TV shows airing this week), TMDB titles in Search (all of them to browse with no query, or matches for a query) with the same Type, Released, genre and Sort filters, and a TMDB page for each with its poster, overview, rating, maturity rating, length, cast and crew. Members can add TMDB titles to My List and Favorites; they can't be played or reviewed.
 - **Scroll rows with a mouse:** every row on Home and More Like This has ‹ › buttons that page through it, besides swiping.
 - **Find titles:** search by title, cast or genre; filter by genre, type and release year; sort by popularity, date or A–Z.
-- **Save:** Watch list and Favorites pages, plus sharing links to titles.
+- **Save:** Watch list and Favorites pages (catalog and TMDB titles), plus sharing links to titles.
 - **Sign in safely:** Supabase Auth sign-up and sign-in, strong password rules (13+ characters with lowercase, uppercase, a digit and a symbol; leaked passwords are rejected), and a **Forgot password** page that emails a reset link.
 - **Manage your account:** profile, password, plan, billing (payment method, billing date, pause, cancel), autoplay previews and next episode, maturity rating, privacy permissions, and a danger zone to delete your account.
 - **Make it work for you:** an accessibility menu on every page with one-tap profiles and settings for text size, readable and dyslexia-friendly fonts, spacing, contrast, color, link and heading highlights, focus outline, big cursor, reading guide, hiding images, stopping animations and captions. Members' settings are saved and come back at sign-in.
@@ -63,9 +63,9 @@ refresh; signing out removes it.
 
 | Piece | What it does |
 | --- | --- |
-| Postgres tables | 16 tables in `public` ([`schema.sql`](schema.sql), diagram [`drawsql.png`](drawsql.png)) with row-level security: catalog titles and reviews (including ratings) are readable by anyone; private account data and lists are owner-only; promotions and rate-limit hits are server-only |
+| Postgres tables | 17 tables in `public` ([`schema.sql`](schema.sql), diagram [`drawsql.png`](drawsql.png)) with row-level security: catalog titles and reviews (including ratings) are readable by anyone, as are the TMDB titles members save (`tmdb_titles`, written only by the `tmdb` function); private account data, lists and preferences (including the player volume) are owner-only; promotions and rate-limit hits are server-only |
 | Supabase Auth | Sign-up, sign-in, password reset emails and password rules; the sign-up trigger creates the member's account, preferences and referral sign-up |
-| Edge Functions | `demo-account` (private demo accounts), `delete-account` (removes access), `apply-promo` (checks codes against `promotions`), `record-referral` (counts link clicks), `tmdb` (new, trending, popular, search and title details from TMDB, with the key in the project's `TMDB_API_FREE` setting); the public ones are rate limited per IP (for `tmdb`, only requests its cache can't answer count). `hello` and `multiply` are small public test endpoints. Production and dev run the same functions and migrations |
+| Edge Functions | `demo-account` (private demo accounts), `delete-account` (removes access), `apply-promo` (checks codes against `promotions`), `record-referral` (counts link clicks), `tmdb` (new, trending, popular, search and title details from TMDB, and `save`, which stores a TMDB title a signed-in member adds to a list, with the key in the project's `TMDB_API_FREE` setting); the public ones are rate limited per IP (for `tmdb`, only requests its cache can't answer count). `hello` and `multiply` are small public test endpoints. Production and dev run the same functions and migrations |
 | Cron jobs | Delete demo accounts after 24 hours; delete old rate-limit hits |
 | Projects | **eagle_platoon** (production) and **eagle_platoon_dev** (development, e2e tests and seed data) |
 
@@ -86,9 +86,9 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 
 ## Quality checks
 
-- **150 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present).
+- **158 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present).
 - **Accessibility:** an axe-core WCAG 2.2 AA audit of every page and key interactive state (including the accessibility menu, the player with captions, the delete-account form and the password reset pages), plus checks for 44px touch targets, visible keyboard focus, and focus never hidden behind the sticky bars.
-- **Database:** 38 pgTAP tests of the access rules, triggers, cleanup job, rate limiter and indexes. Every foreign key is indexed, and Supabase's Index Advisor is installed on both projects.
+- **Database:** 44 pgTAP tests of the access rules (including saved TMDB titles and the player volume), triggers, cleanup job, rate limiter and indexes. Every foreign key is indexed, and Supabase's Index Advisor is installed on both projects.
 - **CI** runs lint, build, the Playwright suite and the pgTAP tests on GitHub Actions; `main` requires both to pass.
 
 ## Notes
