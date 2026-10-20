@@ -26,6 +26,7 @@ const tmdbRows = [
   ['Popular TV Shows on TMDB', ['popularShows']],
 ]
 const FEATURED_COUNT = 3
+const TOP_COUNT = 10
 
 const interleave = (lists) => Array.from({ length: Math.max(0, ...lists.map((l) => l.length)) }, (_, i) => lists.map((l) => l[i]))
   .flat().filter(Boolean)
@@ -48,18 +49,20 @@ export function Home() {
   const showSlide = (i) => setSlide((i + featuredList.length) % featuredList.length)
   const notice = serviceStatus.notice && !dismissedNotices.includes(serviceStatus.notice.id) ? serviceStatus.notice : null
   const continueWatching = titles.filter((t) => t.progress)
-  const top10 = titles.filter((t) => t.top10).sort((a, b) => a.top10 - b.top10)
   const saved = featured && myList.includes(featured.id)
   const preview = usePreview(featured ?? {})
   const [first, ...rest] = featured ? featured.title.toUpperCase().split(' ') : []
   // The TV Shows / Movies chips filter these too. TMDB list items have no certification ('NR'), so restricted
   // profiles don't see them
+  const showsHere = (t) => (!type || t.type === type) && isAllowed(t)
   const tmdbRowsShown = tmdbLists
     ? tmdbRows
-      .map(([heading, names]) => [heading, interleave(names.map((name) => tmdbLists[name] ?? []))
-        .filter((t) => (!type || t.type === type) && isAllowed(t))])
+      .map(([heading, names]) => [heading, interleave(names.map((name) => tmdbLists[name] ?? [])).filter(showsHere)])
       .filter(([, titles]) => titles.length > 0)
     : []
+  // The catalog's ranked titles first, then TMDB's trending movies and shows (alternating) up to ten, numbered by place
+  const tmdbTrending = tmdbLists ? interleave([tmdbLists.trendingMovies ?? [], tmdbLists.trendingShows ?? []]).filter(showsHere) : []
+  const top10 = [...titles.filter((t) => t.top10).sort((a, b) => a.top10 - b.top10), ...tmdbTrending].slice(0, TOP_COUNT)
 
   // Personalized row: seed from the most recent favorite, then 4★+ ratings, then My List
   const likedIds = [...[...favorites].reverse(), ...Object.keys(ratings).filter((id) => ratings[id] >= 4), ...[...myList].reverse()]
@@ -152,10 +155,10 @@ export function Home() {
 
         {top10.length > 0 && (
           <Row title="Top 10 in the U.S. Today" className="ranking">
-            {top10.map((t) => (
-              <Link to={`/title/${t.id}`} className="rank-card" key={t.id} aria-label={`#${t.top10}: ${t.title}`}>
-                <span aria-hidden="true">{t.top10}</span>
-                <img src={t.image} alt="" style={{ filter: t.tint }} />
+            {top10.map((t, i) => (
+              <Link to={t.path ?? `/title/${t.id}`} className={i + 1 >= 10 ? 'rank-card two-digits' : 'rank-card'} key={t.id} aria-label={`#${i + 1}: ${t.title}`}>
+                <span aria-hidden="true">{i + 1}</span>
+                <img src={t.image} alt="" style={{ filter: t.tint }} loading={t.source === 'tmdb' ? 'lazy' : undefined} />
                 <b aria-hidden="true">TOP<br /><em>10</em></b>
               </Link>
             ))}

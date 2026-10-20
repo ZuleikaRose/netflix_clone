@@ -1,7 +1,7 @@
 import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo } from './helpers.js'
 import { supabaseConfigured as configured } from './ports.js'
-import { mockTmdb } from './tmdbMock.js'
+import { mockTmdb, thrones } from './tmdbMock.js'
 
 // The `tmdb` Edge Function is mocked (e2e/tmdbMock.js), so these don't depend on TMDB's data or use up its quota
 
@@ -27,10 +27,36 @@ test.describe('TMDB titles from the tmdb Edge Function', () => {
     await expect(newRow.getByRole('link', { name: 'The Pitt' })).toHaveCount(0)
   })
 
+  test('Top 10 adds TMDB’s trending titles after the catalog’s ranked ones, numbered by place', async ({ page }) => {
+    await mockTmdb(page)
+    await signInAsDemo(page)
+    const ranks = page.locator('.ranking .rank-card')
+    const labels = () => ranks.evaluateAll((cards) => cards.map((c) => c.getAttribute('aria-label')))
+    // 4 ranked catalog titles, then the mock's trending movie and show, alternating (a real list fills it to 10)
+    await expect.poll(labels).toEqual(['#1: After Dark', '#2: The Signal', '#3: The Veil', '#4: Dead Reckoning', '#5: The Matrix', '#6: Game of Thrones'])
+    await expect(ranks.nth(4)).toHaveAttribute('href', '/tmdb/movie/603')
+
+    await page.getByRole('button', { name: 'Movies', exact: true }).click()
+    await expect.poll(labels).toEqual(['#1: After Dark', '#2: The Signal', '#3: Dead Reckoning', '#4: The Matrix'])
+  })
+
+  test('Top 10 stops at ten titles', async ({ page }) => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ ...thrones, id: `tmdb-show-${9000 + i}`, tmdbId: 9000 + i, title: `Show ${i + 1}` }))
+    await page.route('**/functions/v1/tmdb', async (route) => {
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' } })
+      return route.fulfill({ headers: { 'access-control-allow-origin': '*' }, json: { trendingMovies: [], trendingShows: many } })
+    })
+    await signInAsDemo(page)
+    const ranks = page.locator('.ranking .rank-card')
+    await expect(ranks).toHaveCount(10)
+    await expect(ranks.last()).toHaveAttribute('aria-label', '#10: Show 6')
+    await expect(ranks.last()).toHaveClass(/two-digits/)
+  })
+
   test('a TMDB title opens its own page with TMDB details', async ({ page }) => {
     await mockTmdb(page)
     await signInAsDemo(page)
-    await page.getByRole('link', { name: 'Game of Thrones' }).click()
+    await page.getByRole('link', { name: 'Game of Thrones', exact: true }).click()
     await expect(page).toHaveURL(/\/tmdb\/show\/1399$/)
     await expect(page.getByRole('heading', { name: 'GAME OF THRONES' })).toBeVisible()
     await expect(page.getByText('8 Seasons')).toBeVisible()
