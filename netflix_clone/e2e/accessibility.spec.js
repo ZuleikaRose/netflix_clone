@@ -114,6 +114,47 @@ test.describe('video player', () => {
     await expect.poll(() => video(page).evaluate((v) => v.playbackRate)).toBe(1.5)
   })
 
+  test('the volume slider, arrow keys and Mute set the volume, which is remembered for the next video', async ({ page }) => {
+    await openPlayer(page, 'after-dark')
+    const volume = page.getByLabel('Volume')
+    const mute = page.getByRole('button', { name: 'Mute' })
+    const level = () => video(page).evaluate((v) => (v.muted ? 'muted' : v.volume))
+
+    await expect(volume).toHaveAttribute('aria-valuetext', '100%')
+    await volume.fill('40')
+    await expect.poll(level).toBe(0.4)
+    await expect(volume).toHaveAttribute('aria-valuetext', '40%')
+
+    // Arrow keys change it by 10% while focus is in the player (not on a slider, which keeps its own keys)
+    await page.getByRole('button', { name: 'Pause', exact: true }).focus()
+    await page.keyboard.press('ArrowUp')
+    await expect.poll(level).toBe(0.5)
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await expect.poll(level).toBe(0.3)
+    await expect(volume).toHaveValue('30')
+
+    // 0 is muted, and unmuting from 0 comes back at 50%
+    await volume.fill('0')
+    await expect.poll(level).toBe('muted')
+    await expect(mute).toHaveAttribute('aria-pressed', 'true')
+    await expect(volume).toHaveAttribute('aria-valuetext', 'Muted')
+    await mute.click()
+    await expect.poll(level).toBe(0.5)
+    await expect(mute).toHaveAttribute('aria-pressed', 'false')
+
+    // Muting keeps the level, and the next video starts at it
+    await mute.click()
+    await expect(volume).toHaveValue('0')
+    await mute.click()
+    await expect(volume).toHaveValue('50')
+    await page.getByRole('button', { name: 'Close player' }).click()
+    await navigateInApp(page, '/title/the-signal')
+    await page.getByRole('button', { name: /^\s*(Resume|Play)$/ }).click()
+    await expect(page.getByLabel('Volume')).toHaveValue('50')
+    await expect.poll(level).toBe(0.5)
+  })
+
   test('closed captions show the clip’s caption track and toggle from the player, the keyboard and the menu', async ({ page }) => {
     await openPlayer(page, 'behind-the-glass') // Sintel
     await page.getByRole('button', { name: 'Pause', exact: true }).click()

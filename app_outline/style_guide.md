@@ -66,8 +66,8 @@ together.
 * **Chips and tabs:** pill chips for filters (active = white border on `#343434`); underlined tabs for sections.
 * **Banners:** a green status banner on Support (service is up) and a gold maintenance banner on Home, which the
   member can dismiss.
-* **Player:** black stage, large controls (play/pause, seek, skip 10 seconds, mute, speed, full screen, CC), captions
-  drawn on a dark box in three sizes, credits under the video.
+* **Player:** black stage, large controls (play/pause, seek, skip 10 seconds, mute with a 64px volume slider, speed,
+  full screen, CC), captions drawn on a dark box in three sizes, credits under the video.
 * **Icon buttons:** at least 44×44px; pressed toggles invert to white.
 
 ## Touch targets and focus

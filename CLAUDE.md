@@ -166,7 +166,8 @@ after editing.
   `Player.jsx` draws the active cue itself. `e2e/serve.js` answers byte-range requests, which browsers need to seek
   video. Playwright's Chromium only plays WebM, so keep the WebM source first. Autoplay
   previews (`usePreview`) start only when `preferences.autoplayPreviews` is on **and** motion is allowed
-  (`useMotionAllowed`: no reduced motion, no "Stop animations"); every preview has a pause/play toggle.
+  (`useMotionAllowed`: no reduced motion, no "Stop animations"); every preview has a pause/play toggle. Volume: a slider beside Mute (0 = muted; unmuting from 0 goes to
+  50%), ↑/↓ change it by 10% while focus is in the player, and the level is kept with `writeStored('netflix-clone-volume')`.
 - **Delete account**: needs `billing.status === 'cancelled'`, the typed email and the account password; it removes
   access only (Supabase: `delete-account` bans the user and sets `access_removed_at`; memory: drops the account). Data
   removal is a support ticket, `/info/report-issue?type=data-removal`. The sign-in notice comes from `notice` in the

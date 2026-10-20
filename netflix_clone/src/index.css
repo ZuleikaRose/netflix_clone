@@ -111,6 +111,8 @@ svg.filled { fill: currentColor; }
 .player-timeline { display: flex; align-items: center; gap: 8px; padding: 0 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
 .seek { flex: 1; min-width: 0; height: 32px; margin: 0; accent-color: var(--accent); cursor: pointer; }
 .player-controls { display: flex; align-items: center; justify-content: space-between; }
+.volume-control { display: flex; align-items: center; }
+.volume { width: 64px; height: 44px; margin: 0; accent-color: #fff; cursor: pointer; }
 .speed select { min-height: 44px; padding: 0 6px; border: 1px solid #555; border-radius: 6px; color: #fff; background: #000; font-size: 13px; }
 .player-controls [aria-pressed="true"] { color: #111; background: #fff; border-radius: 8px; }
 .captions { position: absolute; left: 50%; bottom: 104px; max-width: 92%; margin: 0; padding: 4px 10px; border-radius: 4px; color: #fff; background: #000000d9; text-align: center; line-height: 1.35; white-space: pre-line; transform: translateX(-50%); }
