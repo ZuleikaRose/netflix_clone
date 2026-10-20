@@ -51,9 +51,14 @@ together.
 * **Fields** (`components/Field.jsx`): a label on every input (13px, `#bcbcbc`), inputs at least 44px tall on `#1a1a1a`
   with a `#3a3a3a` border. Validate on submit, focus the first error, show errors in orange under the field.
 * **Posters:** 124×178px, 4px radius, artwork dimmed (`brightness(.72)`) under a centered condensed title. Posters
-  reuse four photos with a per-title CSS tint.
-* **Rows:** horizontal scrolling rows (Top 10 with giant outlined rank numbers, New Releases, Because You Liked…);
-  grids of three posters on Watch list, Favorites and Search.
+  reuse four photos with a per-title CSS tint. TMDB posters are real poster art, so they show undimmed with no title
+  on top (the link still carries the name) and load lazily.
+* **Rows:** horizontal scrolling rows (Top 10 with giant outlined rank numbers, New Releases, Because You Liked…, then
+  Trending and Popular Movies and TV Shows on TMDB); grids of three posters on Watch list, Favorites and Search (TMDB
+  results get their own grid under the catalog's).
+* **TMDB credit:** wherever TMDB data appears, a muted 12px line (`#a3a3a3`) says "Movie and TV data from TMDB. This
+  product uses the TMDB API but is not endorsed or certified by TMDB." TMDB title pages show the TMDB rating and a
+  "View on TMDB" link instead of Play and My List.
 * **Hero carousel:** a full-bleed 610px featured title with a dark gradient, centered title and actions, arrow
   buttons and dots. It never auto-advances.
 * **Chips and tabs:** pill chips for filters (active = white border on `#343434`); underlined tabs for sections.

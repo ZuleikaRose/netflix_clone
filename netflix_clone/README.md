@@ -69,10 +69,11 @@ npm run test:e2e:report           # open the HTML report from the last run
 | `e2e/features.spec.js` | Carousel, service banner, personalization opt-out, crew, release-year filter, Watch list/Favorites routes, billing, affiliate program, referral sign-up, legal hub |
 | `e2e/accessibility.spec.js` | Accessibility menu (signed out too, Escape, profiles, reset, no overflow at 150% text, reading guide), Accessibility Policy links, real clip playback and controls, captions from the clip's track (button, C key, menu, size), autoplay next episode on/off, autoplay previews vs. Stop animations and reduced motion, delete account (blocked until cancelled, email and password checks, data removal ticket) |
 | `e2e/supabase.spec.js` | Catalog from the Supabase REST API, and the built-in fallback when the API is unreachable |
+| `e2e/tmdb.spec.js` | TMDB rows on Home and the type chips, a TMDB title page (details, no play or save, unknown id), TMDB search results with filters, and the app carrying on when TMDB fails; the `tmdb` function is mocked |
 | `e2e/supabase-auth.spec.js` | Real Supabase sign-in (desktop, :4174): private demo account, staying signed in after a reload (and signed out after Sign out), saved accessibility settings, members' reviews, forgot/reset password with an emailed link, expired link, sign up → promo code → review → delete account |
 | `e2e/a11y.spec.js` | [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.2 AA audit of every page and key interactive states (form errors, chat, expanded FAQ, answered trivia, billing errors and cancel confirmation, affiliate form and dashboard, accessibility menu, player with captions and end screen, delete account errors, forgot and reset password); keyboard focus never hidden behind the sticky bars (2.4.11) |
 
-The two Supabase specs use the dev project and skip without `.env.development.local` (as in CI). Keep Supabase sign-ins in tests few: Auth rate-limits them per IP.
+The Supabase specs (and `tmdb.spec.js`, which needs the Supabase build to call the function) skip without `.env.development.local` (as in CI). Keep Supabase sign-ins in tests few: Auth rate-limits them per IP.
 
 CI (`.github/workflows/ci.yml`) runs lint, build and the full suite on every push to `main` and on pull requests, uploads the HTML report as an artifact, and runs the pgTAP database tests against a local Supabase.
 
@@ -84,6 +85,7 @@ Tests serve the built app with `e2e/serve.js`, a tiny static server with SPA fal
 | --- | --- | --- |
 | Auth | `/login`, `/signup`, `/logout`, `/forgot-password`, `/reset-password` | Supabase Auth (or in-memory accounts); sign-in guard that returns you to the page you wanted; plan picker; strict password rules; password reset by email; accessible inline validation |
 | Browse | `/`, `/title/:id`, `/search`, `/new` | Featured carousel with previews, maintenance banner, TV/Movie filters, Top 10, "Because You Liked…" recommendations, mock player with captions and full controls, ratings & members' reviews, share, URL-driven search filters |
+| TMDB | `/tmdb/:type/:tmdbId` | Trending and popular movie and TV rows on Home, TMDB results in Search, and a page per TMDB title (poster, overview, rating, maturity, length, cast, crew, link to TMDB), all through the `tmdb` Edge Function |
 | Library | `/my-netflix`, `/watchlist`, `/favorites`, `/account` | Watch list & Favorites pages; profile, password, plan, billing (payment method, billing date, pause, cancel), autoplay, maturity, accessibility and privacy settings, danger zone (delete account) |
 | Games | `/games`, `/games/:gameId` | Poster Match (memory) and Plot Twist (trivia), with best scores (saved with Supabase) |
 | Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Affiliate Program (join, referral dashboard, tiered commissions, marketing materials), Legal & Privacy hub, Terms, Privacy, Do Not Sell, Accessibility Policy |
@@ -94,16 +96,18 @@ The maturity setting in Account filters every catalog surface: Home, Search, New
 
 ```
 src/
-  components/   Layout (phone frame + tab bar + footer), PageHeader, Field, PosterCard, ShareButton,
+  components/   Layout (phone frame + tab bar + footer), PageHeader, Field, PosterCard, ShareButton, TmdbCredit,
                 useCopyToClipboard, useDocumentTitle, Player, Preview/usePreview,
                 AccessibilityPanel, AccessibilityButton
   data/         Catalog, plans, billing, promotions, affiliate program, FAQs, legal copy, service status
-                (sample content); catalogApi, accountApi, libraryApi, accessibilityApi (Supabase queries)
+                (sample content); catalogApi, accountApi, libraryApi, accessibilityApi (Supabase queries), tmdbApi (the tmdb
+                Edge Function)
   lib/          supabaseConfig.js (env, auth backend, lazy getSupabase()), supabase.js (the client)
   pages/        One file per route; account/, info/ and games/ hold the sub-pages
   state/        CatalogProvider (titles), AuthProvider → SupabaseAuthProvider or MemoryAuthProvider (accounts,
                 billing, preferences, session), AccessibilityProvider (menu settings), LibraryProvider (list,
-                ratings, reviews, tickets, affiliate account, dismissed notices), useReviews
+                ratings, reviews, tickets, affiliate account, dismissed notices), useReviews, useTmdb (TMDB lists,
+                search and titles)
 e2e/            Playwright specs, helpers, serve.js and ports.js
 ```
 
@@ -124,4 +128,4 @@ Requirements and the outline-to-route map are in [`../CLAUDE.md`](../CLAUDE.md).
 - Billing and affiliate payouts are simulated: only a card's brand, last 4 digits and expiry are kept, never the full number or CVC.
 - Sample clips (`public/media/`, about 17 MB) are excerpts of the Blender Foundation's open movies *Sintel* and *Tears of Steel* (CC BY 3.0) and *Elephants Dream* (CC BY 2.5), re-encoded to 360p. English captions come from Wikimedia Commons subtitles (CC BY-SA 4.0), re-timed to each excerpt and covering dialogue only. Credits appear under the player and in Legal & Privacy → Media credits.
 - Deleting an account removes access only (Supabase: the user is banned and `access_removed_at` set; memory: the account is dropped). Data removal is a support ticket.
-- Titles, synopses, seed reviews and legal text are placeholder content. Posters reuse four Unsplash photos with CSS color filters.
+- The catalog's titles, synopses, seed reviews and legal text are placeholder content. Its posters reuse four Unsplash photos with CSS color filters; TMDB titles use TMDB's real posters. This product uses the TMDB API but is not endorsed or certified by TMDB.

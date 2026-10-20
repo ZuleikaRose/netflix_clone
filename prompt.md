@@ -71,5 +71,16 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
 10. In the README, remove "There is no backend…" and describe the Supabase backend and the REST API. Change the app so a
     refresh doesn't sign you out.
 
-Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and rolling the latest
-migrations and functions out to production.
+11. Connect to the `eagle_platoon_dev` Supabase project. Create an Edge Function with no authentication and a CORS
+    header that returns a JSON message saying Supabase is up and running (`hello`), then change it to "Hello World".
+12. Create an Edge Function that takes two numbers (6, 6) and returns `{"result":36}` (`multiply`).
+13. Use TMDB (The Movie Database) through an Edge Function named `tmdb`, with the key saved as `TMDB_API_FREE` in
+    Supabase, and add its information to the app: trending and popular rows, TMDB data on existing titles, and TMDB
+    search, for movies and TV shows. Keep it in TypeScript/JavaScript, not Python. (TMDB data on the catalog's own
+    titles was dropped: they're fictional, so matches were unrelated real titles.)
+14. Commit and push; deploy the functions to `eagle_platoon` (production), where `TMDB_API_FREE` is also set.
+15. Update the production database (the auth support and rate limit migrations, at the same versions as dev).
+16. Update `drawsql.png`, `schema.sql`, the READMEs, `user_journey.md`, `user_stories.md`, `prompt.md`, `CLAUDE.md`,
+    the style guide and both Supabase databases to match the changes. Commit and push.
+
+Still to do: custom SMTP for Auth emails, hosting and CAPTCHA on sign-up and sign-in.

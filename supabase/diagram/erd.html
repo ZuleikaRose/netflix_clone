@@ -50,7 +50,7 @@ const tables = [
   ['review', 'teal', R, 850, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'rating:smallint', 'body:text', 'author_name:varchar:n', 'created_at:timestamptz']],
   ['feedback', 'lav', R, 1130, ['id:uuid:p', 'user_id:uuid:f', 'score:smallint', 'area:varchar', 'message:text', 'created_at:timestamptz']],
   ['accessibility_settings', 'sea', R, 1395, ['id:uuid:p', 'user_id:uuid:fu', 'text_size:smallint', 'font:varchar', 'line_height:varchar', 'letter_spacing:varchar', 'align_left:boolean', 'contrast:varchar', 'saturation:varchar', 'highlight_links:boolean', 'highlight_headings:boolean', 'strong_focus:boolean', 'big_cursor:boolean', 'reading_guide:boolean', 'hide_images:boolean', 'stop_animations:boolean', 'captions:boolean', 'caption_size:varchar', 'updated_at:timestamptz']],
-  ['rate_limit_hits', 'gray', M, 1690, ['id:bigint:p', 'key:varchar', 'hit_at:timestamptz'], 'NEW · Edge Function rate limits'],
+  ['rate_limit_hits', 'gray', M, 1690, ['id:bigint:p', 'key:varchar', 'hit_at:timestamptz'], 'Edge Function rate limits (demo, referrals, TMDB)'],
 ]
 // [from table, from column, to table, to column]
 const links = [
@@ -62,7 +62,7 @@ const links = [
 ]
 
 const board = document.getElementById('board')
-board.insertAdjacentHTML('beforeend', '<div id="title">Netflix Clone database</div><div id="sub">Supabase Postgres (eagle_platoon / eagle_platoon_dev) · every table has RLS · updated 2026-10-17</div>')
+board.insertAdjacentHTML('beforeend', '<div id="title">Netflix Clone database</div><div id="sub">Supabase Postgres (eagle_platoon / eagle_platoon_dev) · every table has RLS · updated 2026-10-20</div>')
 for (const [name, color, x, y, rows, note] of tables) {
   const [c, bg] = C[color]
   const el = document.createElement('div')

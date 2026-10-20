@@ -42,6 +42,11 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
+Both run the same 6 migrations and 7 functions (production caught up on 2026-10-20). `apply_migration` stamps the
+current time as the version: afterwards set it to the file's version in `supabase_migrations.schema_migrations`.
+Each project needs the `TMDB_API_FREE` Edge Function secret for `tmdb` (the dashboard can't show it back; the value
+comes from themoviedb.org → Settings → API). The DROP INDEX steps at the end of `002_query_indexes.sql` haven't run on
+either project yet (they only remove indexes the new composite ones make redundant).
 
 The repo root also has a stray `package.json`/`package-lock.json`/`node_modules` from an early misplaced
 install. They are intentionally **not committed**; don't add them.
@@ -123,9 +128,10 @@ after editing.
 - **Supabase security**: new `public` tables get no anon/authenticated grants by default (migration
   `…_supabase_auth_support`), so every migration grants only what its RLS policies need and enables RLS. Use the
   publishable key in the browser, never the secret/service_role key. Run `get_advisors` after schema changes, and update
-  `schema.sql`, `supabase/diagram/erd.html` (then redraw `drawsql.png`) and `user_stories.md` to match. The MCP
-  server cancels DELETE/DROP statements in this session (it can't show its confirmation), so give those to the user
-  to run in the dashboard SQL editor.
+  `schema.sql`, `supabase/diagram/erd.html` (then redraw `drawsql.png`) and `user_stories.md` to match. If the MCP
+  server cancels a DELETE/DROP statement (it can't always show its confirmation), give it to the user to run in the
+  dashboard SQL editor; migrations containing them have gone through `apply_migration`. A safety hook blocks any
+  shell command containing the word "secret": keep it out of commit messages typed on the command line.
 - **Demo account**: "Use demo account" on `/login`. In memory mode it's `alex@example.com` with a random password per
   page load; with Supabase the `demo-account` function creates a private account per visitor (random email and
   password, deleted after 24 hours by the `delete-expired-demo-accounts` cron job). Either way the password is shown on
@@ -182,7 +188,8 @@ after editing.
   (real sign-in, saved data, Edge Functions; desktop only, on :4174) use the dev project and skip without
   `.env.development.local` (as in CI). Keep Supabase sign-ins in tests few: Auth rate-limits them per IP.
 - New features get a spec: `e2e/features.spec.js` (carousel, billing, affiliate…) and `e2e/accessibility.spec.js`
-  (accessibility menu, policy, player and captions, autoplay, delete account).
+  (accessibility menu, policy, player and captions, autoplay, delete account); TMDB features go in `e2e/tmdb.spec.js`,
+  which mocks `**/functions/v1/tmdb` (answer OPTIONS too, with CORS headers) so it needs no TMDB key or quota.
 - Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility
   menu" also contains it.
 
