@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo, tabBar } from './helpers.js'
 
 // Accessibility menu, policy page, video player controls and captions, autoplay settings and account deletion

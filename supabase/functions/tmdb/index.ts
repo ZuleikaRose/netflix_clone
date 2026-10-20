@@ -1,5 +1,6 @@
 // POST /functions/v1/tmdb { action, … } → movies and TV shows from The Movie Database (TMDB), in the app's title shape
-//   { action: 'lists' }                              → { trendingMovies, trendingShows, popularMovies, popularShows }
+//   { action: 'lists' }                              → { newMovies, newShows, trendingMovies, trendingShows,
+//                                                         popularMovies, popularShows }
 //   { action: 'search', query }                      → { results }
 //   { action: 'title', type: 'movie' | 'show', id }  → { title } with cast, crew, certification and length
 // Public like the catalog itself; the TMDB key stays in the TMDB_API_FREE secret and never reaches the browser.
@@ -11,7 +12,8 @@ const key = Deno.env.get('TMDB_API_FREE') ?? ''
 // A v4 "API Read Access Token" is a JWT sent as a bearer token; a v3 "API Key" goes in the query string
 const isReadToken = key.startsWith('eyJ')
 
-// Per IP: generous for browsing (every page load asks for the lists once), low enough to protect the TMDB quota
+// Per IP, counting only requests that reach TMDB: answers from the cache below are free, so browsing pages that
+// show the same lists doesn't use it up; a script asking for new searches or titles does
 const MAX_REQUESTS_PER_HOUR = 600
 const LIST_TTL_MS = 15 * 60 * 1000
 const SEARCH_TTL_MS = 5 * 60 * 1000
@@ -32,6 +34,7 @@ function cached<T>(cacheKey: string, ttl: number, load: () => Promise<T>): Promi
   value.catch(() => cache.delete(cacheKey))
   return value
 }
+const isCached = (cacheKey: string) => (cache.get(cacheKey)?.expires ?? 0) > Date.now()
 
 class NotFound extends Error {}
 
@@ -103,15 +106,18 @@ async function toTitles(items: Item[], type?: Type) {
 const list = (path: string, type: Type) =>
   cached(`list:${path}`, LIST_TTL_MS, async () => toTitles((await tmdb(path)).results, type))
 
-const lists = async () => {
-  const [trendingMovies, trendingShows, popularMovies, popularShows] = await Promise.all([
+// New: movies in theaters now and TV shows with an episode airing this week
+const lists = () => cached('lists', LIST_TTL_MS, async () => {
+  const [newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows] = await Promise.all([
+    list('/movie/now_playing', 'movie'),
+    list('/tv/on_the_air', 'show'),
     list('/trending/movie/week', 'movie'),
     list('/trending/tv/week', 'show'),
     list('/movie/popular', 'movie'),
     list('/tv/popular', 'show'),
   ])
-  return { trendingMovies, trendingShows, popularMovies, popularShows }
-}
+  return { newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows }
+})
 
 const search = (query: string) => cached(`search:${query.toLowerCase()}`, SEARCH_TTL_MS, async () => {
   const { results } = await tmdb('/search/multi', { query, include_adult: 'false' })
@@ -145,29 +151,38 @@ const title = (type: Type, id: number) => cached(`title:${type}:${id}`, LIST_TTL
 
 const asType = (value: unknown): Type | null => (value === 'movie' || value === 'show' ? value : null)
 
+// The request as [cache key, answer], or an error response for a bad request
+function route(body: Record<string, unknown>): [string, () => Promise<unknown>] | Response {
+  switch (body.action) {
+    case 'lists':
+      return ['lists', lists]
+    case 'search': {
+      const query = typeof body.query === 'string' ? body.query.trim().slice(0, 100) : ''
+      if (!query) return json({ results: [] })
+      return [`search:${query.toLowerCase()}`, async () => ({ results: await search(query) })]
+    }
+    case 'title': {
+      const type = asType(body.type)
+      const id = Number(body.id)
+      if (!type || !Number.isInteger(id) || id <= 0) return json({ error: 'Send a type (movie or show) and a TMDB id.' }, 400)
+      return [`title:${type}:${id}`, async () => ({ title: await title(type, id) })]
+    }
+    default:
+      return json({ error: 'Unknown action. Use lists, search or title.' }, 400)
+  }
+}
+
 serve(async (req, body) => {
   if (!key) return json({ error: 'TMDB is not configured.' }, 503)
-  if (!(await allowRequest(`tmdb:${clientIp(req)}`, MAX_REQUESTS_PER_HOUR, 3600))) {
+  const request = route(body)
+  if (request instanceof Response) return request
+  const [cacheKey, answer] = request
+  if (!isCached(cacheKey) && !(await allowRequest(`tmdb:${clientIp(req)}`, MAX_REQUESTS_PER_HOUR, 3600))) {
     return json({ error: 'Too many requests. Please try again later.' }, 429)
   }
 
   try {
-    switch (body.action) {
-      case 'lists':
-        return json(await lists())
-      case 'search': {
-        const query = typeof body.query === 'string' ? body.query.trim().slice(0, 100) : ''
-        return json({ results: query ? await search(query) : [] })
-      }
-      case 'title': {
-        const type = asType(body.type)
-        const id = Number(body.id)
-        if (!type || !Number.isInteger(id) || id <= 0) return json({ error: 'Send a type (movie or show) and a TMDB id.' }, 400)
-        return json({ title: await title(type, id) })
-      }
-      default:
-        return json({ error: 'Unknown action. Use lists, search or title.' }, 400)
-    }
+    return json(await answer())
   } catch (error) {
     if (error instanceof NotFound) return json({ error: 'Title not found.' }, 404)
     throw error

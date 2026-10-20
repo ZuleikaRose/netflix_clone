@@ -53,8 +53,9 @@ together.
 * **Posters:** 124×178px, 4px radius, artwork dimmed (`brightness(.72)`) under a centered condensed title. Posters
   reuse four photos with a per-title CSS tint. TMDB posters are real poster art, so they show undimmed with no title
   on top (the link still carries the name) and load lazily.
-* **Rows:** horizontal scrolling rows (Top 10 with giant outlined rank numbers, New Releases, Because You Liked…, then
-  Trending and Popular Movies and TV Shows on TMDB); grids of three posters on Watch list, Favorites and Search (TMDB
+* **Rows:** horizontal scrolling rows (Top 10 with giant outlined rank numbers, Because You Liked…, then New on TMDB
+  and Trending and Popular Movies and TV Shows on TMDB), each with ‹ › buttons (44px, in the row heading) that page
+  through it; a button at the row's end dims (`opacity: .35`) but keeps focus, and both hide when the row fits; grids of three posters on Watch list, Favorites and Search (TMDB
   results get their own grid under the catalog's).
 * **TMDB credit:** wherever TMDB data appears, a muted 12px line (`#a3a3a3`) says "Movie and TV data from TMDB. This
   product uses the TMDB API but is not endorsed or certified by TMDB." TMDB title pages show the TMDB rating and a
