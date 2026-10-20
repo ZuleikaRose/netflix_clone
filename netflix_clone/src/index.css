@@ -58,6 +58,8 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .ranking { margin-top: 20px; }.rank-card { position: relative; flex: 0 0 175px; height: 190px; }
 .rank-card > span { position: absolute; z-index: 0; left: 0; bottom: -9px; color: #090909; font-family: Impact, Anton, sans-serif; font-size: 150px; line-height: 1; -webkit-text-stroke: 3px #777; }
 .rank-card img { position: absolute; z-index: 1; right: 0; width: 120px; height: 178px; border-radius: 4px; object-fit: cover; }
+.rank-card.two-digits { flex-basis: 236px; }
+.rank-card.two-digits > span { letter-spacing: -14px; }
 .rank-card b { position: absolute; z-index: 2; right: 4px; bottom: 5px; padding: 3px; color: #fff; background: #e50914; font-size: 8px; line-height: .8; text-align: center; }.rank-card em { font-size: 12px; font-style: normal; }
 .bottom-nav { position: fixed; z-index: 20; left: 50%; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; max-width: 430px; padding: 9px 5px max(9px, env(safe-area-inset-bottom)); border-top: 1px solid #262626; background: #0b0b0bf2; backdrop-filter: blur(18px); transform: translateX(-50%); }
 .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 1px; color: #7e7e7e; background: transparent; font-size: 10px; }.nav-item svg { width: 25px; height: 25px; }.nav-item.selected { color: #fff; }

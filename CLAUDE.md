@@ -127,7 +127,8 @@ after editing.
   `titles` rows, so they can't be played, saved or reviewed; list and search items are rated 'NR', so restricted
   profiles don't see them. Without Supabase or on any error the TMDB sections just don't render. Keep the
   `TmdbCredit` notice wherever TMDB data shows (TMDB's terms). Home has no catalog "new" row any more (New on TMDB
-  replaced it); `isNew` still drives New & Hot.
+  replaced it); `isNew` still drives New & Hot. Top 10 shows the catalog's `top10` titles first, then TMDB's trending
+  movies and shows (alternating) up to ten, numbered by place (1–10), not by `top10`.
 - **Rows**: horizontal rows use `components/Row.jsx` (title, ‹ › buttons that page by 85% of the width, quick clicks
   add up, `aria-disabled` at the ends, hidden when the row fits).
 - **Supabase security**: new `public` tables get no anon/authenticated grants by default (migration
