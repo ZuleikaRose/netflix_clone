@@ -185,8 +185,8 @@ CREATE TABLE accessibility_settings (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- One row per call to a public Edge Function, keyed e.g. 'demo-account:203.0.113.7'. Only the functions can use it;
--- hits older than a day are deleted hourly.
+-- One row per call to a public Edge Function, keyed e.g. 'demo-account:203.0.113.7' or 'tmdb:203.0.113.7' (TMDB
+-- lookups; TMDB titles themselves aren't stored). Only the functions can use it; hits older than a day are deleted hourly.
 CREATE TABLE rate_limit_hits (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   key varchar NOT NULL,

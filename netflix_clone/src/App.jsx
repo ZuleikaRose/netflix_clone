@@ -15,6 +15,7 @@ import { Games } from './pages/Games.jsx'
 import { Search } from './pages/Search.jsx'
 import { Signup } from './pages/Signup.jsx'
 import { TitleDetail } from './pages/TitleDetail.jsx'
+import { TmdbTitle } from './pages/TmdbTitle.jsx'
 import { useAuth } from './state/authContext.js'
 import { LibraryProvider } from './state/LibraryProvider.jsx'
 
@@ -33,6 +34,7 @@ function App() {
         <Route element={<LibraryProvider key={session}><Layout /></LibraryProvider>}>
           <Route index element={<Home />} />
           <Route path="title/:id" element={<TitleDetail />} />
+          <Route path="tmdb/:type/:tmdbId" element={<TmdbTitle />} />
           <Route path="search" element={<Search />} />
           <Route path="new" element={<NewHot />} />
           <Route path="my-netflix" element={<MyNetflix />} />

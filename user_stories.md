@@ -4,7 +4,7 @@
 
 Pulled from `app_outline/` (the user journey and each page's `user_journey.md`) into one list: one line per thing the app has to *remember*. Story 1 isn't on any single page; it's there so the database knows who owns what.
 
-These stories are what the Supabase database stores (see `schema.sql`, `drawsql.png` and `supabase/migrations/`). Without Supabase configured the app keeps the same data in memory, and it resets on refresh. Stories 26–32 were added with the Supabase backend.
+These stories are what the Supabase database stores (see `schema.sql`, `drawsql.png` and `supabase/migrations/`). Without Supabase configured the app keeps the same data in memory, and it resets on refresh. Stories 26–32 were added with the Supabase backend. Stories 33–35 came with The Movie Database (TMDB): its titles are fetched live through the `tmdb` Edge Function and aren't stored, but each lookup is counted for rate limiting (story 31).
 
 1. As a user, I want an account with my name, email and password so that my private lists and settings belong to me, and no one else can see or change them. Reviews and ratings are readable by everyone. (Supabase Auth keeps the password; private data shows a member only their own rows, while the catalog and reviews are publicly readable.)
 2. As a user, I want to choose a membership plan (Basic, Standard or Premium) so that I know what I pay and what quality I get.
@@ -36,5 +36,8 @@ These stories are what the Supabase database stores (see `schema.sql`, `drawsql.
 28. As a visitor, I want to try the app with my own private demo account, without signing up, so that I can explore every feature; the demo account is deleted after 24 hours.
 29. As a reviewer, I want my real account name shown on my reviews, and no one able to post under someone else's name, so that reviews can be trusted.
 30. As a user, I want my promo code checked against the real offers and my plan so that only valid discounts are applied.
-31. As the site owner, I want the public features (demo accounts, referral clicks) limited per visitor so that no one can flood the service or inflate an affiliate's counts.
+31. As the site owner, I want the public features (demo accounts, referral clicks, TMDB lookups) limited per visitor so that no one can flood the service or inflate an affiliate's counts.
 32. As a member, I want to stay signed in when I refresh the page or come back later, until I choose Sign out, so that I don't have to sign in again every time.
+33. As a user, I want to browse trending and popular movies and TV shows from TMDB on the home page so that I can discover real titles beyond the platform's catalog.
+34. As a user, I want my searches to also find movies and TV shows on TMDB, with the same type, genre, year and sort filters, so that I can look up any title.
+35. As a user, I want to open a TMDB title and see its poster, overview, rating, maturity rating, length, cast and crew, credited to TMDB, so that I can decide whether it's for me; as the site owner, I want the TMDB API key kept on the server so that no one can copy it from the browser.

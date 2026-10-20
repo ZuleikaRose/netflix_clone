@@ -1,7 +1,9 @@
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
+import { TmdbCredit } from '../components/TmdbCredit.jsx'
 import { useCatalog } from '../state/useCatalog.js'
+import { useTmdbSearch } from '../state/useTmdb.js'
 
 // Release-date filter (outline: filter by genre, release date or popularity)
 const releaseYears = [2026, 2025, 2024]
@@ -16,7 +18,7 @@ const sorters = {
 export function Search() {
   // Query state lives in the URL so results survive Back/Forward and can be shared
   const [params, setParams] = useSearchParams()
-  const { titles: catalog, genres } = useCatalog()
+  const { titles: catalog, genres, isAllowed } = useCatalog()
   const q = params.get('q') ?? ''
   const genre = params.get('genre') ?? ''
   const type = params.get('type') ?? ''
@@ -31,12 +33,16 @@ export function Search() {
   }
 
   const needle = q.trim().toLowerCase()
-  const results = catalog
-    .filter((t) => !needle || [t.title, ...t.cast, ...t.genres].some((s) => s.toLowerCase().includes(needle)))
+  // The same genre, type, year and sort apply to both lists; TMDB already matched the query itself
+  const refine = (titles) => titles
     .filter((t) => !genre || t.genres.includes(genre))
     .filter((t) => !type || t.type === type)
     .filter((t) => !year || (year === 'earlier' ? t.year < EARLIEST_LISTED_YEAR : t.year === Number(year)))
     .sort(sorters[sort] ?? sorters.popular)
+  const results = refine(catalog.filter((t) => !needle || [t.title, ...t.cast, ...t.genres].some((s) => s.toLowerCase().includes(needle))))
+  const tmdb = useTmdbSearch(q)
+  // TMDB search results have no certification ('NR'), so restricted profiles don't see them
+  const tmdbResults = tmdb.results ? refine(tmdb.results.filter(isAllowed)) : []
 
   return (
     <>
@@ -80,6 +86,20 @@ export function Search() {
       {results.length > 0
         ? <div className="poster-grid">{results.map((t) => <PosterCard key={t.id} title={t} />)}</div>
         : <p className="empty">No matches for “{q}”. Try a different title, actor or genre.</p>}
+
+      {needle && (tmdb.searching || tmdbResults.length > 0) && (
+        <section aria-labelledby="tmdb-results-heading" aria-busy={tmdb.searching}>
+          <h2 id="tmdb-results-heading" className="results-heading">
+            {tmdb.searching ? 'Searching TMDB…' : `${tmdbResults.length} more on TMDB`}
+          </h2>
+          {tmdbResults.length > 0 && (
+            <>
+              <div className="poster-grid">{tmdbResults.map((t) => <PosterCard key={t.id} title={t} />)}</div>
+              <TmdbCredit />
+            </>
+          )}
+        </section>
+      )}
     </>
   )
 }
