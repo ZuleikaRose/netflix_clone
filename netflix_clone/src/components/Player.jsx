@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { captionsCredit, clipFor, clipSources } from '../data/clips.js'
+import { readStored, writeStored } from '../lib/supabaseConfig.js'
 import { useAccessibility } from '../state/accessibilityContext.js'
 import { useAuth } from '../state/authContext.js'
 import { Icon } from './Icon.jsx'
@@ -10,6 +11,14 @@ import { Icon } from './Icon.jsx'
 const NEXT_EPISODE_DELAY = 5
 const SKIP_SECONDS = 10
 const speeds = [0.75, 1, 1.25, 1.5]
+// Volume is 0–1; the arrow keys change it by a tenth. The last level is kept in this browser for the next video.
+const VOLUME_KEY = 'netflix-clone-volume'
+const VOLUME_STEP = 0.1
+const UNMUTE_VOLUME = 0.5 // unmuting from 0 has to land somewhere audible
+const storedVolume = () => {
+  const level = readStored(VOLUME_KEY)
+  return typeof level === 'number' && level > 0 && level <= 1 ? level : 1
+}
 
 function clock(seconds) {
   const s = Math.floor(seconds)
@@ -34,6 +43,7 @@ export function Player({ title, onClose }) {
   const [paused, setPaused] = useState(true)
   const [ended, setEnded] = useState(false)
   const [muted, setMuted] = useState(false)
+  const [volume, setVolume] = useState(storedVolume)
   const [speed, setSpeed] = useState(1)
   const [caption, setCaption] = useState('')
   const [nextIn, setNextIn] = useState(NEXT_EPISODE_DELAY)
@@ -45,6 +55,11 @@ export function Player({ title, onClose }) {
 
   // The browser can refuse to start playback (e.g. autoplay without a user gesture); show Play instead
   const play = () => videoRef.current.play().catch(() => setPaused(true))
+
+  // Start at the remembered level (the state already holds it; the element starts at 1)
+  useEffect(() => {
+    videoRef.current.volume = storedVolume()
+  }, [])
 
   useEffect(() => {
     const track = videoRef.current.textTracks[0]
@@ -108,7 +123,23 @@ export function Player({ title, onClose }) {
     else videoRef.current.pause()
   }
   const toggleCaptions = () => update({ captions: !settings.captions })
-  const toggleMute = () => { videoRef.current.muted = !videoRef.current.muted }
+  // 0 counts as muted, so the slider and the Mute button always agree
+  const changeVolume = (level) => {
+    const video = videoRef.current
+    const next = Math.round(Math.max(0, Math.min(1, level)) * 100) / 100
+    video.volume = next
+    video.muted = next === 0
+    if (next > 0) writeStored(VOLUME_KEY, next)
+  }
+  const toggleMute = () => {
+    const video = videoRef.current
+    if (video.muted && video.volume === 0) changeVolume(UNMUTE_VOLUME)
+    else video.muted = !video.muted
+  }
+  const onVolumeChange = () => {
+    setMuted(videoRef.current.muted)
+    setVolume(videoRef.current.volume)
+  }
   const changeSpeed = (rate) => { videoRef.current.playbackRate = rate }
   // The browser can refuse full screen (e.g. inside an iframe); staying windowed is the only sensible fallback
   const toggleFullscreen = () => {
@@ -116,8 +147,11 @@ export function Player({ title, onClose }) {
     request?.catch(() => setFullscreen(document.fullscreenElement === playerRef.current))
   }
 
-  // Shortcuts work while focus is inside the player (the seek slider and speed menu keep their own keys)
-  const shortcuts = { k: togglePlay, j: () => seekTo(time - SKIP_SECONDS), l: () => seekTo(time + SKIP_SECONDS), c: toggleCaptions, m: toggleMute, f: toggleFullscreen }
+  // Shortcuts work while focus is inside the player (the sliders and speed menu keep their own keys)
+  const shortcuts = {
+    k: togglePlay, j: () => seekTo(time - SKIP_SECONDS), l: () => seekTo(time + SKIP_SECONDS), c: toggleCaptions, m: toggleMute, f: toggleFullscreen,
+    arrowup: () => changeVolume((muted ? 0 : volume) + VOLUME_STEP), arrowdown: () => changeVolume((muted ? 0 : volume) - VOLUME_STEP),
+  }
   const onKeyDown = (e) => {
     const action = shortcuts[e.key.toLowerCase()]
     if (!action || e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input, select, textarea')) return
@@ -144,7 +178,7 @@ export function Player({ title, onClose }) {
           onPlay={() => { setPaused(false); setEnded(false) }}
           onPause={() => setPaused(true)}
           onEnded={() => setEnded(true)}
-          onVolumeChange={() => setMuted(videoRef.current.muted)}
+          onVolumeChange={onVolumeChange}
           onRateChange={() => setSpeed(videoRef.current.playbackRate)}
         >
           <source src={sources.webm} type="video/webm" />
@@ -182,7 +216,12 @@ export function Player({ title, onClose }) {
             <button type="button" className="icon-button" aria-label={paused || ended ? 'Play' : 'Pause'} aria-keyshortcuts="K" onClick={togglePlay}><Icon name={paused || ended ? 'play' : 'pause'} /></button>
             <button type="button" className="icon-button" aria-label={`Back ${SKIP_SECONDS} seconds`} aria-keyshortcuts="J" onClick={() => seekTo(time - SKIP_SECONDS)}><Icon name="rewind" /></button>
             <button type="button" className="icon-button" aria-label={`Forward ${SKIP_SECONDS} seconds`} aria-keyshortcuts="L" onClick={() => seekTo(time + SKIP_SECONDS)}><Icon name="forward" /></button>
-            <button type="button" className="icon-button" aria-label="Mute" aria-pressed={muted} aria-keyshortcuts="M" onClick={toggleMute}><Icon name={muted ? 'mute' : 'volume'} /></button>
+            <span className="volume-control">
+              <button type="button" className="icon-button" aria-label="Mute" aria-pressed={muted} aria-keyshortcuts="M" onClick={toggleMute}><Icon name={muted ? 'mute' : 'volume'} /></button>
+              <input type="range" className="volume" min="0" max="100" step="5" value={muted ? 0 : Math.round(volume * 100)}
+                onChange={(e) => changeVolume(Number(e.target.value) / 100)} aria-label="Volume" aria-keyshortcuts="ArrowUp ArrowDown"
+                aria-valuetext={muted ? 'Muted' : `${Math.round(volume * 100)}%`} />
+            </span>
             <label className="speed">
               <span className="sr-only">Playback speed</span>
               <select value={speed} onChange={(e) => changeSpeed(Number(e.target.value))}>
