@@ -60,13 +60,14 @@ together.
   results get their own grid under the catalog's).
 * **TMDB credit:** wherever TMDB data appears, a muted 12px line (`#a3a3a3`) says "Movie and TV data from TMDB. This
   product uses the TMDB API but is not endorsed or certified by TMDB." TMDB title pages show the TMDB rating and a
-  "View on TMDB" link instead of Play and My List.
+  "View on TMDB" link instead of Play; My List and Favorite work as on catalog titles.
 * **Hero carousel:** a full-bleed 610px featured title with a dark gradient, centered title and actions, arrow
   buttons and dots. It never auto-advances.
 * **Chips and tabs:** pill chips for filters (active = white border on `#343434`); underlined tabs for sections.
 * **Banners:** a green status banner on Support (service is up) and a gold maintenance banner on Home, which the
   member can dismiss.
 * **Player:** black stage, large controls (play/pause, seek, skip 10 seconds, mute with a 64px volume slider, speed,
+  previous/next episode for shows in a row of their own above the controls,
   full screen, CC), captions drawn on a dark box in three sizes, credits under the video.
 * **Icon buttons:** at least 44×44px; pressed toggles invert to white.
 

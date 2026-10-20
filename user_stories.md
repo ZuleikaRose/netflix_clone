@@ -4,7 +4,7 @@
 
 Pulled from `app_outline/` (the user journey and each page's `user_journey.md`) into one list: one line per thing the app has to *remember*. Story 1 isn't on any single page; it's there so the database knows who owns what.
 
-These stories are what the Supabase database stores (see `schema.sql`, `drawsql.png` and `supabase/migrations/`). Without Supabase configured the app keeps the same data in memory, and it resets on refresh. Stories 26–32 were added with the Supabase backend. Stories 33–35 came with The Movie Database (TMDB): its titles are fetched live through the `tmdb` Edge Function and aren't stored, but each lookup is counted for rate limiting (story 31).
+These stories are what the Supabase database stores (see `schema.sql`, `drawsql.png` and `supabase/migrations/`). Without Supabase configured the app keeps the same data in memory, and it resets on refresh. Stories 26–32 were added with the Supabase backend. Stories 33–35 came with The Movie Database (TMDB): its titles are fetched live through the `tmdb` Edge Function, and a TMDB title is stored only once a member saves it (story 36, `titles` with `source = 'tmdb'` plus `tmdb_titles`); lookups that reach TMDB are counted for rate limiting (story 31). Stories 36–38 were added with saved TMDB titles, player volume and episode buttons.
 
 1. As a user, I want an account with my name, email and password so that my private lists and settings belong to me, and no one else can see or change them. Reviews and ratings are readable by everyone. (Supabase Auth keeps the password; private data shows a member only their own rows, while the catalog and reviews are publicly readable.)
 2. As a user, I want to choose a membership plan (Basic, Standard or Premium) so that I know what I pay and what quality I get.
@@ -26,7 +26,7 @@ These stories are what the Supabase database stores (see `schema.sql`, `drawsql.
 18. As a user, I want to adjust text size, font, spacing, contrast and color, and turn on reading and navigation aids from an accessibility menu, so that the app works for how I see, read and move; as a member, I want these settings saved so that they come back when I sign in.
 19. As a user, I want one-tap accessibility profiles (seizure safe, low vision, ADHD friendly, dyslexia friendly, keyboard navigation, deaf and hard of hearing) so that I can set up several settings at once.
 20. As a user, I want to read an Accessibility Policy linked from the footer so that I know what the app supports and how to report a problem.
-21. As a viewer, I want to watch real video with controls (play, pause, seek, skip 10 seconds, mute, speed, full screen) that work with a keyboard so that I can watch comfortably.
+21. As a viewer, I want to watch real video with controls (play, pause, seek, skip 10 seconds, mute, volume, speed, previous and next episode, full screen) that work with a keyboard so that I can watch comfortably.
 22. As a deaf or hard-of-hearing viewer, I want to turn closed captions on and choose their size so that I can follow along.
 23. As a user, I want to turn autoplaying previews and next episodes on or off, and have them stay off when I ask for reduced motion, so that video doesn't start without my say.
 24. As a user, I want to delete my account from a danger zone once my subscription is cancelled, by typing my email and entering my password to confirm, so that I can leave the service; deleting only removes my access.
@@ -41,3 +41,6 @@ These stories are what the Supabase database stores (see `schema.sql`, `drawsql.
 33. As a user, I want to browse trending and popular movies and TV shows from TMDB on the home page so that I can discover real titles beyond the platform's catalog.
 34. As a user, I want my searches to also find movies and TV shows on TMDB, with the same type, genre, year and sort filters, so that I can look up any title.
 35. As a user, I want to open a TMDB title and see its poster, overview, rating, maturity rating, length, cast and crew, credited to TMDB, so that I can decide whether it's for me; as the site owner, I want the TMDB API key kept on the server so that no one can copy it from the browser.
+36. As a member, I want to add a TMDB movie or TV show to My List or Favorites so that I can find it later next to the catalog's titles; the title's details come from TMDB, not from what my browser sends.
+37. As a member, I want the video player to remember my volume on any device I sign in on so that I don't have to set it every time.
+38. As a viewer of a TV show, I want previous and next episode buttons (and keyboard shortcuts) while I'm watching so that I can move between episodes without leaving the player.
