@@ -11,11 +11,15 @@ import { Icon } from './Icon.jsx'
 const NEXT_EPISODE_DELAY = 5
 const SKIP_SECONDS = 10
 const speeds = [0.75, 1, 1.25, 1.5]
-// Volume is 0–1; the arrow keys change it by a tenth. The last level is kept in this browser for the next video.
+// Volume is 0–1; the arrow keys change it by a tenth. The last level is kept in this browser for the next video and,
+// for a member, in their preferences (0–100), which win so it follows them to any device.
 const VOLUME_KEY = 'netflix-clone-volume'
 const VOLUME_STEP = 0.1
 const UNMUTE_VOLUME = 0.5 // unmuting from 0 has to land somewhere audible
-const storedVolume = () => {
+const VOLUME_SAVE_DELAY_MS = 600 // dragging the slider saves once it stops
+const startVolume = (preferences) => {
+  const saved = preferences?.playerVolume
+  if (typeof saved === 'number' && saved > 0 && saved <= 100) return saved / 100
   const level = readStored(VOLUME_KEY)
   return typeof level === 'number' && level > 0 && level <= 1 ? level : 1
 }
@@ -31,7 +35,7 @@ function clock(seconds) {
 const cueText = (cue) => cue.text.replace(/<[^>]+>/g, '')
 
 export function Player({ title, onClose }) {
-  const { user } = useAuth()
+  const { user, setPreference } = useAuth()
   const { settings, update } = useAccessibility()
   const clip = clipFor(title.id)
   const sources = clipSources(clip)
@@ -43,7 +47,9 @@ export function Player({ title, onClose }) {
   const [paused, setPaused] = useState(true)
   const [ended, setEnded] = useState(false)
   const [muted, setMuted] = useState(false)
-  const [volume, setVolume] = useState(storedVolume)
+  const [startLevel] = useState(() => startVolume(user.preferences))
+  const [volume, setVolume] = useState(startLevel)
+  const volumeSave = useRef({ timer: null, level: null, save: setPreference })
   const [speed, setSpeed] = useState(1)
   const [caption, setCaption] = useState('')
   const [nextIn, setNextIn] = useState(NEXT_EPISODE_DELAY)
@@ -58,8 +64,29 @@ export function Player({ title, onClose }) {
 
   // Start at the remembered level (the state already holds it; the element starts at 1)
   useEffect(() => {
-    videoRef.current.volume = storedVolume()
+    videoRef.current.volume = startLevel
+  }, [startLevel])
+
+  // The member's volume is saved a moment after the last change, and right away if the player closes first
+  useEffect(() => {
+    volumeSave.current.save = setPreference
+  })
+  useEffect(() => {
+    const pending = volumeSave.current
+    return () => {
+      clearTimeout(pending.timer)
+      if (pending.level != null) pending.save('playerVolume', pending.level)
+    }
   }, [])
+  const saveVolumeForMember = (level) => {
+    const pending = volumeSave.current
+    clearTimeout(pending.timer)
+    pending.level = Math.round(level * 100)
+    pending.timer = setTimeout(() => {
+      pending.save('playerVolume', pending.level)
+      pending.level = null
+    }, VOLUME_SAVE_DELAY_MS)
+  }
 
   useEffect(() => {
     const track = videoRef.current.textTracks[0]
@@ -117,6 +144,9 @@ export function Player({ title, onClose }) {
     setEnded(false)
     play()
   }
+  // Episodes are simulated: the sample clip stands in for each one
+  const goToPreviousEpisode = () => { if (episode > 1) playEpisode(episode - 1) }
+  const goToNextEpisode = () => playEpisode(episode + 1)
   const togglePlay = () => {
     if (ended) playEpisode(episode)
     else if (paused) play()
@@ -129,7 +159,10 @@ export function Player({ title, onClose }) {
     const next = Math.round(Math.max(0, Math.min(1, level)) * 100) / 100
     video.volume = next
     video.muted = next === 0
-    if (next > 0) writeStored(VOLUME_KEY, next)
+    if (next > 0) {
+      writeStored(VOLUME_KEY, next)
+      saveVolumeForMember(next)
+    }
   }
   const toggleMute = () => {
     const video = videoRef.current
@@ -151,9 +184,11 @@ export function Player({ title, onClose }) {
   const shortcuts = {
     k: togglePlay, j: () => seekTo(time - SKIP_SECONDS), l: () => seekTo(time + SKIP_SECONDS), c: toggleCaptions, m: toggleMute, f: toggleFullscreen,
     arrowup: () => changeVolume((muted ? 0 : volume) + VOLUME_STEP), arrowdown: () => changeVolume((muted ? 0 : volume) - VOLUME_STEP),
+    ...(isShow && { 'shift+p': goToPreviousEpisode, 'shift+n': goToNextEpisode }),
   }
   const onKeyDown = (e) => {
-    const action = shortcuts[e.key.toLowerCase()]
+    const key = e.key.toLowerCase()
+    const action = (e.shiftKey && shortcuts[`shift+${key}`]) || shortcuts[key]
     if (!action || e.ctrlKey || e.metaKey || e.altKey || e.target.matches('input, select, textarea')) return
     e.preventDefault()
     action()
@@ -207,6 +242,17 @@ export function Player({ title, onClose }) {
         )}
 
         <div className="player-bar">
+          {isShow && (
+            <div className="player-episodes" role="group" aria-label="Episodes">
+              <button type="button" className="episode-button" aria-disabled={episode === 1} aria-keyshortcuts="Shift+P" onClick={goToPreviousEpisode}>
+                <Icon name="previousEpisode" /> Previous episode
+              </button>
+              <span className="episode-number">Episode {episode}</span>
+              <button type="button" className="episode-button" aria-keyshortcuts="Shift+N" onClick={goToNextEpisode}>
+                Next episode <Icon name="nextEpisode" />
+              </button>
+            </div>
+          )}
           <div className="player-timeline">
             <span>{clock(time)}</span>
             <input type="range" className="seek" min="0" max={Math.floor(duration)} step="1" value={Math.floor(time)} onChange={(e) => seekTo(Number(e.target.value))} aria-label="Seek" aria-valuetext={`${clock(time)} of ${clock(duration)}`} />

@@ -3,8 +3,10 @@
 //                                                         popularMovies, popularShows }
 //   { action: 'search', query }                      → { results }
 //   { action: 'title', type: 'movie' | 'show', id }  → { title } with cast, crew, certification and length
-// Public like the catalog itself; the TMDB key stays in the TMDB_API_FREE secret and never reaches the browser.
-import { allowRequest, clientIp, json, serve } from '../_shared/supabase.ts'
+//   { action: 'save', type, id } (signed in)         → { title } after storing it, so it can go on My List or Favorites
+// Public like the catalog itself (except `save`); the TMDB key stays in the TMDB_API_FREE secret and never reaches
+// the browser.
+import { admin, allowRequest, callerFrom, clientIp, json, serve } from '../_shared/supabase.ts'
 
 const API = 'https://api.themoviedb.org/3'
 const IMAGES = 'https://image.tmdb.org/t/p/'
@@ -149,6 +151,25 @@ const title = (type: Type, id: number) => cached(`title:${type}:${id}`, LIST_TTL
   }
 })
 
+// Stores a TMDB title a member saves: its core fields as a titles row (source 'tmdb', so watch lists and favorites
+// can reference it) and its TMDB-only details in tmdb_titles. Built from TMDB's data, never from what the browser sends.
+const save = (type: Type, id: number) => cached(`saved:${type}:${id}`, LIST_TTL_MS, async () => {
+  const t = await title(type, id)
+  const { error } = await admin.from('titles').upsert({
+    id: t.id, title: t.title, type, release_year: t.year, maturity_rating: t.maturity,
+    seasons: type === 'show' ? t.seasons : null, runtime: type === 'movie' ? t.runtime : null,
+    genres: t.genres, synopsis: t.synopsis, cast_members: t.cast, director: t.crew.director, writer: t.crew.writer,
+    popularity: t.popularity, image_url: t.image, source: 'tmdb',
+  })
+  if (error) throw error
+  const { error: detailsError } = await admin.from('tmdb_titles').upsert({
+    title_id: t.id, tmdb_id: id, media_type: tmdbPath(type), backdrop_url: t.backdrop, tmdb_rating: t.rating,
+    tmdb_url: t.tmdbUrl, fetched_at: new Date().toISOString(),
+  })
+  if (detailsError) throw detailsError
+  return t
+})
+
 const asType = (value: unknown): Type | null => (value === 'movie' || value === 'show' ? value : null)
 
 // The request as [cache key, answer], or an error response for a bad request
@@ -161,14 +182,17 @@ function route(body: Record<string, unknown>): [string, () => Promise<unknown>] 
       if (!query) return json({ results: [] })
       return [`search:${query.toLowerCase()}`, async () => ({ results: await search(query) })]
     }
-    case 'title': {
+    case 'title':
+    case 'save': {
       const type = asType(body.type)
       const id = Number(body.id)
       if (!type || !Number.isInteger(id) || id <= 0) return json({ error: 'Send a type (movie or show) and a TMDB id.' }, 400)
-      return [`title:${type}:${id}`, async () => ({ title: await title(type, id) })]
+      return body.action === 'save'
+        ? [`saved:${type}:${id}`, async () => ({ title: await save(type, id) })]
+        : [`title:${type}:${id}`, async () => ({ title: await title(type, id) })]
     }
     default:
-      return json({ error: 'Unknown action. Use lists, search or title.' }, 400)
+      return json({ error: 'Unknown action. Use lists, search, title or save.' }, 400)
   }
 }
 
@@ -176,6 +200,8 @@ serve(async (req, body) => {
   if (!key) return json({ error: 'TMDB is not configured.' }, 503)
   const request = route(body)
   if (request instanceof Response) return request
+  // Only members save titles (they're for their lists), so a visitor can't fill the table
+  if (body.action === 'save' && !(await callerFrom(req))) return json({ error: 'Please sign in again.' }, 401)
   const [cacheKey, answer] = request
   if (!isCached(cacheKey) && !(await allowRequest(`tmdb:${clientIp(req)}`, MAX_REQUESTS_PER_HOUR, 3600))) {
     return json({ error: 'Too many requests. Please try again later.' }, 429)

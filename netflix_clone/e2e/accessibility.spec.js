@@ -114,6 +114,41 @@ test.describe('video player', () => {
     await expect.poll(() => video(page).evaluate((v) => v.playbackRate)).toBe(1.5)
   })
 
+  test('TV shows have previous and next episode buttons and Shift+P / Shift+N', async ({ page }) => {
+    await openPlayer(page, 'night-shift')
+    const status = page.getByRole('status').filter({ hasText: 'Night Shift' })
+    const previous = page.getByRole('button', { name: 'Previous episode' })
+    await expect(status).toContainText('Episode 1')
+    await expect(previous).toHaveAttribute('aria-disabled', 'true')
+    await previous.click({ force: true })
+    await expect(status).toContainText('Episode 1')
+
+    await page.getByRole('button', { name: 'Next episode' }).click()
+    await expect(status).toContainText('Episode 2')
+    await expect(previous).toHaveAttribute('aria-disabled', 'false')
+    await page.keyboard.press('Shift+N')
+    await expect(status).toContainText('Episode 3')
+    await page.keyboard.press('Shift+P')
+    await page.keyboard.press('Shift+P')
+    await expect(status).toContainText('Episode 1')
+    await expect.poll(() => video(page).evaluate((v) => v.currentTime)).toBeLessThan(5)
+  })
+
+  test('movies have no episode buttons', async ({ page }) => {
+    await openPlayer(page, 'after-dark')
+    await expect(page.getByRole('group', { name: 'Episodes' })).toHaveCount(0)
+  })
+
+  test('the volume is saved to the member, not just this browser', async ({ page }) => {
+    await openPlayer(page, 'after-dark')
+    await page.getByLabel('Volume').fill('35')
+    // Saved a moment after the last change (or when the player closes)
+    await page.getByRole('button', { name: 'Close player' }).click()
+    await page.evaluate(() => localStorage.removeItem('netflix-clone-volume'))
+    await page.getByRole('button', { name: /^\s*(Resume|Play)$/ }).click()
+    await expect(page.getByLabel('Volume')).toHaveValue('35')
+  })
+
   test('the volume slider, arrow keys and Mute set the volume, which is remembered for the next video', async ({ page }) => {
     await openPlayer(page, 'after-dark')
     const volume = page.getByLabel('Volume')

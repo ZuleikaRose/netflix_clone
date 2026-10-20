@@ -2,7 +2,7 @@ import { getSupabase } from '../lib/supabaseConfig.js'
 import { catalog as localCatalog } from './catalog.js'
 
 const columns = 'id, title, type, release_year, maturity_rating, seasons, runtime, genres, mood, synopsis, cast_members, '
-  + 'director, writer, popularity, is_new, top10_rank, image_url, tint'
+  + 'director, writer, popularity, is_new, top10_rank, image_url, tint, source'
 
 const localIndex = new Map(localCatalog.map((t, i) => [t.id, i]))
 
@@ -29,17 +29,24 @@ function toTitle(row) {
     crew: { director: row.director, writer: row.writer },
     reviews: local?.reviews ?? [],
     progress: local?.progress,
+    // A TMDB title a member saved (id 'tmdb-<type>-<TMDB id>') opens on its TMDB page
+    ...(row.source === 'tmdb' ? { source: 'tmdb', path: `/tmdb/${row.type}/${row.id.split('-').pop()}` } : {}),
   }
 }
 
 // Keeps the built-in order (the featured carousel and rows depend on it); titles only in the database go last
 const byCatalogOrder = (a, b) => (localIndex.get(a.id) ?? Infinity) - (localIndex.get(b.id) ?? Infinity) || b.popularity - a.popularity
 
-// GET /rest/v1/titles with the publishable key. Returns null when Supabase isn't configured.
+// GET /rest/v1/titles with the publishable key: { titles, saved } — the catalog, and the TMDB titles members have
+// saved to their lists (source 'tmdb'). Returns null when Supabase isn't configured.
 export async function fetchCatalog() {
   const supabase = await getSupabase()
   if (!supabase) return null
   const { data, error } = await supabase.from('titles').select(columns)
   if (error) throw error
-  return data.map(toTitle).sort(byCatalogOrder)
+  const rows = data.map(toTitle)
+  return {
+    titles: rows.filter((t) => t.source !== 'tmdb').sort(byCatalogOrder),
+    saved: rows.filter((t) => t.source === 'tmdb'),
+  }
 }
