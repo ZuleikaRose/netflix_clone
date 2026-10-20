@@ -427,3 +427,12 @@ verify_jwt = false
 
 [functions.record-referral]
 verify_jwt = false
+
+[functions.hello]
+verify_jwt = false
+
+[functions.multiply]
+verify_jwt = false
+
+[functions.tmdb]
+verify_jwt = false

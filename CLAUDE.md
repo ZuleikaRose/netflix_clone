@@ -27,8 +27,9 @@ supabase/             Supabase CLI project (config.toml); MCP config in supabase
   migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
                       (Index Advisor is installed on both projects: dashboard → Query Performance suggests missing ones)
-  functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral (+ _shared/: clients,
-                      CORS, caller check, per-IP rate limits via public.hit_rate_limit)
+  functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb (+ _shared/: clients,
+                      CORS, caller check, per-IP rate limits via public.hit_rate_limit); hello and multiply are
+                      standalone public test endpoints
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
   diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
@@ -78,6 +79,7 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | Accessibility menu (every page) | header icon, `<dialog>` | `components/AccessibilityPanel.jsx`, `state/AccessibilityProvider.jsx`, `state/accessibilityContext.js` |
 | Error | any unknown route | `pages/NotFound.jsx` |
 | (extra) Games, New & Hot | `/games`, `/games/:gameId`, `/new` | `pages/Games.jsx`, `pages/NewHot.jsx` |
+| (extra) TMDB movie / TV show | `/tmdb/:type/:tmdbId` (`movie` or `show`) | `pages/TmdbTitle.jsx`, `data/tmdbApi.js`, `state/useTmdb.js` |
 
 When the outline changes: diff `app_outline/user_journey.md` (`git diff --word-diff`), map each change to this
 table, add or extend the page, add `/info/<slug>` pages to `data/infoPages.js` (that also adds the footer link)
@@ -110,6 +112,14 @@ after editing.
   (`titles`, `all`, `findTitle`, `genres`), never by importing `catalog` in a page. Watch progress (and, in memory
   mode, sample reviews) still come from `catalog.js`; with Supabase, `useReviews` reads members' reviews from the
   `review` table. Adding a title: add it to `catalog.js`, regenerate `…_seed_titles.sql`, apply it.
+- **TMDB**: the `tmdb` Edge Function calls The Movie Database with the `TMDB_API_FREE` secret (a v3 API key or v4
+  read token; set it on each project) and returns titles in the catalog's shape, with `source: 'tmdb'` and a
+  `path` of `/tmdb/:type/:tmdbId` (PosterCard links there). Actions: `lists` (trending/popular rows on Home), `search`
+  (extra results on Search) and `title` (the TMDB page). Catalog titles aren't matched to TMDB: they're fictional, so
+  any name match is an unrelated real title. TMDB titles aren't `titles` rows, so they can't be played, saved or
+  reviewed; list and search items are rated 'NR', so restricted profiles don't see them. Without Supabase or on any
+  error the TMDB sections just don't render. Keep the `TmdbCredit` notice wherever TMDB data shows (TMDB's terms).
+  `e2e/tmdb.spec.js` mocks the function.
 - **Supabase security**: new `public` tables get no anon/authenticated grants by default (migration
   `…_supabase_auth_support`), so every migration grants only what its RLS policies need and enables RLS. Use the
   publishable key in the browser, never the secret/service_role key. Run `get_advisors` after schema changes, and update

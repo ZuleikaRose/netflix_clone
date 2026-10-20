@@ -129,6 +129,8 @@ svg.filled { fill: currentColor; }
 
 .reviews { margin-top: 22px; padding-top: 16px; border-top: 1px solid #262626; }
 .reviews h3 { margin: 0 0 10px; font-size: 16px; }
+.tmdb-credit { margin: 18px 17px 0; color: #a3a3a3; font-size: 12px; line-height: 1.45; }
+.detail-body .tmdb-credit, .settings-card .tmdb-credit { margin: 12px 0 0; }
 .stars { display: flex; align-items: center; gap: 2px; margin: 0 0 12px; padding: 0; border: 0; }
 .stars legend { float: left; margin-right: 10px; color: #bcbcbc; font-size: 13px; }
 .star { display: grid; place-items: center; width: 44px; height: 44px; color: #555; font-size: 26px; cursor: pointer; }

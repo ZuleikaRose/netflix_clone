@@ -11,8 +11,17 @@ import { serviceStatus } from '../data/serviceStatus.js'
 import { useAuth } from '../state/authContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
+import { useTmdbLists } from '../state/useTmdb.js'
+import { TmdbCredit } from '../components/TmdbCredit.jsx'
 
 const filters = [['TV Shows', 'show'], ['Movies', 'movie']]
+// Rows from TMDB, below the catalog's own rows: [list name, row heading, type]
+const tmdbRows = [
+  ['trendingMovies', 'Trending Movies on TMDB', 'movie'],
+  ['trendingShows', 'Trending TV Shows on TMDB', 'show'],
+  ['popularMovies', 'Popular Movies on TMDB', 'movie'],
+  ['popularShows', 'Popular TV Shows on TMDB', 'show'],
+]
 const FEATURED_COUNT = 3
 
 function Row({ title, children }) {
@@ -30,7 +39,8 @@ export function Home() {
   const { myList, favorites, ratings, toggleMyList, dismissedNotices, dismissNotice } = useLibrary()
   const [type, setType] = useState(null)
   const [slide, setSlide] = useState(0)
-  const { titles: catalog } = useCatalog()
+  const { titles: catalog, isAllowed } = useCatalog()
+  const tmdbLists = useTmdbLists()
   useDocumentTitle('Home')
 
   const titles = type ? catalog.filter((t) => t.type === type) : catalog
@@ -46,6 +56,13 @@ export function Home() {
   const saved = featured && myList.includes(featured.id)
   const preview = usePreview(featured ?? {})
   const [first, ...rest] = featured ? featured.title.toUpperCase().split(' ') : []
+  // TMDB list items have no certification ('NR'), so restricted profiles don't see them
+  const tmdbRowsShown = tmdbLists
+    ? tmdbRows
+      .filter(([, , rowType]) => !type || rowType === type)
+      .map(([name, heading]) => [heading, tmdbLists[name].filter(isAllowed)])
+      .filter(([, titles]) => titles.length > 0)
+    : []
 
   // Personalized row: seed from the most recent favorite, then 4★+ ratings, then My List
   const likedIds = [...[...favorites].reverse(), ...Object.keys(ratings).filter((id) => ratings[id] >= 4), ...[...myList].reverse()]
@@ -156,6 +173,13 @@ export function Home() {
             {newReleases.map((t) => <PosterCard key={t.id} title={t} />)}
           </Row>
         )}
+
+        {tmdbRowsShown.map(([heading, titles]) => (
+          <Row key={heading} title={heading}>
+            {titles.map((t) => <PosterCard key={t.id} title={t} />)}
+          </Row>
+        ))}
+        {tmdbRowsShown.length > 0 && <TmdbCredit />}
       </div>
     </>
   )

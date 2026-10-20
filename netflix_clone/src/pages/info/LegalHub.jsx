@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { TmdbCredit } from '../../components/TmdbCredit.jsx'
 import { captionsCredit, clips } from '../../data/clips.js'
 
 const documents = [
@@ -43,6 +44,7 @@ export function LegalHub() {
             </li>
           ))}
         </ul>
+        <TmdbCredit />
       </section>
     </div>
   )
