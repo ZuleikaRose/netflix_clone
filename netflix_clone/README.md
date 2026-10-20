@@ -65,7 +65,7 @@ npm run test:e2e:report           # open the HTML report from the last run
 | `e2e/auth.spec.js` | Sign-in guard and return path, validation, password rules, sign-up (incl. duplicate email), sign-out, refresh reset, forgot/reset password (memory flow) |
 | `e2e/browse.spec.js` | Home rows and filters, title actions (list, favorite, rate, review, play), recommendations, search URL state, maturity filtering, 404 |
 | `e2e/help.spec.js` | Every footer link, support chat, FAQ search, feedback and issue forms, promo codes, share fallback |
-| `e2e/games.spec.js` | A full Poster Match playthrough, all five Plot Twist rounds |
+| `e2e/games.spec.js` | The six games on `/games`; a full Poster Match playthrough; all five Plot Twist rounds; a perfect and a wrong Timeline; Cast Call scoring right and wrong picks; a Higher or Lower streak saved as the best; Title Scramble's empty, wrong, hinted and missed guesses (answers looked up in `src/data/catalog.js`) |
 | `e2e/test.js`, `e2e/tmdbMock.js` | Every spec imports `test` from `test.js`, which mocks the `tmdb` Edge Function for every page, so the suite never calls TMDB (no flaky data, no hits on its per-IP limit) |
 | `e2e/layout.spec.js` | Every route: heading present, no horizontal overflow, 44px touch targets, no console errors; keyboard focus order |
 | `e2e/features.spec.js` | Carousel, row ‹ › buttons, service banner, personalization opt-out, crew, release-year filter, Watch list/Favorites routes, billing, affiliate program, referral sign-up, legal hub |
@@ -89,7 +89,7 @@ Tests serve the built app with `e2e/serve.js`, a tiny static server with SPA fal
 | Browse | `/`, `/title/:id`, `/search`, `/new` | Featured carousel with previews, maintenance banner, TV/Movie filters, Top 10, "Because You Liked…" recommendations, mock player with captions and full controls, ratings & members' reviews, share, URL-driven search filters |
 | TMDB | `/tmdb/:type/:tmdbId` | Trending and popular movie and TV rows on Home, TMDB results in Search, and a page per TMDB title (poster, overview, rating, maturity, length, cast, crew, link to TMDB), all through the `tmdb` Edge Function |
 | Library | `/my-netflix`, `/watchlist`, `/favorites`, `/account` | Watch list & Favorites pages; profile, password, plan, billing (payment method, billing date, pause, cancel), autoplay, maturity, accessibility and privacy settings, danger zone (delete account) |
-| Games | `/games`, `/games/:gameId` | Poster Match (memory) and Plot Twist (trivia), with best scores (saved with Supabase) |
+| Games | `/games`, `/games/:gameId` | Poster Match (`memory`), Plot Twist (`trivia`), Timeline (`timeline`), Cast Call (`cast`), Higher or Lower (`higher-lower`) and Title Scramble (`scramble`), with best scores (saved with Supabase) |
 | Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Affiliate Program (join, referral dashboard, tiered commissions, marketing materials), Legal & Privacy hub, Terms, Privacy, Do Not Sell, Accessibility Policy |
 
 The maturity setting in Account filters every catalog surface: Home, Search, New & Hot, related titles and games.
