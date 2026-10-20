@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo } from './helpers.js'
 
 // Reduced motion disables the page fade-in, so contrast is measured on fully rendered pages

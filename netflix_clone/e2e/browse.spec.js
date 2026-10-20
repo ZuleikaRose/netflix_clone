@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo, tabBar } from './helpers.js'
 
 test.beforeEach(async ({ page }) => {

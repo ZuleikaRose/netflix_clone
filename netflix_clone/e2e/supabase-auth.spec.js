@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo } from './helpers.js'
 import { SUPABASE_E2E_PORT, supabaseAuthSettings, supabaseConfigured } from './ports.js'
 

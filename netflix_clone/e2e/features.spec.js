@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo, tabBar } from './helpers.js'
 
 // Features added from the updated user journey (app_outline/user_journey.md)
@@ -40,6 +40,27 @@ test.describe('homepage', () => {
     await tabBar(page).getByRole('link', { name: 'Home' }).click()
     await expect(page.getByRole('heading', { name: /Because You Liked/ })).toHaveCount(0)
   })
+
+  test('row arrows page through a row and stop at its ends', async ({ page }) => {
+    const left = page.getByRole('button', { name: 'Scroll Top 10 in the U.S. Today left' })
+    const right = page.getByRole('button', { name: 'Scroll Top 10 in the U.S. Today right' })
+    const rail = page.locator('.row-section', { has: page.getByRole('heading', { name: 'Top 10 in the U.S. Today' }) }).locator('.rail')
+    const scrollLeft = () => rail.evaluate((el) => el.scrollLeft)
+
+    await expect(left).toHaveAttribute('aria-disabled', 'true')
+    await expect(right).toHaveAttribute('aria-disabled', 'false')
+    await right.click()
+    await expect.poll(scrollLeft).toBeGreaterThan(0)
+    await expect(left).toHaveAttribute('aria-disabled', 'false')
+
+    // Quick clicks add up, so the row reaches its end; the button there stays focused but does nothing. `force`
+    // because Playwright won't click a button once it's aria-disabled, which can happen mid-loop.
+    for (let i = 0; i < 6; i++) await right.click({ force: true })
+    await expect(right).toHaveAttribute('aria-disabled', 'true')
+    await expect(right).toBeFocused()
+    await left.click()
+    await expect(right).toHaveAttribute('aria-disabled', 'false')
+  })
 })
 
 test('title pages list cast and crew', async ({ page }) => {
@@ -54,7 +75,8 @@ test('search filters by release year', async ({ page }) => {
   await expect(page.getByRole('heading', { name: '4 results' })).toBeVisible()
   await page.getByLabel('Released').selectOption('earlier')
   await expect(page.getByRole('heading', { name: '2 results' })).toBeVisible()
-  await expect(page.locator('.poster-link')).toHaveText(['THE VEIL', 'DEAD RECKONING'])
+  // The catalog's grid comes first; TMDB titles (with Supabase) follow in their own section
+  await expect(page.locator('.poster-grid').first().locator('.poster-link')).toHaveText(['THE VEIL', 'DEAD RECKONING'])
 })
 
 test('watch list and favorites have their own pages', async ({ page }) => {

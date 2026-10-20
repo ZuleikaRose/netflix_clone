@@ -119,12 +119,17 @@ after editing.
   `review` table. Adding a title: add it to `catalog.js`, regenerate `…_seed_titles.sql`, apply it.
 - **TMDB**: the `tmdb` Edge Function calls The Movie Database with the `TMDB_API_FREE` secret (a v3 API key or v4
   read token; set it on each project) and returns titles in the catalog's shape, with `source: 'tmdb'` and a
-  `path` of `/tmdb/:type/:tmdbId` (PosterCard links there). Actions: `lists` (trending/popular rows on Home), `search`
-  (extra results on Search) and `title` (the TMDB page). Catalog titles aren't matched to TMDB: they're fictional, so
-  any name match is an unrelated real title. TMDB titles aren't `titles` rows, so they can't be played, saved or
-  reviewed; list and search items are rated 'NR', so restricted profiles don't see them. Without Supabase or on any
-  error the TMDB sections just don't render. Keep the `TmdbCredit` notice wherever TMDB data shows (TMDB's terms).
-  `e2e/tmdb.spec.js` mocks the function.
+  `path` of `/tmdb/:type/:tmdbId` (PosterCard links there). Actions: `lists` (new — movies now playing and TV on the
+  air — trending and popular, for Home's rows and for Search with no query), `search` (Search with a query) and
+  `title` (the TMDB page). Its per-IP limit (600/hour) counts only requests its in-memory cache can't answer. Search's
+  genre chips also match TMDB's combined names ("Sci-Fi & Fantasy", "Action & Adventure", "Science Fiction"). Catalog
+  titles aren't matched to TMDB: they're fictional, so any name match is an unrelated real title. TMDB titles aren't
+  `titles` rows, so they can't be played, saved or reviewed; list and search items are rated 'NR', so restricted
+  profiles don't see them. Without Supabase or on any error the TMDB sections just don't render. Keep the
+  `TmdbCredit` notice wherever TMDB data shows (TMDB's terms). Home has no catalog "new" row any more (New on TMDB
+  replaced it); `isNew` still drives New & Hot.
+- **Rows**: horizontal rows use `components/Row.jsx` (title, ‹ › buttons that page by 85% of the width, quick clicks
+  add up, `aria-disabled` at the ends, hidden when the row fits).
 - **Supabase security**: new `public` tables get no anon/authenticated grants by default (migration
   `…_supabase_auth_support`), so every migration grants only what its RLS policies need and enables RLS. Use the
   publishable key in the browser, never the secret/service_role key. Run `get_advisors` after schema changes, and update
@@ -188,8 +193,10 @@ after editing.
   (real sign-in, saved data, Edge Functions; desktop only, on :4174) use the dev project and skip without
   `.env.development.local` (as in CI). Keep Supabase sign-ins in tests few: Auth rate-limits them per IP.
 - New features get a spec: `e2e/features.spec.js` (carousel, billing, affiliate…) and `e2e/accessibility.spec.js`
-  (accessibility menu, policy, player and captions, autoplay, delete account); TMDB features go in `e2e/tmdb.spec.js`,
-  which mocks `**/functions/v1/tmdb` (answer OPTIONS too, with CORS headers) so it needs no TMDB key or quota.
+  (accessibility menu, policy, player and captions, autoplay, delete account); TMDB features go in `e2e/tmdb.spec.js`.
+  Specs import `test` from `e2e/test.js`, which mocks the `tmdb` function on every page (`e2e/tmdbMock.js`; call
+  `mockTmdb(page, { fail: true })` to override), so the suite never uses TMDB or its per-IP limit — real calls from
+  test runs once locked the developer's own browser out for an hour.
 - Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility
   menu" also contains it.
 

@@ -36,7 +36,7 @@ New passwords need 13+ characters with lowercase, uppercase, a digit and a symbo
 | Forgot password | `/forgot-password`. With Supabase the link arrives by email; in memory mode the page shows a demo link |
 | Referral sign-up | `/signup?ref=ALEX26` shows the "invited by a friend" welcome |
 | Support chat | Ask about passwords, promo codes or devices; answers come from the FAQs |
-| TMDB movies and TV shows | With Supabase configured: scroll Home past *New on Netflix* for the Trending and Popular rows (the TV Shows and Movies chips filter them), search for `breaking bad`, or open `/tmdb/show/1399`. The project needs its `TMDB_API_FREE` Edge Function setting; without Supabase the TMDB sections don't appear |
+| TMDB movies and TV shows | With Supabase configured: Home's *New on TMDB*, Trending and Popular rows (the TV Shows and Movies chips filter them; ‹ › page through each row), Search with no query to browse every listed TMDB title by Type, Released and Sort by, a search such as `breaking bad`, or `/tmdb/show/1399`. The project needs its `TMDB_API_FREE` Edge Function setting; without Supabase the TMDB sections don't appear |
 | Maturity filter | Account → Maturity rating → Kids leaves only *Lantern Island*, and hides the TMDB rows and results (they're unrated until opened) |
 | Accessibility menu | The person icon at the top of any page (also on sign-in). Try the *Low vision* or *Dyslexia friendly* profile |
 | Captions and player | Every title plays a real sample clip. Press **CC** (or the **C** key) for its English captions; drag the seek bar to the end of a *Night Shift* episode to see Autoplay next episode |
@@ -66,11 +66,12 @@ npm run test:e2e:report           # open the HTML report from the last run
 | `e2e/browse.spec.js` | Home rows and filters, title actions (list, favorite, rate, review, play), recommendations, search URL state, maturity filtering, 404 |
 | `e2e/help.spec.js` | Every footer link, support chat, FAQ search, feedback and issue forms, promo codes, share fallback |
 | `e2e/games.spec.js` | A full Poster Match playthrough, all five Plot Twist rounds |
+| `e2e/test.js`, `e2e/tmdbMock.js` | Every spec imports `test` from `test.js`, which mocks the `tmdb` Edge Function for every page, so the suite never calls TMDB (no flaky data, no hits on its per-IP limit) |
 | `e2e/layout.spec.js` | Every route: heading present, no horizontal overflow, 44px touch targets, no console errors; keyboard focus order |
-| `e2e/features.spec.js` | Carousel, service banner, personalization opt-out, crew, release-year filter, Watch list/Favorites routes, billing, affiliate program, referral sign-up, legal hub |
+| `e2e/features.spec.js` | Carousel, row ‹ › buttons, service banner, personalization opt-out, crew, release-year filter, Watch list/Favorites routes, billing, affiliate program, referral sign-up, legal hub |
 | `e2e/accessibility.spec.js` | Accessibility menu (signed out too, Escape, profiles, reset, no overflow at 150% text, reading guide), Accessibility Policy links, real clip playback and controls, captions from the clip's track (button, C key, menu, size), autoplay next episode on/off, autoplay previews vs. Stop animations and reduced motion, delete account (blocked until cancelled, email and password checks, data removal ticket) |
 | `e2e/supabase.spec.js` | Catalog from the Supabase REST API, and the built-in fallback when the API is unreachable |
-| `e2e/tmdb.spec.js` | TMDB rows on Home and the type chips, a TMDB title page (details, no play or save, unknown id), TMDB search results with filters, and the app carrying on when TMDB fails; the `tmdb` function is mocked |
+| `e2e/tmdb.spec.js` | New on TMDB and the other TMDB rows on Home with the type chips, a TMDB title page (details, no play or save, unknown id), TMDB search results with filters, browsing TMDB titles in Search without a query (Type, Released, Sort by, genre chips), and the app carrying on when TMDB fails |
 | `e2e/supabase-auth.spec.js` | Real Supabase sign-in (desktop, :4174): private demo account, staying signed in after a reload (and signed out after Sign out), saved accessibility settings, members' reviews, forgot/reset password with an emailed link, expired link, sign up → promo code → review → delete account |
 | `e2e/a11y.spec.js` | [axe-core](https://github.com/dequelabs/axe-core) WCAG 2.2 AA audit of every page and key interactive states (form errors, chat, expanded FAQ, answered trivia, billing errors and cancel confirmation, affiliate form and dashboard, accessibility menu, player with captions and end screen, delete account errors, forgot and reset password); keyboard focus never hidden behind the sticky bars (2.4.11) |
 

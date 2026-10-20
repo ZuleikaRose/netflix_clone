@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader.jsx'
 import { Player } from '../components/Player.jsx'
 import { Preview } from '../components/Preview.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
+import { Row } from '../components/Row.jsx'
 import { ShareButton } from '../components/ShareButton.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { describeLength } from '../data/catalog.js'
@@ -131,10 +132,7 @@ export function TitleDetail() {
       </div>
 
       {related.length > 0 && (
-        <section className="row-section">
-          <div className="section-heading"><h2>More Like This</h2></div>
-          <div className="rail">{related.map((t) => <PosterCard key={t.id} title={t} />)}</div>
-        </section>
+        <Row title="More Like This">{related.map((t) => <PosterCard key={t.id} title={t} />)}</Row>
       )}
     </>
   )

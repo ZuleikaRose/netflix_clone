@@ -4,6 +4,7 @@ import { Logo } from '../components/Logo.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { PosterCard } from '../components/PosterCard.jsx'
+import { Row } from '../components/Row.jsx'
 import { PreviewArt, PreviewToggle } from '../components/Preview.jsx'
 import { usePreview } from '../components/usePreview.js'
 import { AccessibilityButton } from '../components/AccessibilityButton.jsx'
@@ -15,23 +16,19 @@ import { useTmdbLists } from '../state/useTmdb.js'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
 
 const filters = [['TV Shows', 'show'], ['Movies', 'movie']]
-// Rows from TMDB, below the catalog's own rows: [list name, row heading, type]
+// Rows from TMDB, below the catalog's own rows: [row heading, lists from the tmdb function]. A row built from two
+// lists alternates between them (a new movie, then a new show…).
 const tmdbRows = [
-  ['trendingMovies', 'Trending Movies on TMDB', 'movie'],
-  ['trendingShows', 'Trending TV Shows on TMDB', 'show'],
-  ['popularMovies', 'Popular Movies on TMDB', 'movie'],
-  ['popularShows', 'Popular TV Shows on TMDB', 'show'],
+  ['New on TMDB', ['newMovies', 'newShows']],
+  ['Trending Movies on TMDB', ['trendingMovies']],
+  ['Trending TV Shows on TMDB', ['trendingShows']],
+  ['Popular Movies on TMDB', ['popularMovies']],
+  ['Popular TV Shows on TMDB', ['popularShows']],
 ]
 const FEATURED_COUNT = 3
 
-function Row({ title, children }) {
-  return (
-    <section className="row-section">
-      <div className="section-heading"><h2>{title}</h2><Icon name="chevron" /></div>
-      <div className="rail">{children}</div>
-    </section>
-  )
-}
+const interleave = (lists) => Array.from({ length: Math.max(0, ...lists.map((l) => l.length)) }, (_, i) => lists.map((l) => l[i]))
+  .flat().filter(Boolean)
 
 export function Home() {
   const navigate = useNavigate()
@@ -52,15 +49,15 @@ export function Home() {
   const notice = serviceStatus.notice && !dismissedNotices.includes(serviceStatus.notice.id) ? serviceStatus.notice : null
   const continueWatching = titles.filter((t) => t.progress)
   const top10 = titles.filter((t) => t.top10).sort((a, b) => a.top10 - b.top10)
-  const newReleases = titles.filter((t) => t.isNew && t.id !== featured?.id)
   const saved = featured && myList.includes(featured.id)
   const preview = usePreview(featured ?? {})
   const [first, ...rest] = featured ? featured.title.toUpperCase().split(' ') : []
-  // TMDB list items have no certification ('NR'), so restricted profiles don't see them
+  // The TV Shows / Movies chips filter these too. TMDB list items have no certification ('NR'), so restricted
+  // profiles don't see them
   const tmdbRowsShown = tmdbLists
     ? tmdbRows
-      .filter(([, , rowType]) => !type || rowType === type)
-      .map(([name, heading]) => [heading, tmdbLists[name].filter(isAllowed)])
+      .map(([heading, names]) => [heading, interleave(names.map((name) => tmdbLists[name] ?? []))
+        .filter((t) => (!type || t.type === type) && isAllowed(t))])
       .filter(([, titles]) => titles.length > 0)
     : []
 
@@ -154,23 +151,14 @@ export function Home() {
         )}
 
         {top10.length > 0 && (
-          <section className="row-section ranking">
-            <div className="section-heading"><h2>Top 10 in the U.S. Today</h2><Icon name="chevron" /></div>
-            <div className="rail">
-              {top10.map((t) => (
-                <Link to={`/title/${t.id}`} className="rank-card" key={t.id} aria-label={`#${t.top10}: ${t.title}`}>
-                  <span aria-hidden="true">{t.top10}</span>
-                  <img src={t.image} alt="" style={{ filter: t.tint }} />
-                  <b aria-hidden="true">TOP<br /><em>10</em></b>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {newReleases.length > 0 && (
-          <Row title="New on Netflix">
-            {newReleases.map((t) => <PosterCard key={t.id} title={t} />)}
+          <Row title="Top 10 in the U.S. Today" className="ranking">
+            {top10.map((t) => (
+              <Link to={`/title/${t.id}`} className="rank-card" key={t.id} aria-label={`#${t.top10}: ${t.title}`}>
+                <span aria-hidden="true">{t.top10}</span>
+                <img src={t.image} alt="" style={{ filter: t.tint }} />
+                <b aria-hidden="true">TOP<br /><em>10</em></b>
+              </Link>
+            ))}
           </Row>
         )}
 
