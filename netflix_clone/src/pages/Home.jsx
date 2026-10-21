@@ -118,7 +118,7 @@ export function Home() {
           <AccessibilityButton />
           <Link to="/search" className="icon-button" aria-label="Search"><Icon name="search" /></Link>
           <NotificationBell />
-          <Link to="/my-netflix" className="avatar-hit" aria-label="My Netflix profile"><ProfileAvatar profile={profile} /></Link>
+          <Link to="/my-netflix" className="avatar-hit" aria-label="My App profile"><ProfileAvatar profile={profile} /></Link>
         </div>
       </header>
 

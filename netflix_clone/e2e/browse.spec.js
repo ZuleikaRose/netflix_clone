@@ -34,7 +34,7 @@ test('a title can be saved, favorited, rated, reviewed and played', async ({ pag
   await page.getByRole('button', { name: /^\s*(Resume|Play)$/ }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Now playing · After Dark' })).toBeVisible()
 
-  await tabBar(page).getByRole('link', { name: 'My Netflix' }).click()
+  await tabBar(page).getByRole('link', { name: 'My App' }).click()
   await expect(page.getByText('1 saved · 1 favorites · 1 rated')).toBeVisible()
   await expect(page.getByRole('link', { name: 'After Dark' })).toBeVisible()
 })

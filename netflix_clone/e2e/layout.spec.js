@@ -56,7 +56,7 @@ test('keyboard focus is visible and follows a logical order on Home', async ({ p
     await page.keyboard.press('Tab')
     order.push(await page.evaluate(() => document.activeElement.getAttribute('aria-label') || document.activeElement.innerText))
   }
-  expect(order).toEqual(['Home', 'Accessibility menu', 'Search', 'Notifications', 'My Netflix profile'])
+  expect(order).toEqual(['Home', 'Accessibility menu', 'Search', 'Notifications', 'My App profile'])
   const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)
   expect(outline).toBe('solid')
 })

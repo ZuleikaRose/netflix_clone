@@ -8,7 +8,7 @@ const navItems = [
   { to: '/', label: 'Home', icon: 'home', end: true },
   { to: '/games', label: 'Games', icon: 'games' },
   { to: '/new', label: 'New & Hot', icon: 'new' },
-  { to: '/my-netflix', label: 'My Netflix', icon: 'profile', also: ['/watchlist', '/favorites'] },
+  { to: '/my-netflix', label: 'My App', icon: 'profile', also: ['/watchlist', '/favorites'] },
 ]
 
 

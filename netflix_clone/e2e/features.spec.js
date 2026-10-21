@@ -126,7 +126,7 @@ test('search filters by release year', async ({ page }) => {
 test('watch list and favorites have their own pages', async ({ page }) => {
   await navigateInApp(page, '/watchlist')
   await expect(page.getByRole('tab', { name: 'Watch list' })).toHaveAttribute('aria-selected', 'true')
-  await expect(tabBar(page).getByRole('link', { name: 'My Netflix' })).toHaveAttribute('aria-current', 'page')
+  await expect(tabBar(page).getByRole('link', { name: 'My App' })).toHaveAttribute('aria-current', 'page')
   await page.getByRole('tab', { name: 'Favorites' }).click()
   await expect(page).toHaveURL(/\/favorites$/)
   await expect(page.getByText('Tap the heart on any title to add a favorite.')).toBeVisible()

@@ -15,7 +15,7 @@ async function addProfile(page, { name, avatar, maturity }) {
   await page.locator('form').getByRole('button', { name: 'Add profile' }).click()
 }
 
-test('an account with one profile goes straight in; My Netflix shows the profile', async ({ page }) => {
+test('an account with one profile goes straight in; My App shows the profile', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Top 10 in the U.S. Today' })).toBeVisible()
   await navigateInApp(page, '/my-netflix')
   await expect(page.locator('.profile-card h2')).toHaveText('Alex')

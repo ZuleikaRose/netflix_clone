@@ -13,8 +13,8 @@ together.
   that scrolls inside itself, so the header and tab bar stay pinned.
 * **Page header** (every page): sticky, translucent black (`#090909f2`) with a blur. Back button or brand on the left,
   the page title centered, and the accessibility menu button on the right.
-* **Bottom tab bar** (signed in): Home · Games · New & Hot · My Netflix, fixed at the bottom, highlighting the current
-  page (My Netflix also covers Watch list and Favorites).
+* **Bottom tab bar** (signed in): Home · Games · New & Hot · My App, fixed at the bottom, highlighting the current
+  page (My App also covers Watch list and Favorites).
 * **Footer:** links to every info page, including the Accessibility Policy and the legal pages.
 * **Side gutter:** 17px for rows and grids; no horizontal page scroll at any width.
 
