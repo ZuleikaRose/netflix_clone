@@ -13,8 +13,8 @@ together.
   that scrolls inside itself, so the header and tab bar stay pinned.
 * **Page header** (every page): sticky, translucent black (`#090909f2`) with a blur. Back button or brand on the left,
   the page title centered, and the accessibility menu button on the right.
-* **Bottom tab bar** (signed in): Home · Games · New & Hot · My Netflix, fixed at the bottom, highlighting the current
-  page (My Netflix also covers Watch list and Favorites).
+* **Bottom tab bar** (signed in): Home · Games · New & Hot · My App, fixed at the bottom, highlighting the current
+  page (My App also covers Watch list and Favorites).
 * **Footer:** links to every info page, including the Accessibility Policy and the legal pages.
 * **Side gutter:** 17px for rows and grids; no horizontal page scroll at any width.
 
@@ -33,6 +33,7 @@ together.
 | Ratings | `#f5c518` | Stars |
 | Maintenance banner | `#5c4a10` border, `#fbe7a1` text | Service notices on Home |
 | Sign-in screens | radial `#3a0a0d` → `#090909` | Login, Sign up, Forgot/Reset password, Sign out |
+| Coffee (donate) | `#8b5a2b`, `#a06a35` hover, `#5e3c1c` on /donate, `#f5f5f5` 2px ring | The round donate button only; not the accent, so it never competes with primary actions |
 
 ## Type
 
@@ -94,6 +95,14 @@ together.
   Watching now with names, the invite link with Copy, and the chat.
 * **App notices:** offline and "new version ready" notices sit above the page on `#262626` with white text and a
   white Reload button; they're informational, so they don't use the accent or the error orange.
+* **Coffee button:** a 52px circle with a white coffee cup, floating 12px above the tab bar's right end on every
+  signed-in page (inside the phone frame on desktop), with a soft shadow. It links to /donate ("Donate: buy us a
+  coffee") and turns darker there. Keyboard focus scrolls clear of it.
+* **Donate page:** a settings card with the amount as pill radio choices ($5, $10, $25, $50, Other amount), the Stripe
+  card field styled like our inputs (`#1a1a1a`, white text, orange when invalid), and a full-width accent "Donate
+  $10.00" button. The result replaces the form: a focused "Thank you for your $10.00 donation" heading, or an alert
+  box ("Your donation didn't go through" / "We couldn't reach the payment service" with Try again). Stripe's error
+  codes are never shown.
 * **Icon buttons:** at least 44×44px; pressed toggles invert to white.
 
 ## Touch targets and focus

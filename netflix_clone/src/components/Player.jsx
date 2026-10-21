@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { captionsCredit, clipFor, clipSources } from '../data/clips.js'
+import { THUMBS, captionsCredit, chapterAt, clipFor, clipSources, thumbAt } from '../data/clips.js'
 import { episodeCode, episodeCount, findEpisode } from '../data/episodes.js'
 import { readStored, writeStored } from '../lib/supabaseConfig.js'
 import { useAccessibility } from '../state/accessibilityContext.js'
@@ -80,12 +80,22 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
   const [nextIn, setNextIn] = useState(NEXT_EPISODE_DELAY)
   const [stayHere, setStayHere] = useState(false) // viewer cancelled the next-episode countdown
   const [fullscreen, setFullscreen] = useState(false)
+  const [pictureInPicture, setPictureInPicture] = useState(false)
+  // Seek preview: the time under the pointer on the seek bar, and where along it (0–1), or null
+  const [hover, setHover] = useState(null)
   // The latest position, kept in a ref so closing the player can still save it after the video element is gone
   const watched = useRef({ titleId: title.id, seconds: 0, duration: 0, episode: 1, savedAt: 0, ended: false, save: saveProgress })
 
   const isShow = title.type === 'show'
   const finale = isShow && episode >= lastEpisode
   const countingDown = ended && isShow && !finale && !party && user.preferences.autoplayNext && !stayHere
+  // Skip Recap (a show's second episode on) or Skip Intro while that stretch plays; the end of it to jump to
+  const inRange = ([start, end]) => time >= start && time < end - 0.5
+  const skip = ended || !isShow ? null
+    : episode > 1 && inRange(clip.recap) ? { label: 'Skip Recap', to: clip.recap[1] }
+      : inRange(clip.intro) ? { label: 'Skip Intro', to: clip.intro[1] } : null
+  const chapter = chapterAt(clip, time)
+  const canPictureInPicture = Boolean(document.pictureInPictureEnabled)
   const describe = (n) => {
     const found = findEpisode(title, n)
     return found ? `${episodeCode(found)} ${found.name}` : `Episode ${n}`
@@ -166,6 +176,20 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
   // Opened from an episode further down the page: bring the player into view
   useEffect(() => {
     playerRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [])
+
+  // React has no props for these events. Closing the player leaves picture-in-picture too (the video is going away).
+  useEffect(() => {
+    const video = videoRef.current
+    const enter = () => setPictureInPicture(true)
+    const leave = () => setPictureInPicture(false)
+    video.addEventListener('enterpictureinpicture', enter)
+    video.addEventListener('leavepictureinpicture', leave)
+    return () => {
+      video.removeEventListener('enterpictureinpicture', enter)
+      video.removeEventListener('leavepictureinpicture', leave)
+      if (document.pictureInPictureElement === video) document.exitPictureInPicture().catch(() => {})
+    }
   }, [])
 
   useEffect(() => {
@@ -282,9 +306,22 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
     request?.catch(() => setFullscreen(document.fullscreenElement === playerRef.current))
   }
 
+  // The browser can refuse (e.g. the video has no frames yet); the button then just stays as it was
+  const togglePictureInPicture = () => {
+    const request = document.pictureInPictureElement ? document.exitPictureInPicture() : videoRef.current.requestPictureInPicture()
+    request.catch(() => {})
+  }
+  const skipAhead = () => { if (skip) seekTo(skip.to) }
+  const previewAt = (e) => {
+    const box = e.currentTarget.getBoundingClientRect()
+    const at = Math.min(1, Math.max(0, (e.clientX - box.left) / box.width))
+    setHover(duration ? { at, seconds: at * duration } : null)
+  }
+
   // Shortcuts work while focus is inside the player (the sliders and speed menu keep their own keys)
   const shortcuts = {
-    k: togglePlay, j: () => seekTo(time - SKIP_SECONDS), l: () => seekTo(time + SKIP_SECONDS), c: toggleCaptions, m: toggleMute, f: toggleFullscreen,
+    k: togglePlay, j: () => seekTo(time - SKIP_SECONDS), l: () => seekTo(time + SKIP_SECONDS), c: toggleCaptions, m: toggleMute, f: toggleFullscreen, s: skipAhead,
+    ...(canPictureInPicture && { i: togglePictureInPicture }),
     arrowup: () => changeVolume(currentLevel() + VOLUME_STEP), arrowdown: () => changeVolume(currentLevel() - VOLUME_STEP),
     ...(isShow && { 'shift+p': goToPreviousEpisode, 'shift+n': goToNextEpisode }),
   }
@@ -323,9 +360,14 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
           <track kind="captions" src={sources.captions} srcLang="en" label="English" />
         </video>
         <p className="player-status" role="status">{status}{muted && ' · Muted'}</p>
+        <p className="player-chapter">Chapter: {chapter.name}</p>
+        {canPictureInPicture && (
+          <button type="button" className="icon-button player-pip" aria-label="Picture in picture" aria-pressed={pictureInPicture} aria-keyshortcuts="I" onClick={togglePictureInPicture}><Icon name="pictureInPicture" /></button>
+        )}
         <button type="button" className="icon-button player-close" aria-label="Close player" onClick={onClose}><Icon name="close" /></button>
 
         {settings.captions && caption && !ended && <p className={`captions caption-${settings.captionSize}`}>{caption}</p>}
+        {skip && <button type="button" className="skip-button" aria-keyshortcuts="S" onClick={skipAhead}>{skip.label}</button>}
 
         {ended && (
           <div className="player-end" role="group" aria-label="Playback finished">
@@ -357,9 +399,22 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
           )}
           <div className="player-timeline">
             <span>{clock(time)}</span>
-            <input type="range" className="seek" min="0" max={Math.floor(duration)} step="1" value={Math.floor(time)} onChange={(e) => seekTo(Number(e.target.value))} aria-label="Seek" aria-valuetext={`${clock(time)} of ${clock(duration)}`} />
+            <div className="seek-track" onPointerMove={previewAt} onPointerDown={previewAt} onPointerLeave={() => setHover(null)}>
+              <input type="range" className="seek" min="0" max={Math.floor(duration)} step="1" value={Math.floor(time)} onChange={(e) => seekTo(Number(e.target.value))}
+                aria-label="Seek" aria-valuetext={`${clock(time)} of ${clock(duration)}, chapter: ${chapter.name}`} />
+              {duration > 0 && clip.chapters.slice(1).map((c) => (
+                <span key={c.start} className="chapter-mark" style={{ left: `${(c.start / duration) * 100}%` }} aria-hidden="true" />
+              ))}
+              {hover && (
+                <span className="seek-preview" style={{ left: `clamp(${THUMBS.width / 2}px, ${hover.at * 100}%, calc(100% - ${THUMBS.width / 2}px))` }} aria-hidden="true">
+                  <span className="seek-thumb" style={{ backgroundImage: `url(${sources.thumbs})`, backgroundPosition: thumbAt(hover.seconds), width: THUMBS.width, height: THUMBS.height }} />
+                  <span>{clock(hover.seconds)} · {chapterAt(clip, hover.seconds).name}</span>
+                </span>
+              )}
+            </div>
             <span>{clock(duration)}</span>
           </div>
+
           <div className="player-controls">
             <button type="button" className="icon-button" aria-label={paused || ended ? 'Play' : 'Pause'} aria-keyshortcuts="K" onClick={togglePlay}><Icon name={paused || ended ? 'play' : 'pause'} /></button>
             <button type="button" className="icon-button" aria-label={`Back ${SKIP_SECONDS} seconds`} aria-keyshortcuts="J" onClick={() => seekTo(time - SKIP_SECONDS)}><Icon name="rewind" /></button>

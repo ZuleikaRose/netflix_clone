@@ -27,16 +27,18 @@ netflix_clone/        The Vite app — run all npm commands here
 supabase/             Supabase CLI project (config.toml); MCP config in supabase/.mcp.json (not committed)
   migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits,
                       saved TMDB titles, watch progress and leaderboards, profiles, support dashboard, notifications,
-                      viewing history, custom lists, watch parties (Realtime RLS), better search (pg_trgm)
+                      viewing history, custom lists, watch parties (Realtime RLS), better search (pg_trgm), thumbs
+                      ratings, Year in Review, profile locks, two-step sign-in (restrictive policies, devices), donations
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
                       (Index Advisor is installed on both projects: dashboard → Query Performance suggests missing ones)
-  functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb (+ _shared/: clients,
-                      CORS, caller check, per-IP rate limits via public.hit_rate_limit); hello and multiply are
+  functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb, assistant,
+                      process-donation, stripe-webhook (+ _shared/:
+                      clients, CORS, caller check, per-IP rate limits via public.hit_rate_limit); hello and multiply are
                       standalone public test endpoints
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
   diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
-schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 28 public tables)
+schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 30 public tables)
 user_stories.md       What the database stores, one story per thing the app remembers
 prompt.md             The original build prompt and the Supabase-phase prompts
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
@@ -45,10 +47,17 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Both run all 15 migrations (through `20261022060000_better_search`), non_transactional 001–007 and the same 7
-functions (production caught up 2026-10-21). `apply_migration` stamps the current time as the version: afterwards set
-it to the file's version in `supabase_migrations.schema_migrations`, and apply one migration per second or less often,
-or two get the same stamp and the second fails on the duplicate version.
+Both run all 20 migrations (through `20261023040000_second_step_for_definer_functions`), non_transactional 001–008
+and the same 8 functions, with `assistant` (production caught up 2026-10-21). `assistant` needs the
+`ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
+Dev is one step ahead: it also runs migration 21, `20261023050000_donations`, and the functions `process-donation`
+and `stripe-webhook` (10 functions); production doesn't have them yet. They need two function variables per project:
+`STRIPE_SECRET_KEY` (a test-mode key on dev; without it process-donation answers 503) and `STRIPE_WEBHOOK_SECRET`,
+the signing value of the Stripe webhook endpoint that points at `<project>.supabase.co/functions/v1/stripe-webhook`
+(events `payment_intent.succeeded` and `payment_intent.payment_failed`). Never put either value in the repo.
+`apply_migration` stamps the current time as the version: afterwards set it to the file's version in
+`supabase_migrations.schema_migrations`, and apply one migration per second or less often, or two get the same stamp
+and the second fails on the duplicate version.
 Each project needs the `TMDB_API_FREE` Edge Function secret for `tmdb` (the dashboard can't show it back; the value
 comes from themoviedb.org → Settings → API). The DROP INDEX steps at the end of `002_query_indexes.sql` haven't run on
 either project yet (they only remove indexes the new composite ones make redundant).
@@ -97,6 +106,10 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | (extra) Custom lists | `/lists`, `/lists/:listId`, `/shared/:slug` (public) | `pages/MyLists.jsx`, `ListDetail.jsx`, `SharedList.jsx`, `components/AddToList.jsx` |
 | (extra) Watch party | `/party/:code` | `pages/WatchParty.jsx`, `state/usePartyChannel.js`, `data/partyApi.js` |
 | (extra) Support dashboard (staff) | `/support-dashboard` | `pages/SupportDashboard.jsx`, `state/useSupportQueue.js`, `data/supportApi.js` |
+| (extra) Year in Review | `/year-in-review` | `pages/YearInReview.jsx`, `data/yearInReview.js` |
+| (extra) What should I watch? (assistant) | `/what-to-watch` | `pages/Assistant.jsx`, `data/assistant.js`, `supabase/functions/assistant` |
+| (extra) Security (two-step sign-in, devices) | in `/account` | `pages/account/Security.jsx`, `data/totp.js`, `data/devices.js` |
+| (extra) Donate (one-time, Stripe) | `/donate` (linked from Account → Help and the round coffee button above the tab bar on every page) | `pages/Donate.jsx`, `pages/donate/DonateForm.jsx` (lazy), `data/donations.js`, `lib/stripe.js`, `supabase/functions/process-donation` |
 
 When the outline changes: diff `app_outline/user_journey.md` (`git diff --word-diff`), map each change to this
 table, add or extend the page, add `/info/<slug>` pages to `data/infoPages.js` (that also adds the footer link)
@@ -228,6 +241,42 @@ after editing.
 - **Installable app**: `public/sw.js` (shell + hashed assets cached; network-first pages; leaves /media, other origins
   and non-GET alone) is registered in production builds (`lib/pwa.js`); the install prompt is in Account → App.
   Bump `VERSION` in sw.js when its caching rules change. Playwright blocks service workers except in `pwa.spec.js`.
+- **Thumbs ratings**: `title_reactions` per profile (`dislike`/`like`/`love`), `components/TitleReaction.jsx` on both
+  title pages, helpers in `data/reactions.js`. Loves, then favorites, then likes seed Because You Liked; `notDisliked`
+  filters every recommendation row (not Continue Watching or Top 10) and the assistant's candidates.
+- **Player extras**: `data/clips.js` gives each clip `recap`/`intro` ranges (Skip Recap from episode 2, Skip Intro;
+  key S) and `chapters`; seek previews come from `public/media/<clip>.thumbs.jpg`, drawn by
+  `node scripts/thumbnails.mjs` (re-run it when a clip changes; `THUMBS` in clips.js must match). Picture-in-picture
+  (key I) sits beside Close: the controls row is full at 390px.
+- **Profile locks / Kids**: PIN hashes live in `private.profile_pins`; `profiles.locked` changes only through
+  `set_profile_pin()` (a trigger keeps it otherwise). `unlock_profile()` returns `ok`/`wrong`/`locked` (five wrong →
+  15 minutes). `ProfileProvider` keeps unlocked profiles until another is chosen and never remembers a locked one per
+  device; `components/GrownUpGate.jsx` asks for the account password on Kids profiles (Account, profile settings).
+  `verify_account_password()` (10 per 15 minutes) also backs Change password with Supabase: signing in again would
+  replace the session and need a two-step code.
+- **Two-step sign-in**: Supabase Auth MFA (TOTP; on in `config.toml` and on both projects). With a verified factor a
+  password sign-in or restored session is aal1: the provider sets `secondStep` and Login asks for the code
+  (`verifySecondStep`). A restrictive policy "Two-step sign-in finished" on every RLS table (`second_step_done()`)
+  blocks aal1 sessions; give new tables the same policy, and start any security-definer function that reads other
+  members' rows with a `second_step_done()` check (RLS doesn't apply inside it). `callerFrom()` in the functions
+  refuses them too. Memory mode uses `data/totp.js` (the tests compute codes with it). Devices: `my_sessions()` /
+  `end_session()` over auth.sessions.
+- **Assistant**: `supabase/functions/assistant` asks Claude (`claude-haiku-5-5`, structured output via the SDK's Zod
+  helper) to pick up to five of the profile's allowed titles; ids it invents are dropped. Signed-in only, 20/hour per
+  member and 60/hour per IP. Only the request and liked titles' names are sent. Any failure (or no key, or memory
+  mode) falls back to `matchWords()` in `data/assistant.js`, and the page says which answered.
+- **Donations** (Stripe, one-time, USD): `process-donation` (signed in, `{ amount, user_id }` in cents, 100–1,000,000;
+  user_id must be the caller) creates a card-only PaymentIntent with `metadata.user_id` and returns its
+  `client_secret`; the app confirms it with Stripe.js, so card numbers never reach us. `stripe-webhook` checks the
+  Stripe-Signature and writes `public.donations` with the service role, one row per PaymentIntent (failed can become
+  succeeded, never the reverse; payments without `metadata.user_id` are ignored). Members only read their own rows:
+  no insert/update/delete grants or policies, and not even the service role deletes. 20/hour per member, 60/hour per
+  IP. Database rules in `supabase/tests/database/donations.test.sql`. The page only needs `VITE_STRIPE_PUBLISHABLE_KEY`
+  (a `pk_test_` key on dev; without it, or in memory mode, /donate says donations aren't available and Stripe.js never
+  loads). A "Try again" after a dropped confirmation reuses the same PaymentIntent (`retrievePaymentIntent`), so it
+  can't charge twice. The round coffee link (`.donate-fab`, "Donate: buy us a coffee") sits inside `.bottom-nav`,
+  absolutely positioned above it, so it is pinned to the phone frame and covered by the tab bar's axe audit; the
+  bottom `scroll-padding` leaves room for it. `donate.spec.js` pays with Stripe test cards 4242… and 4000…0002 on :4174.
 - **Form state**: update with functional setters and read `e.target.value` before them
   (`(e) => { const { value } = e.target; setForm((f) => ({ ...f, key: value })) }`): with transitions pending, a
   spread of the render's `form` can restore an older value.
@@ -263,6 +312,10 @@ after editing.
 - Specs for the ten features: `profiles.spec.js`, `support.spec.js`, `lists.spec.js`, `party.spec.js` (two tabs),
   `search.spec.js`, `pwa.spec.js`; people, episodes and history are in `features.spec.js`, TMDB people, seasons and
   release reminders in `tmdb.spec.js`; `supabase-auth.spec.js` checks lists and watch parties against the dev project.
+- The seven after that: thumbs ratings, Year in Review and the assistant in `features.spec.js`; skips, chapters, seek
+  previews and picture-in-picture in `accessibility.spec.js`; PINs and Kids in `profiles.spec.js`; two-step sign-in and
+  devices in `auth.spec.js`; all of them against the dev project (real TOTP) in `supabase-auth.spec.js`; database rules
+  in `supabase/tests/database/seven_features.test.sql`.
 - Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility
   menu" also contains it.
 

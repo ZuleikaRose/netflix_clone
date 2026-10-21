@@ -26,7 +26,7 @@ export function MyNetflix() {
 
   return (
     <>
-      <PageHeader title="My Netflix" />
+      <PageHeader title="My App" />
       <section className="profile-card">
         <ProfileAvatar profile={profile} large />
         <div>

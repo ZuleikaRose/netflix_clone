@@ -1,6 +1,7 @@
 import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo } from './helpers.js'
 import { SUPABASE_E2E_PORT, supabaseAuthSettings, supabaseConfigured } from './ports.js'
+import { totpCode } from '../src/data/totp.js'
 
 // Real Supabase Auth against the dev project (eagle_platoon_dev). Each run creates a couple of accounts there: demo
 // accounts and e2e-…@example.com sign-ups are deleted by the hourly cleanup job after 24 hours.
@@ -67,6 +68,84 @@ test('the demo button creates a private demo account; its changes are saved and 
   await signIn(page, email, password)
   await navigateInApp(page, '/my-netflix')
   await expect(page.getByText('3 saved · 0 favorites · 1 rated')).toBeVisible()
+})
+
+test('thumbs ratings, a profile PIN, Year in Review, devices and two-step sign-in work against the database', async ({ page }) => {
+  // Two-step sign-in waits out 30-second code steps
+  test.setTimeout(150_000)
+  await signInAsDemo(page)
+  await navigateInApp(page, '/account')
+  const accountPassword = await page.locator('.demo-credentials code').textContent()
+
+  // Thumbs ratings are saved for the profile
+  await navigateInApp(page, '/title/the-signal')
+  const reactionSaved = saved(page, 'title_reactions')
+  await page.getByRole('button', { name: 'Love this!' }).click()
+  await reactionSaved
+
+  // Year in Review and the device list come from database functions
+  await navigateInApp(page, '/year-in-review')
+  await expect(page.getByText(/Nothing watched in \d{4} yet/)).toBeVisible()
+  await navigateInApp(page, '/account')
+  await expect(page.getByRole('region', { name: 'Signed-in devices' }).getByText('This device')).toBeVisible()
+
+  // A PIN on the only profile: after a reload, Who's watching asks for it
+  await navigateInApp(page, '/profiles')
+  await page.getByRole('button', { name: 'Manage profiles' }).click()
+  await page.getByRole('button', { name: /^Edit / }).click()
+  await page.getByRole('button', { name: 'Add a PIN' }).click()
+  await page.getByLabel('New PIN').fill('4321')
+  await page.getByLabel('Confirm PIN').fill('4321')
+  await page.getByLabel('Account password').fill(accountPassword)
+  await page.getByRole('button', { name: 'Save PIN' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'is locked with a PIN' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('button', { name: /\(locked\)$/ })).toBeVisible()
+  await page.getByRole('button', { name: /\(locked\)$/ }).click()
+  await page.getByLabel('Profile PIN').fill('4321')
+  await page.getByRole('button', { name: 'Unlock' }).click()
+  await expect(page.getByRole('heading', { name: 'Top 10 in the U.S. Today' })).toBeVisible()
+  await navigateInApp(page, '/title/the-signal')
+  await expect(page.getByRole('button', { name: 'Love this!' })).toHaveAttribute('aria-pressed', 'true')
+
+  // Two-step sign-in with Supabase Auth's TOTP: the next password sign-in waits for a code, even across a reload
+  await navigateInApp(page, '/account')
+  const email = await page.getByRole('textbox', { name: 'Email' }).inputValue()
+  const security = page.getByRole('region', { name: 'Two-step sign-in' })
+  // Supabase accepts each code once: every use waits for a 30-second step it hasn't used yet
+  const thisStep = () => Math.floor(Date.now() / 30_000)
+  let usedStep = 0
+  const nextCode = async (key) => {
+    await expect.poll(thisStep, { timeout: 35_000 }).toBeGreaterThan(usedStep)
+    usedStep = thisStep()
+    return totpCode(key)
+  }
+  await security.getByRole('button', { name: 'Turn on two-step sign-in' }).click()
+  await expect(security.getByRole('img', { name: 'QR code for your authenticator app' })).toBeVisible()
+  const key = (await page.locator('.setup-key code').textContent()).replaceAll(' ', '')
+  await security.getByLabel('Six-digit code').fill(await nextCode(key))
+  await security.getByRole('button', { name: 'Turn on' }).click()
+  await expect(security.getByRole('status')).toHaveText(/Two-step sign-in is on/)
+
+  // Turning it on finished the second step for this session, so only a new sign-in asks
+  await signOut(page)
+  await signIn(page, email, accountPassword)
+  await expect(page.getByRole('heading', { name: 'Two-step sign-in' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Two-step sign-in' })).toBeVisible()
+  await page.getByLabel('Six-digit code').fill(await nextCode(key))
+  await page.getByRole('button', { name: 'Verify' }).click()
+  await expect(page.getByRole('button', { name: /\(locked\)$/ })).toBeVisible()
+  await page.getByRole('button', { name: /\(locked\)$/ }).click()
+  await page.getByLabel('Profile PIN').fill('4321')
+  await page.getByRole('button', { name: 'Unlock' }).click()
+  await expect(page.getByRole('heading', { name: 'Top 10 in the U.S. Today' })).toBeVisible()
+
+  await navigateInApp(page, '/account')
+  await security.getByRole('button', { name: 'Turn off two-step sign-in' }).click()
+  await security.getByLabel('Six-digit code').fill(await nextCode(key))
+  await security.getByRole('button', { name: 'Turn off' }).click()
+  await expect(security.getByRole('status')).toHaveText(/Two-step sign-in is off/)
 })
 
 // Reset emails are mocked: Supabase's built-in email only reaches the project's team until custom SMTP is set up

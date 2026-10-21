@@ -8,7 +8,7 @@
 
 * { box-sizing: border-box; }
 /* Keep focused / scrolled-to elements clear of the sticky header and tab bar (WCAG 2.4.11) */
-html { scroll-padding: 72px 0 96px; }
+html { scroll-padding: 72px 0 156px; } /* bottom: the tab bar plus the coffee button above it */
 body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at top, #303030, #101010 70%); }
 button, input, select, textarea { font: inherit; }
 a { color: inherit; text-decoration: none; }
@@ -63,6 +63,11 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .rank-card b { position: absolute; z-index: 2; right: 4px; bottom: 5px; padding: 3px; color: #fff; background: #e50914; font-size: 8px; line-height: .8; text-align: center; }.rank-card em { font-size: 12px; font-style: normal; }
 .bottom-nav { position: fixed; z-index: 20; left: 50%; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; max-width: 430px; padding: 9px 5px max(9px, env(safe-area-inset-bottom)); border-top: 1px solid #262626; background: #0b0b0bf2; backdrop-filter: blur(18px); transform: translateX(-50%); }
 .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 1px; color: #7e7e7e; background: transparent; font-size: 10px; }.nav-item svg { width: 25px; height: 25px; }.nav-item.selected { color: #fff; }
+/* Round "buy us a coffee" link to /donate, floating above the tab bar's right end on every page */
+.donate-fab { position: absolute; right: 14px; bottom: calc(100% + 12px); display: grid; place-items: center; width: 52px; height: 52px; border: 2px solid #f5f5f5; border-radius: 50%; color: #fff; background: #8b5a2b; box-shadow: 0 6px 18px #000a; transition: background-color .15s; }
+.donate-fab svg { width: 26px; height: 26px; }
+.donate-fab:hover { background: #a06a35; }
+.donate-fab[aria-current="page"] { background: #5e3c1c; }
 
 /* Touch targets: style guide requires >= 44px hit areas without changing the visual size */
 .icon-button, .avatar-hit { display: grid; place-items: center; min-width: 44px; min-height: 44px; }
@@ -76,7 +81,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 /* Desktop: render a fixed-height phone frame that scrolls internally so the tab bar stays pinned to the frame */
 @media (min-width: 600px) {
   .app-shell { height: 100vh; align-items: center; }
-  .phone { height: min(900px, calc(100vh - 48px)); min-height: 0; padding-bottom: 0; scroll-padding: 72px 0 80px; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; border: 1px solid #333; border-radius: 28px; }
+  .phone { height: min(900px, calc(100vh - 48px)); min-height: 0; padding-bottom: 0; scroll-padding: 72px 0 140px; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; border: 1px solid #333; border-radius: 28px; }
   .phone::-webkit-scrollbar { display: none; }
   .bottom-nav { position: sticky; left: 0; transform: none; border-radius: 0 0 28px 28px; }
 }
@@ -284,7 +289,7 @@ textarea { resize: vertical; }
 .feed-head h3 { margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 24px; letter-spacing: .5px; }
 .feed-copy .detail-meta { margin: 0 0 6px; }
 
-/* My Netflix */
+/* My App */
 .ticket-conversation { margin-top: 10px; }
 .reply-list { display: grid; gap: 8px; margin: 0 0 10px; padding: 0; list-style: none; }
 .reply-list li { padding: 8px 10px; border-left: 3px solid #555; border-radius: 4px; background: #1a1a1a; }
@@ -660,6 +665,69 @@ textarea { resize: vertical; }
 .shortcut-list dd { margin: 0; color: #d4d4d4; }
 kbd { display: inline-block; min-width: 28px; padding: 3px 7px; border: 1px solid #555; border-bottom-width: 2px; border-radius: 5px; background: #1b1b1b; font: 600 13px/1.2 ui-monospace, monospace; text-align: center; }
 
+/* ---------- Thumbs ratings ---------- */
+.reaction { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 4px; }
+.reaction-note { flex-basis: 100%; margin: 0; font-size: 13px; }
+
+/* ---------- Player: chapters, seek previews, skip, picture-in-picture ---------- */
+.player-chapter { position: absolute; top: 34px; left: 16px; right: 60px; margin: 0; color: #d4d4d4; font-size: 12px; text-shadow: 0 1px 6px #000; }
+.seek-track { position: relative; display: flex; flex: 1; align-items: center; min-width: 0; }
+.chapter-mark { position: absolute; top: 50%; width: 3px; height: 10px; margin-left: -1px; border-radius: 1px; background: #000c; transform: translateY(-50%); pointer-events: none; }
+.seek-preview { position: absolute; bottom: calc(100% + 6px); display: grid; gap: 4px; justify-items: center; color: #fff; font-size: 12px; white-space: nowrap; transform: translateX(-50%); pointer-events: none; }
+.seek-thumb { display: block; border: 2px solid #fff; border-radius: 4px; background-color: #000; background-repeat: no-repeat; box-shadow: 0 2px 12px #000; }
+.skip-button { position: absolute; top: 58px; right: 12px; min-height: 44px; padding: 0 16px; border: 1px solid #fff; border-radius: 6px; color: #fff; background: #000000d9; font-weight: 700; cursor: pointer; }
+.skip-button:hover { background: #000; }
+/* Picture-in-picture sits beside Close: the controls row has no room left at phone width */
+.player-pip { position: absolute; top: 2px; right: 50px; }
+.player-pip[aria-pressed="true"] { color: #111; background: #fff; border-radius: 8px; }
+.player:has(.player-pip) :is(.player-status, .player-chapter) { right: 104px; }
+
+/* ---------- Year in Review ---------- */
+.year-hero h2 { font-size: 22px; }
+.year-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.year-stats li { display: grid; gap: 2px; padding: 16px; border: 1px solid #262626; border-radius: 12px; background: linear-gradient(135deg, #3a0a0d, #141414 70%); }
+.year-stats b { font-size: 34px; line-height: 1; }
+.year-stats span { color: #d4d4d4; font-size: 13px; }
+.year-facts { display: grid; gap: 12px; margin: 0 0 6px; }
+.year-facts div { display: grid; gap: 2px; }
+.year-facts dt { color: #bcbcbc; font-size: 13px; }
+.year-facts dd { margin: 0; font-size: 16px; font-weight: 600; }
+.year-note { margin: 0; font-size: 13px; }
+
+/* ---------- Profile locks and Kids ---------- */
+.pin-prompt { justify-items: center; text-align: center; }
+.pin-prompt .field { width: 100%; max-width: 240px; text-align: left; }
+.pin-prompt .cta, .pin-prompt .ghost-cta { width: 100%; max-width: 240px; }
+.profile-name svg { width: 15px; height: 15px; margin-right: 4px; vertical-align: -2px; }
+.lock-form { display: grid; gap: 12px; }
+
+/* ---------- Two-step sign-in and devices ---------- */
+.two-step-setup { display: grid; gap: 12px; }
+.two-step-qr { width: 180px; height: 180px; padding: 8px; border-radius: 8px; background: #fff; }
+.setup-key { margin: 0; font-size: 14px; }
+.setup-key code { padding: 2px 6px; border-radius: 4px; background: #262626; font: 600 14px ui-monospace, monospace; overflow-wrap: anywhere; }
+.device-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.device-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid #222; }
+.device-list li > span { display: grid; gap: 2px; min-width: 0; }
+.device-list .profile-badge { justify-self: start; margin-left: 0; }
+.device-list .muted { font-size: 13px; }
+.device-list .ghost-cta { flex: none; width: auto; padding: 0 14px; }
+
+/* ---------- What should I watch? ---------- */
+.assistant textarea { width: 100%; min-height: 84px; padding: 12px; border: 1px solid #555; border-radius: 6px; color: #fff; background: #1b1b1b; font: inherit; resize: vertical; }
+.assistant .has-error textarea { border-color: var(--error); }
+.assistant-examples { display: flex; flex-wrap: wrap; gap: 8px; }
+.assistant-examples .chip { min-height: 44px; }
+.assistant-picks { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.assistant-picks li { display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: start; }
+.assistant-picks img { width: 72px; height: 104px; border-radius: 6px; object-fit: cover; }
+.assistant-picks li > span { display: grid; gap: 4px; font-size: 14px; line-height: 1.4; }
+.assistant-picks .muted { font-size: 13px; }
+.assistant-by { margin: 0; color: #bcbcbc; font-size: 13px; }
+.assistant-privacy { margin: 0; font-size: 13px; line-height: 1.5; }
+.assistant-link { display: inline-flex; align-items: center; min-height: 44px; color: #fff; font-size: 14px; text-decoration: underline; }
+.filters a.chip { display: inline-flex; align-items: center; text-decoration: none; }
+
 /* Accessibility menu settings, set as data-a11y-* attributes on <html> by AccessibilityProvider */
 html[data-a11y-text-size] :is(.page, .auth-body) { zoom: var(--a11y-zoom); }
 html[data-a11y-font="readable"] :is(body, body *:not(kbd)) { font-family: "Atkinson Hyperlegible", Verdana, sans-serif !important; }
@@ -681,6 +749,21 @@ html[data-a11y-stop-animations] *, html[data-a11y-stop-animations] *::before, ht
 .credit-list { display: grid; gap: 8px; margin: 0; padding-left: 18px; color: #d4d4d4; font-size: 14px; line-height: 1.5; }
 .demo-credentials { margin: 0; color: #bcbcbc; font-size: 13px; line-height: 1.5; }
 .demo-credentials code { padding: 1px 6px; border-radius: 4px; color: #fff; background: #262626; font: 600 13px ui-monospace, monospace; }
+/* Donate (/donate): the card field is Stripe's iframe inside .card-input, styled like .field input */
+.donate-card-label { margin: 0; color: #bcbcbc; font-size: 13px; font-weight: 600; }
+.card-input { min-height: 48px; padding: 14px; border: 1px solid #3a3a3a; border-radius: 6px; background: #161616; }
+.card-input.StripeElement--focus { border-color: #8c8c8c; outline: 2px solid #fff; outline-offset: 1px; }
+.field.has-error .card-input, .card-input.StripeElement--invalid { border-color: var(--error); }
+.card-input.StripeElement--disabled { opacity: .6; }
+.donate-problem { display: grid; gap: 8px; padding: 12px 14px; border-radius: 6px; color: #111; background: var(--error); }
+.donate-problem h3 { margin: 0; font-size: 15px; }
+.donate-problem p { margin: 0; font-size: 14px; line-height: 1.4; }
+.donate-result h2:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.donate-problem h3:focus-visible { outline: 2px solid #111; outline-offset: 2px; }
+.donate-problem .ghost-cta { margin-top: 4px; border-color: #111; color: #111; }
+.donate-intro { margin: 0; }
+.donate-result [role="status"] { display: grid; gap: 8px; }
+.donate-result p { margin: 0; }
 .session-restoring { margin: 0; padding: 48px 16px; color: #bcbcbc; font-size: 15px; text-align: center; }
 .auth-body .demo-credentials { margin-top: 12px; }
 .credit-list p { margin: 0; }

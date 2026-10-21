@@ -163,3 +163,16 @@ from generate_series(1, 36) as n
 union all
 select 'afa00000-0000-4000-8000-000000000002'::uuid, case when n % 4 = 0 then 'signup' else 'click' end, now() - n * interval '1 day'
 from generate_series(1, 8) as n;
+
+-- Thumbs ratings (each account's first profile): Alex loves The Signal and isn't interested in Dead Reckoning
+insert into public.title_reactions (user_id, title_id, reaction) values
+  ('a1e00000-0000-4000-8000-000000000001', 'the-signal', 'love'),
+  ('a1e00000-0000-4000-8000-000000000001', 'dead-reckoning', 'dislike'),
+  ('a1e00000-0000-4000-8000-000000000002', 'night-shift', 'like');
+
+-- Donations (normally written by the stripe-webhook function; these PaymentIntent ids are made up, not Stripe's):
+-- Alex gave $5 and $25 (the first card was declined, then a retry went through); Jordan's $10 failed
+insert into public.donations (user_id, amount, stripe_payment_intent_id, status, created_at) values
+  ('a1e00000-0000-4000-8000-000000000001', 500, 'pi_seed_alex_0001', 'succeeded', now() - interval '40 days'),
+  ('a1e00000-0000-4000-8000-000000000001', 2500, 'pi_seed_alex_0002', 'succeeded', now() - interval '3 days'),
+  ('a1e00000-0000-4000-8000-000000000002', 1000, 'pi_seed_jordan_0001', 'failed', now() - interval '1 day');

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 const features = [
+  { title: 'What should I watch?', body: 'Describe what you’re in the mood for in your own words and get up to five titles from our catalog, each with a reason. It uses Claude, an AI model from Anthropic. Your request (and, with personalized recommendations on, the names of titles the profile loved or liked) is sent to Anthropic; your name, email and account never are. Suggestions only come from titles the profile’s maturity rating allows, never ones marked Not for me, and requests aren’t stored.' },
   { title: 'More Like This', body: 'Every title page suggests other titles that share its genres, so one good find leads to the next.' },
   { title: 'Smarter search', body: 'Search matches titles, cast and genres, so “thriller” or an actor’s name both find what you’re after.' },
   { title: 'Support assistant', body: 'Live chat suggests answers from our FAQs instantly. A person can always take over through an issue report.' },
@@ -9,6 +10,8 @@ const features = [
 const principles = [
   'Recommendations use only your activity in this service — never data bought from third parties.',
   'Your maturity rating always overrides recommendations.',
+  'Titles you mark Not for me are never recommended to that profile.',
+  'The assistant only suggests titles from our own catalog; when the AI service isn’t available, it matches your words instead and says so.',
   'Opting out on Do Not Sell My Information stops any partner sharing.',
 ]
 

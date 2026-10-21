@@ -110,6 +110,7 @@ export function ViewingActivity() {
           ))}
           {rows.length > 0 && (
             <div className="history-actions">
+              <Link to="/year-in-review" className="ghost-cta">See your Year in Review</Link>
               <button type="button" className="ghost-cta" onClick={() => downloadCsv(rows)}>Download all (CSV)</button>
               {confirming
                 ? (

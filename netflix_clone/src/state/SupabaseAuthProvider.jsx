@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { authErrorMessage, billingColumns, callFunction, loadAccount, saveAccount, savePreference } from '../data/accountApi.js'
+import { authErrorMessage, billingColumns, callFunction, codeErrorMessage, endDeviceSession, loadAccount, loadDevices, saveAccount, savePreference } from '../data/accountApi.js'
 import { libraryApi } from '../data/libraryApi.js'
-import { deleteProfileRow, insertProfile, profileErrorMessage, updateProfileRow } from '../data/profilesApi.js'
+import { pinMessages } from '../data/profiles.js'
+import { deleteProfileRow, insertProfile, profileErrorMessage, setProfilePinRow, unlockProfileRow, updateProfileRow, verifyPassword } from '../data/profilesApi.js'
 import { getSupabase, hasStoredSession, readStored, writeStored } from '../lib/supabaseConfig.js'
 import { AuthContext, normalizeEmail } from './authContext.js'
 
@@ -29,6 +30,8 @@ export function SupabaseAuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [session, setSession] = useState(0)
   const [notice, setNotice] = useState(null)
+  // Signed in with the password, waiting for the authenticator code: { email }
+  const [secondStep, setSecondStep] = useState(null)
   const [demo, setDemo] = useState(storedDemo)
   // Nothing to restore without a stored session, so the app is ready at once
   const [ready, setReady] = useState(() => !hasStoredSession())
@@ -67,7 +70,21 @@ export function SupabaseAuthProvider({ children }) {
       }
       setSession((n) => n + 1)
       setNotice(null)
+      setSecondStep(null)
       return null
+    }
+
+    // With two-step sign-in on, a password sign-in (or a restored session) is only aal1 until a code is entered: wait
+    // for it instead of loading the account, which the database wouldn't show yet anyway
+    const needsSecondStep = async (supabase) => {
+      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      if (error) throw error
+      return data.nextLevel === 'aal2' && data.currentLevel !== 'aal2'
+    }
+    const verifiedFactor = async (supabase) => {
+      const { data, error } = await supabase.auth.mfa.listFactors()
+      if (error) throw error
+      return data.totp.find((f) => f.status === 'verified') ?? null
     }
 
     const signIn = async (email, password) => {
@@ -75,6 +92,10 @@ export function SupabaseAuthProvider({ children }) {
         const supabase = await connect()
         const { data, error } = await supabase.auth.signInWithPassword({ email: normalizeEmail(email), password })
         if (error) return authErrorMessage(error)
+        if (await needsSecondStep(supabase)) {
+          setSecondStep({ email: data.user.email })
+          return null
+        }
         return startSession(supabase, data.user)
       } catch (error) {
         warn(error)
@@ -106,7 +127,8 @@ export function SupabaseAuthProvider({ children }) {
         const supabase = await connect()
         const { data, error } = await supabase.auth.getSession()
         if (error) throw error
-        if (data.session) await startSession(supabase, data.session.user)
+        if (data.session && (await needsSecondStep(supabase))) setSecondStep({ email: data.session.user.email })
+        else if (data.session) await startSession(supabase, data.session.user)
       } catch (error) {
         warn(error)
       } finally {
@@ -124,7 +146,103 @@ export function SupabaseAuthProvider({ children }) {
       demoEmail: demo?.email ?? null,
       demoPassword: demo?.password ?? null,
       libraryFor,
+      secondStep,
       login: signIn,
+      // The second step of signing in: the six-digit code from the member's authenticator app
+      async verifySecondStep(code) {
+        try {
+          const factor = await verifiedFactor(client)
+          if (!factor) return 'Two-step sign-in isn’t set up for this account. Please sign in again.'
+          const { error } = await client.auth.mfa.challengeAndVerify({ factorId: factor.id, code })
+          if (error) return codeErrorMessage(error)
+          const { data, error: userError } = await client.auth.getUser()
+          if (userError) throw userError
+          return startSession(client, data.user)
+        } catch (error) {
+          warn(error)
+          return 'We couldn’t check the code. Check your connection and try again.'
+        }
+      },
+      async cancelSecondStep() {
+        await client?.auth.signOut({ scope: 'local' }).catch(warn)
+        setSecondStep(null)
+      },
+      // Turning two-step sign-in on: a new authenticator factor to scan, then confirmTwoStep with its first code.
+      // Resolves to { factorId, key, uri, qrCode } or { error }.
+      async startTwoStep() {
+        try {
+          // A setup that was never confirmed would block a new one with the same name
+          const { data: factors, error: listError } = await client.auth.mfa.listFactors()
+          if (listError) throw listError
+          for (const f of factors.all.filter((f) => f.factor_type === 'totp' && f.status !== 'verified')) {
+            await client.auth.mfa.unenroll({ factorId: f.id })
+          }
+          const { data, error } = await client.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Authenticator ${new Date().toISOString()}` })
+          if (error) throw error
+          // Auth sends the QR code as an SVG data URL (older versions sent the bare SVG)
+          const qr = data.totp.qr_code
+          return { factorId: data.id, key: data.totp.secret, uri: data.totp.uri, qrCode: qr.startsWith('data:') ? qr : `data:image/svg+xml;utf-8,${encodeURIComponent(qr)}` }
+        } catch (error) {
+          warn(error)
+          return { error: 'Two-step sign-in couldn’t be set up. Please try again.' }
+        }
+      },
+      async confirmTwoStep(factorId, code) {
+        try {
+          const { error } = await client.auth.mfa.challengeAndVerify({ factorId, code })
+          if (error) return codeErrorMessage(error)
+        } catch (error) {
+          warn(error)
+          return 'We couldn’t check the code. Check your connection and try again.'
+        }
+        setUser((u) => ({ ...u, twoStep: true }))
+        return null
+      },
+      // Needs a current code, so a session left open somewhere can't turn it off
+      async turnOffTwoStep(code) {
+        try {
+          const factor = await verifiedFactor(client)
+          if (factor) {
+            const { error } = await client.auth.mfa.challengeAndVerify({ factorId: factor.id, code })
+            if (error) return codeErrorMessage(error)
+            const { error: removeError } = await client.auth.mfa.unenroll({ factorId: factor.id })
+            if (removeError) throw removeError
+          }
+        } catch (error) {
+          warn(error)
+          return 'Two-step sign-in couldn’t be turned off. Please try again.'
+        }
+        setUser((u) => ({ ...u, twoStep: false }))
+        return null
+      },
+      // Signed-in devices: { devices } or { error }
+      async listDevices() {
+        try {
+          return { devices: await loadDevices(client) }
+        } catch (error) {
+          warn(error)
+          return { error: 'Your devices couldn’t be loaded. Please try again.' }
+        }
+      },
+      async signOutDevice(id) {
+        try {
+          return (await endDeviceSession(client, id)) ? null : 'That device is already signed out.'
+        } catch (error) {
+          warn(error)
+          return 'That device couldn’t be signed out. Please try again.'
+        }
+      },
+      async signOutOtherDevices() {
+        try {
+          const { error } = await client.auth.signOut({ scope: 'others' })
+          if (!error) return null
+          warn(error)
+        } catch (error) {
+          // e.g. offline
+          warn(error)
+        }
+        return 'Your other devices couldn’t be signed out. Please try again.'
+      },
       async loginDemo() {
         // Reuse this visitor's demo account; make a new one the first time (or once it has expired or been deleted)
         if (demo && !(await signIn(demo.email, demo.password))) return null
@@ -193,9 +311,9 @@ export function SupabaseAuthProvider({ children }) {
       },
       async changePassword(current, next) {
         try {
-          // Signing in again is how Supabase checks a password; it keeps the same user signed in
-          const { error: checkError } = await client.auth.signInWithPassword({ email: user.email, password: current })
-          if (checkError) return checkError.code === 'invalid_credentials' ? 'Your current password is incorrect.' : authErrorMessage(checkError)
+          // Checked by the database (verify_account_password), not by signing in again: a new sign-in would replace
+          // this session, and with two-step sign-in on it would need a code again
+          if (!(await verifyPassword(client, current))) return 'Your current password is incorrect.'
           const { error } = await client.auth.updateUser({ password: next })
           if (error) return authErrorMessage(error)
         } catch (error) {
@@ -303,6 +421,35 @@ export function SupabaseAuthProvider({ children }) {
         setUser((u) => ({ ...u, profiles: u.profiles.filter((p) => p.id !== id) }))
         return null
       },
+      // Kids profiles ask for the account password ("Ask a grown-up"); resolves to an error message or null
+      async checkPassword(password) {
+        try {
+          return (await verifyPassword(client, password)) ? null : 'That password isn’t right.'
+        } catch (error) {
+          warn(error)
+          return error?.code === 'P0001' ? error.message : 'Your password couldn’t be checked. Please try again.'
+        }
+      },
+      // A profile's PIN (four digits), or null to remove it; needs the account password
+      async setProfilePin(id, pin, password) {
+        try {
+          await setProfilePinRow(client, id, pin, password)
+        } catch (error) {
+          warn(error)
+          return profileErrorMessage(error)
+        }
+        setUser((u) => ({ ...u, profiles: u.profiles.map((p) => (p.id === id ? { ...p, locked: pin !== null } : p)) }))
+        return null
+      },
+      async unlockProfile(id, pin) {
+        try {
+          const result = await unlockProfileRow(client, id, pin)
+          return result === 'ok' ? null : pinMessages[result]
+        } catch (error) {
+          warn(error)
+          return 'The PIN couldn’t be checked. Please try again.'
+        }
+      },
       async recordReferralClick(code) {
         if (!code || countedReferrals.has(code)) return
         countedReferrals.add(code)
@@ -315,7 +462,7 @@ export function SupabaseAuthProvider({ children }) {
         }
       },
     }
-  }, [client, user, session, notice, demo, libraryFor, ready])
+  }, [client, user, session, notice, demo, libraryFor, ready, secondStep])
 
   const { restoreSession } = value
   useEffect(() => {

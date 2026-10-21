@@ -51,6 +51,22 @@ const unwrap = ({ data, error }) => {
   return data
 }
 
+// Two-step sign-in is on once the member has a verified authenticator (TOTP) factor
+export const hasTwoStep = (authUser) => authUser.factors?.some((f) => f.factor_type === 'totp' && f.status === 'verified') ?? false
+
+// Supabase Auth MFA errors as the messages the forms show
+export function codeErrorMessage(error) {
+  if (error?.code === 'mfa_verification_failed' || error?.code === 'mfa_challenge_expired') return 'That code isn’t right. Check your authenticator app and try again.'
+  if (error?.code === 'over_request_rate_limit' || error?.status === 429) return 'Too many attempts. Please wait a minute and try again.'
+  return 'The code couldn’t be checked. Please try again.'
+}
+
+// The member's signed-in devices (public.my_sessions), most recently active first
+export const loadDevices = (supabase) => supabase.rpc('my_sessions').then(unwrap).then((rows) => rows.map((r) => ({
+  id: r.id, userAgent: r.user_agent ?? '', signedInAt: new Date(r.signed_in_at), lastActiveAt: new Date(r.last_active_at), current: r.current,
+})))
+export const endDeviceSession = (supabase, id) => supabase.rpc('end_session', { p_session: id }).then(unwrap)
+
 export async function loadAccount(supabase, authUser) {
   const id = authUser.id
   const [account, prefs, promo, profiles, staff] = await Promise.all([
@@ -61,7 +77,7 @@ export async function loadAccount(supabase, authUser) {
     // Support staff see the support dashboard (RLS: a member can read only their own staff row)
     supabase.from('staff').select('user_id').eq('user_id', id).maybeSingle().then(unwrap),
   ])
-  return { ...toUser(authUser, account, prefs, promo, profiles), isStaff: Boolean(staff) }
+  return { ...toUser(authUser, account, prefs, promo, profiles), isStaff: Boolean(staff), twoStep: hasTwoStep(authUser) }
 }
 
 // A Billing patch ({ day }, { card }, { status, resumesOn, endsOn }…) as netflix_tables columns
@@ -82,18 +98,20 @@ export const savePreference = (supabase, id, key, value) =>
   supabase.from('preferences').upsert({ user_id: id, [preferenceColumns[key]]: value }, { onConflict: 'user_id' }).then(unwrap)
 
 // Calls an Edge Function; resolves to { data } or { error } with the function's own message when it sent one.
-// Never throws: network failures (no response to read) become the generic message too.
+// Never throws: network failures (no response to read) become the generic message too, with `network: true`.
 export async function callFunction(supabase, name, body = {}) {
   const fallback = { error: 'Something went wrong. Check your connection and try again.' }
+  const unreachable = { ...fallback, network: true }
   try {
     const { data, error } = await supabase.functions.invoke(name, { body })
     if (!error) return { data }
     // An HTTP error carries the Response; a fetch failure doesn't
     const response = error.context
-    const sent = typeof response?.json === 'function' ? await response.json().catch(() => null) : null
+    if (typeof response?.json !== 'function') return unreachable
+    const sent = await response.json().catch(() => null)
     return sent?.error ? { error: sent.error } : fallback
   } catch {
-    return fallback
+    return unreachable
   }
 }
 

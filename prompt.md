@@ -20,7 +20,7 @@ There will be no API interactions and all data should be retained only at the br
 > Later changed by the backend prompts below: the app now uses Supabase. Members' data is saved in the database, and
 > since prompt 10 a refresh keeps them signed in.
 
-I have created a series of documents and images as a reference for what I would like this application to look like and isolated everything by pages. Take a look at this folder @./app_outline and read the `user_journey.md` file to get context for the users journey through the application. Then look at the `/home/zuleikarose/obsidian_wsl/netflix_clone/app_outline/netflix_mobile_wireframe` to visualize the entire application. Finally under pages, you'll find a wire-frame corresponding to each page along with a detailed user story for how a user would interact with this page. Additionally, when it comes to design style, you can read the `style_guide.md` and apply its guidelines as you see fit.
+I have created a series of documents and images as a reference for what I would like this application to look like and isolated everything by pages. Take a look at this folder @./app_outline and read the `user_journey.md` file to get context for the users journey through the application. Then look at the `/home/zuleikarose/obsidian_wsl/netflix_clone/app_outline/my_app_mobile_wireframe` to visualize the entire application. Finally under pages, you'll find a wire-frame corresponding to each page along with a detailed user story for how a user would interact with this page. Additionally, when it comes to design style, you can read the `style_guide.md` and apply its guidelines as you see fit.
 
 Take a look at the @../user_stories.md. Gather all details.
 
@@ -111,4 +111,21 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     lists, watch parties over Realtime, better search (pg_trgm, recent searches, suggestions) and an installable PWA.
     Migrations were applied to the dev project as each feature was built; production is updated after review.
 
-Still to do: custom SMTP for Auth emails, hosting and CAPTCHA on sign-up and sign-in.
+26. Stripe one-time donations, built by three agents in turn. A Supabase agent: a `process-donation` Edge Function
+    (signed in, `{ amount, user_id }` in cents, at most $10,000, `STRIPE_SECRET_KEY` from the function settings,
+    returns `{ client_secret }`), a `donations` table (id, user_id, amount, stripe_payment_intent_id unique, status
+    succeeded/failed, created_at) where members only read their own rows and only the service role writes, and a
+    `stripe-webhook` function that checks Stripe's signature with `STRIPE_WEBHOOK_SECRET` and records
+    `payment_intent.succeeded` / `payment_intent.payment_failed` once per PaymentIntent. A UI agent: a `/donate` page
+    with $5, $10, $25 and $50 or a custom amount, a Stripe Elements card field, the function call (through the app's
+    existing `callFunction()` helper instead of Axios, which the app doesn't use) and `stripe.confirmCardPayment`, with
+    success, decline and connection-error states, checked with Playwright and the test cards 4242… and 4000…0002. A
+    supervisor agent: its own pass criteria first, then the API contract, the confirmation method, the webhook URL,
+    idempotency, RLS and a security gate (no `sk_` key in the front end), then the full Playwright suite. Dev only.
+27. Make the server's minimum donation $1, like the page. Add a small round window with a coffee cup at the bottom
+    right of every page that opens the donation page.
+28. Update `drawsql.png` and `schema.sql` (the `donations` table), `user_journey.md`, `user_stories.md`, the style
+    guide, `CLAUDE.md`, `prompt.md`, Supabase (dev only for now) and the README, committing and pushing after each.
+
+Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and donations on production
+(migration, both functions, the two Stripe function settings and a Stripe webhook endpoint for production).
