@@ -54,13 +54,16 @@ together.
   reuse four photos with a per-title CSS tint. TMDB posters are real poster art, so they show undimmed with no title
   on top (the link still carries the name) and load lazily.
 * **Rows:** horizontal scrolling rows (Top 10 with giant outlined rank numbers 1–10 by place, the catalog's ranked titles first and TMDB's trending titles
-  after them, the 10th card wider so both digits show; Because You Liked…, then New on TMDB
+  after them, the 10th card wider so both digits show; Continue Watching with a red progress bar and an episode badge (E2…) on shows past episode 1; Because You Liked…, Because You Saved…, then New on TMDB
   and Trending and Popular Movies and TV Shows on TMDB), each with ‹ › buttons (44px, in the row heading) that page
   through it; a button at the row's end dims (`opacity: .35`) but keeps focus, and both hide when the row fits; grids of three posters on Watch list, Favorites and Search (TMDB
   results get their own grid under the catalog's).
 * **TMDB credit:** wherever TMDB data appears, a muted 12px line (`#a3a3a3`) says "Movie and TV data from TMDB. This
   product uses the TMDB API but is not endorsed or certified by TMDB." TMDB title pages show the TMDB rating and a
-  "View on TMDB" link instead of Play; My List and Favorite work as on catalog titles.
+  "View on TMDB" link instead of Play; My List and Favorite, ratings and reviews work as on catalog titles. "Play
+  trailer" (accent button) swaps the artwork for a 16:9 YouTube (youtube-nocookie) player with a Close button; nothing
+  loads from YouTube before that. "Where to watch in the U.S." lists services as chips (28px logo + name on `#1f1f1f`)
+  under Stream, Rent and Buy, with a muted "Availability from JustWatch" credit; More Like This sits below.
 * **Hero carousel:** a full-bleed 610px featured title with a dark gradient, centered title and actions, arrow
   buttons and dots. It never auto-advances.
 * **Chips and tabs:** pill chips for filters (active = white border on `#343434`); underlined tabs for sections.
@@ -69,6 +72,8 @@ together.
 * **Player:** black stage, large controls (play/pause, seek, skip 10 seconds, mute with a 64px volume slider, speed,
   previous/next episode for shows in a row of their own above the controls,
   full screen, CC), captions drawn on a dark box in three sizes, credits under the video.
+* **Leaderboards:** a settings card under each game: a numbered list (44px rows, place in muted grey, the member's own
+  row in gold `#f5c518` with "(you)"), then the "Show me on leaderboards" switch. First names only; off by default.
 * **Icon buttons:** at least 44×44px; pressed toggles invert to white.
 
 ## Touch targets and focus

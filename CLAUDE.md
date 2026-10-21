@@ -17,14 +17,15 @@ netflix_clone/        The Vite app — run all npm commands here
   src/data/catalogApi.js, accountApi.js, libraryApi.js   Supabase queries ↔ the shapes the pages use
   src/lib/            supabaseConfig.js (config, authBackend, lazy getSupabase()), supabase.js (the client)
   src/state/          CatalogProvider (titles), AuthProvider → SupabaseAuthProvider or MemoryAuthProvider (accounts,
-                      billing, preferences), LibraryProvider (lists, ratings, scores, tickets…), useReviews,
+                      billing, preferences), LibraryProvider (lists, ratings, scores, watch progress, tickets…), useReviews,
                       AccessibilityProvider (accessibility menu settings)
   src/pages/          One file per route; info/, games/ and account/ hold sub-pages
   src/components/     Layout (phone frame, tab bar, footer), PageHeader, Field, Player, Preview, AccessibilityPanel, hooks
   e2e/                Playwright specs, serve.js (static server), ports.js (ports + dev project config)
   .env.example        Copy to .env.development.local (dev project) and .env.production.local (production); git-ignored
 supabase/             Supabase CLI project (config.toml); MCP config in supabase/.mcp.json (not committed)
-  migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits
+  migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits,
+                      saved TMDB titles, watch progress and leaderboards
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
                       (Index Advisor is installed on both projects: dashboard → Query Performance suggests missing ones)
   functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb (+ _shared/: clients,
@@ -33,7 +34,7 @@ supabase/             Supabase CLI project (config.toml); MCP config in supabase
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
   diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
-schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 17 public tables)
+schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 19 public tables)
 user_stories.md       What the database stores, one story per thing the app remembers
 prompt.md             The original build prompt and the Supabase-phase prompts
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
@@ -42,7 +43,7 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Both run the same 7 migrations and 7 functions (production caught up on 2026-10-20). `apply_migration` stamps the
+Both run the same 8 migrations, 4 non_transactional files and 7 functions (updated 2026-10-21). `apply_migration` stamps the
 current time as the version: afterwards set it to the file's version in `supabase_migrations.schema_migrations`.
 Each project needs the `TMDB_API_FREE` Edge Function secret for `tmdb` (the dashboard can't show it back; the value
 comes from themoviedb.org → Settings → API). The DROP INDEX steps at the end of `002_query_indexes.sql` haven't run on
@@ -121,14 +122,18 @@ after editing.
   read token; set it on each project) and returns titles in the catalog's shape, with `source: 'tmdb'` and a
   `path` of `/tmdb/:type/:tmdbId` (PosterCard links there). Actions: `lists` (new — movies now playing and TV on the
   air — trending and popular, for Home's rows and for Search with no query), `search` (Search with a query) and
-  `title` (the TMDB page). Its per-IP limit (600/hour) counts only requests its in-memory cache can't answer. Search's
+  `title` (the TMDB page, with `trailer` — a YouTube key — and `providers`, U.S. stream/rent/buy services from
+  JustWatch), `recommendations` (More Like This, Home's Because You Saved) and `save`. Its per-IP limit (600/hour) counts only requests its in-memory cache can't answer. Search's
   genre chips also match TMDB's combined names ("Sci-Fi & Fantasy", "Action & Adventure", "Science Fiction"). Catalog
   titles aren't matched to TMDB: they're fictional, so any name match is an unrelated real title. A member can save a TMDB
   title to My List or Favorites: the function's `save` action upserts it into `titles` (`source = 'tmdb'`, id
   `tmdb-<movie|show>-<id>`) and `tmdb_titles` from TMDB's own data, so the existing foreign keys work. The catalog
   request reads `source = 'catalog'`; saved TMDB rows load separately and only `findTitle` sees them (My List,
-  Favorites). TMDB titles can't be played or reviewed; list and search items are rated 'NR', so restricted
-  profiles don't see them. Without Supabase or on any error the TMDB sections just don't render. Keep the
+  Favorites, reviews). TMDB titles can't be played, but members rate and review them through the shared
+  `components/Reviews.jsx` (its `beforeSave` stores the title first). List, search and recommendation items carry
+  real U.S. certifications: the function looks each one up once and keeps it in `tmdb_certifications` (30 days;
+  'NR' when TMDB has none, which restricted profiles don't see). Trailers embed from `youtube-nocookie.com` only
+  after "Play trailer"; keep the JustWatch credit next to Where to watch. Without Supabase or on any error the TMDB sections just don't render. Keep the
   `TmdbCredit` notice wherever TMDB data shows (TMDB's terms). Home has no catalog "new" row any more (New on TMDB
   replaced it); `isNew` still drives New & Hot. Top 10 shows the catalog's `top10` titles first, then TMDB's trending
   movies and shows (alternating) up to ten, numbered by place (1–10), not by `top10`.
@@ -173,6 +178,14 @@ after editing.
   50%), ↑/↓ change it by 10% while focus is in the player, and the level is kept with `writeStored('netflix-clone-volume')`; for a signed-in member it's also saved as
   `preferences.playerVolume` (`player_volume`, 0–100) and wins on their other devices. TV shows get Previous/Next
   episode buttons (Shift+P / Shift+N); episodes are simulated with the same sample clip.
+- **Continue Watching**: the player saves `{ percent, episode, seconds }` through `LibraryProvider.saveProgress` on
+  pause, on close and every 15 seconds (not before 5 seconds in); with Supabase it's a `watch_progress` row per title.
+  Reaching `FINISHED_PERCENT` (95) removes a movie; finishing an episode saves the next one at 0. Home lists
+  `progress` newest first and Resume picks up there. In memory, progress starts from `catalog.js`'s sample `progress`.
+- **Leaderboards**: `components/Leaderboard.jsx` under each game. Opt-in (`preferences.showOnLeaderboards`,
+  `show_on_leaderboards`, default off; also in Account → Privacy). With Supabase it calls the security-definer
+  `public.game_leaderboard(game)` (top ten, first names only, 'memory' ranks fewest moves first); in memory,
+  `data/leaderboards.js` has sample players.
 - **Delete account**: needs `billing.status === 'cancelled'`, the typed email and the account password; it removes
   access only (Supabase: `delete-account` bans the user and sets `access_removed_at`; memory: drops the account). Data
   removal is a support ticket, `/info/report-issue?type=data-removal`. The sign-in notice comes from `notice` in the
@@ -200,9 +213,9 @@ after editing.
   (real sign-in, saved data, Edge Functions; desktop only, on :4174) use the dev project and skip without
   `.env.development.local` (as in CI). Keep Supabase sign-ins in tests few: Auth rate-limits them per IP.
 - New features get a spec: `e2e/features.spec.js` (carousel, billing, affiliate…) and `e2e/accessibility.spec.js`
-  (accessibility menu, policy, player and captions, autoplay, delete account); TMDB features go in `e2e/tmdb.spec.js`.
+  (accessibility menu, policy, player and captions, autoplay, delete account); TMDB features go in `e2e/tmdb.spec.js`; Continue Watching is in `features.spec.js`, leaderboards in `games.spec.js`.
   Specs import `test` from `e2e/test.js`, which mocks the `tmdb` function on every page (`e2e/tmdbMock.js`; call
-  `mockTmdb(page, { fail: true })` to override), so the suite never uses TMDB or its per-IP limit — real calls from
+  `mockTmdb(page, { fail: true })` to override), and YouTube's embed answered with an empty page, so the suite never uses TMDB or its per-IP limit — real calls from
   test runs once locked the developer's own browser out for an hour.
 - Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility
   menu" also contains it.
