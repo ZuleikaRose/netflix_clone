@@ -103,4 +103,12 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     `user_journey.md`, `user_stories.md`, the style guide, `CLAUDE.md` and `prompt.md`; apply the changes to both
     Supabase projects; update the README, committing and pushing after each step.
 
+24. Make "Top 10 in the U.S. Today" TMDB's top ten movies and TV shows, and the Home carousel TMDB's movies and TV
+    shows. Open a pull request and merge it once CI passes.
+25. "Please recommend 10 more features", then "please do 1 through 10. After each feature, test and fix, commit and
+    push to github": profiles (including Kids), a support dashboard, actor and director pages, seasons and episodes,
+    reminders for TMDB releases with a notifications bell, viewing history and privacy controls, shareable custom
+    lists, watch parties over Realtime, better search (pg_trgm, recent searches, suggestions) and an installable PWA.
+    Migrations were applied to the dev project as each feature was built; production is updated after review.
+
 Still to do: custom SMTP for Auth emails, hosting and CAPTCHA on sign-up and sign-in.
