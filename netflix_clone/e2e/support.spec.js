@@ -71,7 +71,9 @@ test('the bell counts support replies until the notifications are opened', async
   await expect(item).toContainText('Fixed in today’s update.')
   await expect(page.getByRole('link', { name: 'Notifications', exact: true })).toBeVisible()
   await item.getByRole('link').click()
-  await expect(page).toHaveURL(/\/info\/report-issue$/)
+  // Wait for the page itself, not just the URL: navigations are transitions, and coming straight back before this one
+  // commits would leave the same Notifications page mounted (still showing this visit's markers)
+  await expect(page.getByRole('heading', { name: 'Issue Reporting', level: 1 })).toBeVisible()
 
   // Seen: no count, and the reply is no longer marked new
   await navigateInApp(page, '/notifications')
