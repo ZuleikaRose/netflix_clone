@@ -52,7 +52,7 @@ and the same 8 functions, with `assistant` (production caught up 2026-10-21). `a
 `ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
 Dev is one step ahead: it also runs migration 21, `20261023050000_donations`, and the functions `process-donation`
 and `stripe-webhook` (10 functions); production doesn't have them yet. They need two function variables per project:
-`NETFLIX_CLONE_TEST_API` (the Stripe API key, test mode on dev; without it process-donation answers 503) and `STRIPE_WEBHOOK_SECRET`,
+`STRIPE_SECRET_KEY` (a test-mode key on dev; without it process-donation answers 503) and `STRIPE_WEBHOOK_SECRET`,
 the signing value of the Stripe webhook endpoint that points at `<project>.supabase.co/functions/v1/stripe-webhook`
 (events `payment_intent.succeeded` and `payment_intent.payment_failed`). Never put either value in the repo.
 `apply_migration` stamps the current time as the version: afterwards set it to the file's version in
@@ -109,7 +109,7 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | (extra) Year in Review | `/year-in-review` | `pages/YearInReview.jsx`, `data/yearInReview.js` |
 | (extra) What should I watch? (assistant) | `/what-to-watch` | `pages/Assistant.jsx`, `data/assistant.js`, `supabase/functions/assistant` |
 | (extra) Security (two-step sign-in, devices) | in `/account` | `pages/account/Security.jsx`, `data/totp.js`, `data/devices.js` |
-| (extra) Donate (one-time, Stripe) | `/donate` (linked from Account → Help) | `pages/Donate.jsx`, `pages/donate/DonateForm.jsx` (lazy), `data/donations.js`, `lib/stripe.js`, `supabase/functions/process-donation` |
+| (extra) Donate (one-time, Stripe) | `/donate` (linked from Account → Help and the round coffee button above the tab bar on every page) | `pages/Donate.jsx`, `pages/donate/DonateForm.jsx` (lazy), `data/donations.js`, `lib/stripe.js`, `supabase/functions/process-donation` |
 
 When the outline changes: diff `app_outline/user_journey.md` (`git diff --word-diff`), map each change to this
 table, add or extend the page, add `/info/<slug>` pages to `data/infoPages.js` (that also adds the footer link)
@@ -265,13 +265,18 @@ after editing.
   helper) to pick up to five of the profile's allowed titles; ids it invents are dropped. Signed-in only, 20/hour per
   member and 60/hour per IP. Only the request and liked titles' names are sent. Any failure (or no key, or memory
   mode) falls back to `matchWords()` in `data/assistant.js`, and the page says which answered.
-- **Donations** (Stripe, one-time, USD): `process-donation` (signed in, `{ amount, user_id }` in cents, 1–1,000,000;
+- **Donations** (Stripe, one-time, USD): `process-donation` (signed in, `{ amount, user_id }` in cents, 100–1,000,000;
   user_id must be the caller) creates a card-only PaymentIntent with `metadata.user_id` and returns its
   `client_secret`; the app confirms it with Stripe.js, so card numbers never reach us. `stripe-webhook` checks the
   Stripe-Signature and writes `public.donations` with the service role, one row per PaymentIntent (failed can become
   succeeded, never the reverse; payments without `metadata.user_id` are ignored). Members only read their own rows:
   no insert/update/delete grants or policies, and not even the service role deletes. 20/hour per member, 60/hour per
-  IP. Database rules in `supabase/tests/database/donations.test.sql`.
+  IP. Database rules in `supabase/tests/database/donations.test.sql`. The page only needs `VITE_STRIPE_PUBLISHABLE_KEY`
+  (a `pk_test_` key on dev; without it, or in memory mode, /donate says donations aren't available and Stripe.js never
+  loads). A "Try again" after a dropped confirmation reuses the same PaymentIntent (`retrievePaymentIntent`), so it
+  can't charge twice. The round coffee link (`.donate-fab`, "Donate: buy us a coffee") sits inside `.bottom-nav`,
+  absolutely positioned above it, so it is pinned to the phone frame and covered by the tab bar's axe audit; the
+  bottom `scroll-padding` leaves room for it. `donate.spec.js` pays with Stripe test cards 4242… and 4000…0002 on :4174.
 - **Form state**: update with functional setters and read `e.target.value` before them
   (`(e) => { const { value } = e.target; setForm((f) => ({ ...f, key: value })) }`): with transitions pending, a
   spread of the render's `form` can restore an older value.
