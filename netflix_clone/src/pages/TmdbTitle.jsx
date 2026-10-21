@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { CreditLinks } from '../components/CreditLinks.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
@@ -60,6 +61,31 @@ function Trailer({ title, onClose }) {
     </div>
   )
 }
+const tmdbPerson = (p) => ({ key: p.id, name: p.name, to: `/tmdb/person/${p.id}` })
+const directs = (p) => p.job === 'Director' || p.job === 'Creator'
+
+// Cast and crew, each name linking to their TMDB person page (plain names if the answer has no ids)
+function Credits({ title }) {
+  const directing = title.type === 'show' ? 'Created by' : 'Director'
+  if (!title.people) {
+    return (
+      <>
+        {title.cast.length > 0 && <p className="credits"><span>Starring:</span> {title.cast.join(', ')}</p>}
+        {title.crew.director && <p className="credits"><span>{directing}:</span> {title.crew.director}</p>}
+        {title.crew.writer && <p className="credits"><span>Writer:</span> {title.crew.writer}</p>}
+      </>
+    )
+  }
+  const { cast, crew } = title.people
+  return (
+    <>
+      <CreditLinks label="Starring" people={cast.map(tmdbPerson)} />
+      <CreditLinks label={directing} people={crew.filter(directs).map(tmdbPerson)} />
+      <CreditLinks label="Writer" people={crew.filter((p) => !directs(p)).map(tmdbPerson)} />
+    </>
+  )
+}
+
 export function TmdbTitle() {
   const { type, tmdbId } = useParams()
   const validId = (type === 'movie' || type === 'show') && /^\d+$/.test(tmdbId)
@@ -149,9 +175,7 @@ export function TmdbTitle() {
         </div>
 
         <p className="synopsis">{title.synopsis}</p>
-        {title.cast.length > 0 && <p className="credits"><span>Starring:</span> {title.cast.join(', ')}</p>}
-        {title.crew.director && <p className="credits"><span>{title.type === 'show' ? 'Created by' : 'Director'}:</span> {title.crew.director}</p>}
-        {title.crew.writer && <p className="credits"><span>Writer:</span> {title.crew.writer}</p>}
+        <Credits title={title} />
         {title.genres.length > 0 && <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>}
 
         <WhereToWatch title={title} />

@@ -66,9 +66,22 @@ test.describe('homepage', () => {
   })
 })
 
-test('title pages list cast and crew', async ({ page }) => {
+test('title pages list cast and crew, and each name opens that person’s page', async ({ page }) => {
   await navigateInApp(page, '/title/the-signal')
-  await expect(page.getByText('Director: Dara Whitfield · Writer: Ben Osei')).toBeVisible()
+  await expect(page.getByText('Director: Dara Whitfield')).toBeVisible()
+  await expect(page.getByText('Writer: Ben Osei')).toBeVisible()
+  await page.getByRole('link', { name: 'Dara Whitfield' }).click()
+  await expect(page).toHaveURL(/\/people\/Dara%20Whitfield$/)
+  await expect(page.getByRole('heading', { name: 'Dara Whitfield', level: 1 })).toBeVisible()
+  await expect(page.getByText('Director · 1 title on Netflix Clone')).toBeVisible()
+  const titles = page.locator('.credit-grid li')
+  await expect(titles).toHaveCount(1)
+  await expect(titles.first()).toContainText('Director')
+  await titles.first().getByRole('link').click()
+  await expect(page).toHaveURL(/\/title\/the-signal$/)
+
+  await navigateInApp(page, '/people/Nobody%20Here')
+  await expect(page.getByRole('heading', { name: /not found|lost/i }).first()).toBeVisible()
 })
 
 test('search filters by release year', async ({ page }) => {

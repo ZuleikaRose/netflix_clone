@@ -6,6 +6,7 @@
 //                                                         and where to watch it in the U.S.
 //   { action: 'recommendations', type, id }          → { results }: titles TMDB recommends to fans of this one
 //   { action: 'save', type, id } (signed in)         → { title } after storing it, so it can go on My List or Favorites
+//   { action: 'person', id }                         → { person }: an actor's or director's details and best-known titles
 // Public like the catalog itself (except `save`); the TMDB key stays in the TMDB_API_FREE secret and never reaches
 // the browser. List, search and recommendation results carry real US certifications (looked up once per title and
 // kept in public.tmdb_certifications), so restricted profiles see the titles within their maturity setting.
@@ -27,6 +28,14 @@ const CAST_SIZE = 8
 const CERTIFICATION_TTL_MS = 30 * 24 * 60 * 60 * 1000 // certifications rarely change
 const CERTIFICATION_LOOKUPS_AT_ONCE = 8 // keeps a cold start well inside TMDB's request rate
 const PROVIDER_LOGO_SIZE = 'w92'
+const PERSON_CREDITS = 24
+const PHOTO_SIZE = 'w185'
+// Talk and news shows list everyone who ever appeared as a guest, which buries a person's real work
+const GUEST_GENRES = new Set([10767, 10763])
+// The crew jobs a person page lists, in the order it names them
+const CREW_JOBS = ['Director', 'Creator', 'Screenplay', 'Writer']
+// Appearances as themselves, and uncredited parts
+const GUEST_ROLE = /^(self|himself|herself|themselves)\b|\(uncredited\)/i
 
 type Type = 'movie' | 'show'
 type Item = Record<string, any>
@@ -181,6 +190,8 @@ const search = (query: string) => cached(`search:${query.toLowerCase()}`, SEARCH
 })
 
 const names = (people: Item[] = []) => [...new Set(people.map((p) => p.name))].join(', ') || null
+// Crew as { id, name, job }, each person once (the first job listed)
+const people = (crew: Item[]) => [...new Map(crew.map((p) => [p.id, { id: p.id, name: p.name, job: p.job }])).values()]
 
 // The official YouTube trailer when there is one, else any YouTube trailer or teaser
 function trailer(item: Item) {
@@ -210,6 +221,14 @@ const title = (type: Type, id: number) => cached(`title:${type}:${id}`, LIST_TTL
     maturity: certification(item, type),
     ...(type === 'show' ? { seasons: item.number_of_seasons ?? 1 } : { runtime: formatRuntime(item.runtime) }),
     cast: (item.credits?.cast ?? []).slice(0, CAST_SIZE).map((p: Item) => p.name),
+    // The same people with their TMDB ids, so the page can link to each person
+    people: {
+      cast: (item.credits?.cast ?? []).slice(0, CAST_SIZE)
+        .map((p: Item) => ({ id: p.id, name: p.name, role: p.character || null, photo: image(p.profile_path, PHOTO_SIZE) })),
+      crew: people(type === 'show' ? (item.created_by ?? []).map((p: Item) => ({ ...p, job: 'Creator' }))
+        : crew.filter((p) => p.job === 'Director'))
+        .concat(people(crew.filter((p) => ['Screenplay', 'Writer', 'Story'].includes(p.job)).slice(0, 3))),
+    },
     crew: {
       director: type === 'show' ? names(item.created_by) : names(crew.filter((p) => p.job === 'Director')),
       writer: names(crew.filter((p) => ['Screenplay', 'Writer', 'Story'].includes(p.job)).slice(0, 3)),
@@ -241,6 +260,46 @@ const save = (type: Type, id: number) => cached(`saved:${type}:${id}`, LIST_TTL_
   return t
 })
 
+// An actor's or director's page: TMDB's details and their best-known movies and shows (acting, directing, writing
+// or creating), most voted first, each with the role they had
+const person = (id: number) => cached(`person:${id}`, LIST_TTL_MS, async () => {
+  const item = await tmdb(`/person/${id}`, { append_to_response: 'combined_credits' })
+  const credits: Item[] = [
+    ...(item.combined_credits?.cast ?? []),
+    ...(item.combined_credits?.crew ?? []).filter((c: Item) => CREW_JOBS.includes(c.job)),
+  ].filter((c) => (c.media_type === 'movie' || c.media_type === 'tv') && !(c.genre_ids ?? []).some((g: number) => GUEST_GENRES.has(g)) &&
+    !GUEST_ROLE.test(c.character ?? ''))
+    // Vote counts track how widely a title is known; TMDB's popularity is this week's trend
+    .sort((a, b) => (b.vote_count ?? 0) - (a.vote_count ?? 0))
+  // Every part a person had on a title: the character first, then their jobs (directing before writing)
+  const roles = new Map<string, string[]>()
+  for (const c of credits) {
+    const key = `${c.media_type === 'tv' ? 'show' : 'movie'}:${c.id}`
+    const part = c.character || c.job
+    if (part && !roles.get(key)?.includes(part)) roles.set(key, [...(roles.get(key) ?? []), part])
+  }
+  const order = (part: string) => (CREW_JOBS.includes(part) ? CREW_JOBS.indexOf(part) + 1 : 0)
+  const roleOf = (key: string) => roles.get(key)?.sort((a, b) => order(a) - order(b)).join(', ') || null
+  const seen = new Set<string>()
+  const best = credits.filter((c) => {
+    const key = `${c.media_type}:${c.id}`
+    return seen.has(key) ? false : (seen.add(key), true)
+  }).slice(0, PERSON_CREDITS)
+  const titles = await toTitles(best)
+  return {
+    id,
+    name: item.name,
+    photo: image(item.profile_path, 'h632'),
+    knownFor: item.known_for_department || null,
+    born: item.birthday || null,
+    died: item.deathday || null,
+    birthplace: item.place_of_birth || null,
+    biography: item.biography || null,
+    tmdbUrl: `https://www.themoviedb.org/person/${id}`,
+    credits: titles.map((t) => ({ ...t, role: roleOf(`${t.type}:${t.tmdbId}`) })),
+  }
+})
+
 const asType = (value: unknown): Type | null => (value === 'movie' || value === 'show' ? value : null)
 
 // The request as [cache key, answer], or an error response for a bad request
@@ -265,8 +324,13 @@ function route(body: Record<string, unknown>): [string, () => Promise<unknown>] 
       }
       return [`title:${type}:${id}`, async () => ({ title: await title(type, id) })]
     }
+    case 'person': {
+      const id = Number(body.id)
+      if (!Number.isInteger(id) || id <= 0) return json({ error: 'Send a TMDB person id.' }, 400)
+      return [`person:${id}`, async () => ({ person: await person(id) })]
+    }
     default:
-      return json({ error: 'Unknown action. Use lists, search, title, recommendations or save.' }, 400)
+      return json({ error: 'Unknown action. Use lists, search, title, recommendations, save or person.' }, 400)
   }
 }
 
@@ -284,7 +348,7 @@ serve(async (req, body) => {
   try {
     return json(await answer())
   } catch (error) {
-    if (error instanceof NotFound) return json({ error: 'Title not found.' }, 404)
+    if (error instanceof NotFound) return json({ error: body.action === 'person' ? 'Person not found.' : 'Title not found.' }, 404)
     throw error
   }
 })

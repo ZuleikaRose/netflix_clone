@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchTmdbLists, fetchTmdbRecommendations, fetchTmdbTitle, searchTmdb } from '../data/tmdbApi.js'
+import { fetchTmdbLists, fetchTmdbPerson, fetchTmdbRecommendations, fetchTmdbTitle, searchTmdb } from '../data/tmdbApi.js'
 import { supabaseConfig } from '../lib/supabaseConfig.js'
 
 // Waits for typing to pause before asking TMDB
@@ -59,4 +59,18 @@ export function useTmdbRecommendations(type, id) {
     return () => { ignore = true }
   }, [key, type, id])
   return found.key === key ? found.results : null
+}
+
+// { status: 'loading' | 'ready' | 'missing' | 'unavailable', person }; asks nothing without an id
+export function useTmdbPerson(id) {
+  const [found, setFound] = useState({ id: null })
+  useEffect(() => {
+    if (!id) return undefined
+    let ignore = false
+    fetchTmdbPerson(id).then((result) => { if (!ignore) setFound({ id, ...result }) })
+    return () => { ignore = true }
+  }, [id])
+  if (found.id !== id) return { status: 'loading', person: null }
+  if (found.unavailable) return { status: 'unavailable', person: null }
+  return found.person ? { status: 'ready', person: found.person } : { status: 'missing', person: null }
 }

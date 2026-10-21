@@ -1,4 +1,5 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { CreditLinks } from '../components/CreditLinks.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { Player } from '../components/Player.jsx'
@@ -12,6 +13,7 @@ import { describeLength } from '../data/catalog.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { NotFound } from './NotFound.jsx'
+import { personPath, splitNames } from '../data/people.js'
 
 export function TitleDetail() {
   const { id } = useParams()
@@ -74,8 +76,9 @@ export function TitleDetail() {
         </div>
 
         <p className="synopsis">{title.synopsis}</p>
-        <p className="credits"><span>Starring:</span> {title.cast.join(', ')}</p>
-        <p className="credits"><span>Director:</span> {title.crew.director} · <span>Writer:</span> {title.crew.writer}</p>
+        <CreditLinks label="Starring" people={title.cast.map((name) => ({ name, to: personPath(name) }))} />
+        <CreditLinks label="Director" people={splitNames(title.crew.director).map((name) => ({ name, to: personPath(name) }))} />
+        <CreditLinks label="Writer" people={splitNames(title.crew.writer).map((name) => ({ name, to: personPath(name) }))} />
         <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>
 
         <Reviews title={title} />

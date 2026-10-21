@@ -19,6 +19,8 @@ import { Signup } from './pages/Signup.jsx'
 import { SupportDashboard } from './pages/SupportDashboard.jsx'
 import { TitleDetail } from './pages/TitleDetail.jsx'
 import { TmdbTitle } from './pages/TmdbTitle.jsx'
+import { TmdbPerson } from './pages/TmdbPerson.jsx'
+import { Person } from './pages/Person.jsx'
 import { useAuth } from './state/authContext.js'
 import { ProfileProvider } from './state/ProfileProvider.jsx'
 
@@ -43,6 +45,8 @@ function App() {
           <Route index element={<Home />} />
           <Route path="title/:id" element={<TitleDetail />} />
           <Route path="tmdb/:type/:tmdbId" element={<TmdbTitle />} />
+          <Route path="tmdb/person/:personId" element={<TmdbPerson />} />
+          <Route path="people/:name" element={<Person />} />
           <Route path="search" element={<Search />} />
           <Route path="new" element={<NewHot />} />
           <Route path="my-netflix" element={<MyNetflix />} />

@@ -237,3 +237,46 @@ test.describe('TMDB trailers, where to watch, reviews and recommendations', () =
     await expect(page.getByRole('heading', { name: 'Trending Movies on TMDB' })).toHaveCount(0)
   })
 })
+
+test.describe('TMDB actor and director pages', () => {
+  test.skip(!configured, 'Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.development.local to run these')
+
+  test('cast and directors link to their pages, which show facts, a folded biography and what they’re known for', async ({ page }) => {
+    await mockTmdb(page)
+    await signInAsDemo(page)
+    await navigateInApp(page, '/tmdb/movie/603')
+    await expect(page.getByRole('link', { name: 'Lana Wachowski' })).toHaveAttribute('href', '/tmdb/person/9340')
+    await page.getByRole('link', { name: 'Keanu Reeves' }).click()
+
+    await expect(page).toHaveURL(/\/tmdb\/person\/6384$/)
+    await expect(page.getByRole('heading', { name: 'Keanu Reeves', level: 1 })).toBeVisible()
+    await expect(page).toHaveTitle(/Keanu Reeves/)
+    const facts = page.locator('.person-facts')
+    await expect(facts).toContainText('Acting')
+    await expect(facts).toContainText('September 2, 1964')
+    await expect(facts).toContainText('Beirut, Lebanon')
+
+    const bio = page.locator('.biography')
+    await expect(bio).not.toContainText('known for his roles in action films')
+    await page.getByRole('button', { name: 'Read more' }).click()
+    await expect(bio).toContainText('known for his roles in action films')
+    await expect(page.getByRole('button', { name: 'Show less' })).toHaveAttribute('aria-expanded', 'true')
+
+    const knownFor = page.locator('.credit-grid')
+    await expect(knownFor.locator('li')).toHaveCount(3)
+    await expect(knownFor.locator('li').first()).toContainText('Neo')
+    await expect(page.getByText('This product uses the TMDB API but is not endorsed or certified by TMDB.')).toBeVisible()
+    await knownFor.getByRole('link', { name: 'Game of Thrones' }).click()
+    await expect(page).toHaveURL(/\/tmdb\/show\/1399$/)
+  })
+
+  test('an unknown person is not found, and TMDB being down says so', async ({ page }) => {
+    await mockTmdb(page)
+    await signInAsDemo(page)
+    await navigateInApp(page, '/tmdb/person/42')
+    await expect(page.getByRole('heading', { name: /not found|lost/i }).first()).toBeVisible()
+    await mockTmdb(page, { fail: true })
+    await navigateInApp(page, '/tmdb/person/31')
+    await expect(page.getByText('TMDB isn’t available right now. Please try again later.')).toBeVisible()
+  })
+})

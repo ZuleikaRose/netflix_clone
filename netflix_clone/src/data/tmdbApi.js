@@ -59,3 +59,10 @@ export async function fetchTmdbTitle(type, id) {
   if (data?.title) return { title: withPath(data.title) }
   return data?.error === 'Title not found.' ? { title: null } : { unavailable: true }
 }
+
+// { person } with their best-known titles (null when TMDB has no such person), or { unavailable: true }
+export async function fetchTmdbPerson(id) {
+  const data = await askTmdb({ action: 'person', id: Number(id) })
+  if (data?.person) return { person: { ...data.person, credits: data.person.credits.map(withPath) } }
+  return data?.error === 'Person not found.' ? { person: null } : { unavailable: true }
+}

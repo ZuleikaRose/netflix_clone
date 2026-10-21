@@ -24,10 +24,23 @@ const lists = {
 const details = {
   'movie:603': {
     ...matrix, maturity: 'R', runtime: '2h 16m', cast: ['Keanu Reeves', 'Carrie-Anne Moss'], crew: { director: 'Lana Wachowski, Lilly Wachowski', writer: null },
+    people: {
+      cast: [{ id: 6384, name: 'Keanu Reeves', role: 'Neo', photo: null }, { id: 530, name: 'Carrie-Anne Moss', role: 'Trinity', photo: null }],
+      crew: [{ id: 9340, name: 'Lana Wachowski', job: 'Director' }, { id: 9339, name: 'Lilly Wachowski', job: 'Director' }],
+    },
     trailer: { key: 'vKQi3bBA1y8', name: 'The Matrix (1999) Official Trailer' },
     providers: { link: 'https://www.themoviedb.org/movie/603/watch?locale=US', stream: [{ name: 'Max', logo: '/favicon.svg' }], rent: [{ name: 'Apple TV', logo: '/favicon.svg' }], buy: [] },
   },
   'show:1399': { ...thrones, maturity: 'TV-MA', seasons: 8, cast: ['Emilia Clarke'], crew: { director: 'David Benioff', writer: null }, trailer: null, providers: null },
+}
+// A long biography, so the page folds it
+const people = {
+  6384: {
+    id: 6384, name: 'Keanu Reeves', photo: '/favicon.svg', knownFor: 'Acting', born: '1964-09-02', died: null, birthplace: 'Beirut, Lebanon',
+    biography: `${'Keanu Charles Reeves is a Canadian actor. '.repeat(14)}\n\nHe is known for his roles in action films.`,
+    tmdbUrl: 'https://www.themoviedb.org/person/6384',
+    credits: [{ ...matrix, maturity: 'R', role: 'Neo' }, { ...thrones, maturity: 'TV-MA', role: 'Narrator' }, { ...inception, role: null }],
+  },
 }
 const recommendations = { 'movie:603': [inception, matrix], 'show:1399': [] }
 
@@ -42,8 +55,10 @@ export async function mockTmdb(page, { fail = false } = {}) {
       search: () => ({ results: [matrix, thrones].filter((t) => t.title.toLowerCase().includes(body.query.toLowerCase())) }),
       title: () => details[`${body.type}:${body.id}`] ? { title: details[`${body.type}:${body.id}`] } : null,
       recommendations: () => ({ results: recommendations[`${body.type}:${body.id}`] ?? [] }),
+      person: () => people[body.id] ? { person: people[body.id] } : { status: 404, error: 'Person not found.' },
       save: () => details[`${body.type}:${body.id}`] ? { title: details[`${body.type}:${body.id}`] } : null,
     }[body.action]?.()
+    if (reply?.status) return route.fulfill({ status: reply.status, headers: cors, json: { error: reply.error } })
     return reply ? route.fulfill({ headers: cors, json: reply }) : route.fulfill({ status: 404, headers: cors, json: { error: 'Title not found.' } })
   })
 }
