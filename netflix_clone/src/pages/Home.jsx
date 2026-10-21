@@ -127,6 +127,7 @@ export function Home() {
           <button key={value} className={type === value ? 'chip active' : 'chip'} aria-pressed={type === value} onClick={() => { setType(type === value ? null : value); setSlide(0) }}>{label}</button>
         ))}
         <button className="chip" onClick={() => navigate('/search')}>Categories <span aria-hidden="true">⌄</span></button>
+        <Link to="/what-to-watch" className="chip">What should I watch?</Link>
       </section>
 
       {notice && (

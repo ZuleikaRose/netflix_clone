@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
 import { SearchBox } from '../components/SearchBox.jsx'
@@ -99,6 +99,7 @@ export function Search() {
           onCommit={rememberSearch}
           onClearRecent={clearRecentSearches}
         />
+        <Link to="/what-to-watch" className="assistant-link">Not sure what you want? Ask what to watch</Link>
 
         <div className="genre-chips" role="group" aria-label="Filter by genre">
           {genres.map((g) => (

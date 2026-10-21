@@ -436,3 +436,6 @@ verify_jwt = false
 
 [functions.tmdb]
 verify_jwt = false
+
+[functions.assistant]
+verify_jwt = false

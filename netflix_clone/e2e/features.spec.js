@@ -94,6 +94,31 @@ test.describe('homepage', () => {
   })
 })
 
+test.describe('what should I watch?', () => {
+  test('suggests titles for a request in plain words, and never one marked Not for me', async ({ page }) => {
+    await page.getByRole('link', { name: 'What should I watch?' }).click()
+    await expect(page.getByRole('heading', { name: 'Tell us what you’re in the mood for' })).toBeVisible()
+    await page.getByRole('button', { name: 'Suggest titles' }).click()
+    await expect(page.getByText('Tell us a little about what you feel like watching.')).toBeVisible()
+
+    // The in-memory build has no AI service, so the words matcher answers (and says so)
+    await page.getByRole('group', { name: 'Example requests' }).getByRole('button', { name: 'Something tense under two hours' }).click()
+    const results = page.getByRole('region', { name: 'For “Something tense under two hours”' })
+    await expect(results.getByRole('link', { name: 'After Dark' })).toBeVisible()
+    await expect(results).toContainText('Matches thriller, tense, 1h 52m long.')
+    await expect(results.getByRole('link', { name: 'The Signal' })).toHaveCount(0)
+    await expect(results).toContainText('Suggested by matching words, not AI.')
+
+    await results.getByRole('link', { name: 'After Dark' }).click()
+    await page.getByRole('heading', { name: 'AFTER DARK' }).waitFor()
+    await page.getByRole('button', { name: 'Not for me' }).click()
+    await navigateInApp(page, '/what-to-watch')
+    await page.getByLabel('Your request').fill('Something tense under two hours')
+    await page.getByRole('button', { name: 'Suggest titles' }).click()
+    await expect(page.getByText('Nothing matched those words.', { exact: false })).toBeVisible()
+  })
+})
+
 test('title pages list cast and crew, and each name opens that person’s page', async ({ page }) => {
   await navigateInApp(page, '/title/the-signal')
   await expect(page.getByText('Director: Dara Whitfield')).toBeVisible()

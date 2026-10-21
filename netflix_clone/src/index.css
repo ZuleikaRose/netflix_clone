@@ -708,6 +708,21 @@ kbd { display: inline-block; min-width: 28px; padding: 3px 7px; border: 1px soli
 .device-list .muted { font-size: 13px; }
 .device-list .ghost-cta { flex: none; width: auto; padding: 0 14px; }
 
+/* ---------- What should I watch? ---------- */
+.assistant textarea { width: 100%; min-height: 84px; padding: 12px; border: 1px solid #555; border-radius: 6px; color: #fff; background: #1b1b1b; font: inherit; resize: vertical; }
+.assistant .has-error textarea { border-color: var(--error); }
+.assistant-examples { display: flex; flex-wrap: wrap; gap: 8px; }
+.assistant-examples .chip { min-height: 44px; }
+.assistant-picks { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.assistant-picks li { display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: start; }
+.assistant-picks img { width: 72px; height: 104px; border-radius: 6px; object-fit: cover; }
+.assistant-picks li > span { display: grid; gap: 4px; font-size: 14px; line-height: 1.4; }
+.assistant-picks .muted { font-size: 13px; }
+.assistant-by { margin: 0; color: #bcbcbc; font-size: 13px; }
+.assistant-privacy { margin: 0; font-size: 13px; line-height: 1.5; }
+.assistant-link { display: inline-flex; align-items: center; min-height: 44px; color: #fff; font-size: 14px; text-decoration: underline; }
+.filters a.chip { display: inline-flex; align-items: center; text-decoration: none; }
+
 /* Accessibility menu settings, set as data-a11y-* attributes on <html> by AccessibilityProvider */
 html[data-a11y-text-size] :is(.page, .auth-body) { zoom: var(--a11y-zoom); }
 html[data-a11y-font="readable"] :is(body, body *:not(kbd)) { font-family: "Atkinson Hyperlegible", Verdana, sans-serif !important; }
