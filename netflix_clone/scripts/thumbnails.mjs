@@ -9,8 +9,13 @@ import { chromium } from '@playwright/test'
 import { THUMBS, clips } from '../src/data/clips.js'
 
 const PORT = 4198
-const server = spawn(process.execPath, ['e2e/serve.js', 'public', String(PORT)], { stdio: 'ignore' })
-await new Promise((resolve) => setTimeout(resolve, 500))
+const server = spawn(process.execPath, ['e2e/serve.js', 'public', String(PORT)], { stdio: ['ignore', 'pipe', 'inherit'] })
+// Ready once it prints its address; fails if it can't start (e.g. the port is taken)
+await new Promise((resolve, reject) => {
+  server.stdout.once('data', resolve)
+  server.once('error', reject)
+  server.once('exit', (code) => reject(new Error(`The static server stopped (exit code ${code})`)))
+})
 
 const browser = await chromium.launch()
 try {
@@ -48,6 +53,9 @@ try {
     await writeFile(path, Buffer.from(dataUrl.split(',')[1], 'base64'))
     console.log(path)
   }
+} catch (error) {
+  console.error(`Thumbnails not drawn: ${error.message}`)
+  process.exitCode = 1
 } finally {
   await browser.close()
   server.kill()
