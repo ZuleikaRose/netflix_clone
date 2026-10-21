@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(33);
+select plan(34);
 
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
 \set jordan '''a1e00000-0000-4000-8000-000000000002'''
@@ -88,6 +88,8 @@ set local role authenticated;
 select is(public.second_step_done(), false, 'with two-step sign-in on, a password-only session has not finished signing in');
 select is((select count(*) from public.netflix_tables), 0::bigint, 'and reads none of the member''s data');
 select is((select count(*) from public.my_sessions()), 0::bigint, 'or their devices');
+select throws_ok($$select public.join_watch_party('0000000000')$$, '42501', 'Please finish signing in first.',
+  'or join a watch party (security-definer functions check the second step too)');
 select set_config('request.jwt.claims',
   format('{"sub":%s,"role":"authenticated","aal":"aal2","session_id":%s}', to_json(:alex::text), to_json(:alex_session::text)), true);
 select is((select count(*) from public.netflix_tables), 1::bigint, 'after the code (aal2), the member''s data is back');

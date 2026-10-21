@@ -36,6 +36,8 @@
 -- - ..._two_step_sign_in: no new tables. A restrictive policy on every table keeps a session that hasn't entered its
 --   two-step code (Supabase Auth MFA) away from all data (second_step_done()); my_sessions() and end_session() list
 --   and sign out the member's devices (auth.sessions).
+-- - ..._second_step_for_definer_functions: staff_tickets(), staff_set_ticket_status() and join_watch_party() also
+--   refuse a session that hasn't entered its two-step code.
 
 CREATE SEQUENCE ticket_number_seq START 48400;
 

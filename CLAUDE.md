@@ -46,11 +46,12 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Both run all 19 migrations (through `20261023030000_two_step_sign_in`), non_transactional 001–008 and the same 8
-functions, with `assistant` (production caught up 2026-10-21).
-The `assistant` function needs the `ANTHROPIC_API_KEY` secret on each project (without it the app matches words). `apply_migration` stamps the current time as the version: afterwards set
-it to the file's version in `supabase_migrations.schema_migrations`, and apply one migration per second or less often,
-or two get the same stamp and the second fails on the duplicate version.
+Both run all 20 migrations (through `20261023040000_second_step_for_definer_functions`), non_transactional 001–008
+and the same 8 functions, with `assistant` (production caught up 2026-10-21). `assistant` needs the
+`ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
+`apply_migration` stamps the current time as the version: afterwards set it to the file's version in
+`supabase_migrations.schema_migrations`, and apply one migration per second or less often, or two get the same stamp
+and the second fails on the duplicate version.
 Each project needs the `TMDB_API_FREE` Edge Function secret for `tmdb` (the dashboard can't show it back; the value
 comes from themoviedb.org → Settings → API). The DROP INDEX steps at the end of `002_query_indexes.sql` haven't run on
 either project yet (they only remove indexes the new composite ones make redundant).
@@ -249,8 +250,10 @@ after editing.
 - **Two-step sign-in**: Supabase Auth MFA (TOTP; on in `config.toml` and on both projects). With a verified factor a
   password sign-in or restored session is aal1: the provider sets `secondStep` and Login asks for the code
   (`verifySecondStep`). A restrictive policy "Two-step sign-in finished" on every RLS table (`second_step_done()`)
-  blocks aal1 sessions; give new tables the same policy. `callerFrom()` in the functions refuses them too. Memory mode
-  uses `data/totp.js` (the tests compute codes with it). Devices: `my_sessions()` / `end_session()` over auth.sessions.
+  blocks aal1 sessions; give new tables the same policy, and start any security-definer function that reads other
+  members' rows with a `second_step_done()` check (RLS doesn't apply inside it). `callerFrom()` in the functions
+  refuses them too. Memory mode uses `data/totp.js` (the tests compute codes with it). Devices: `my_sessions()` /
+  `end_session()` over auth.sessions.
 - **Assistant**: `supabase/functions/assistant` asks Claude (`claude-haiku-5-5`, structured output via the SDK's Zod
   helper) to pick up to five of the profile's allowed titles; ids it invents are dropped. Signed-in only, 20/hour per
   member and 60/hour per IP. Only the request and liked titles' names are sent. Any failure (or no key, or memory
