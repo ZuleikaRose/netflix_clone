@@ -28,6 +28,14 @@
 -- - ..._watch_parties: new tables watch_parties and watch_party_members; join_watch_party(code); party channels are
 --   private Realtime channels limited to members.
 -- - ..._better_search: search_titles(query) (pg_trgm); new table recent_searches.
+-- 2026-10-23 (seven more features):
+-- - ..._title_reactions: new table title_reactions (a profile's thumbs ratings: Not for me, I like this, Love this!).
+-- - ..._year_in_review: year_in_review(profile, year) sums up a profile's viewing history for a year.
+-- - ..._profile_locks: profiles gains locked; the PIN hashes are in private.profile_pins (not part of the API, so not
+--   drawn); set_profile_pin(), unlock_profile() and verify_account_password() check PINs and the account password.
+-- - ..._two_step_sign_in: no new tables. A restrictive policy on every table keeps a session that hasn't entered its
+--   two-step code (Supabase Auth MFA) away from all data (second_step_done()); my_sessions() and end_session() list
+--   and sign out the member's devices (auth.sessions).
 
 CREATE SEQUENCE ticket_number_seq START 48400;
 
@@ -59,6 +67,7 @@ CREATE TABLE profiles (
   avatar varchar NOT NULL DEFAULT 'blue' CHECK (avatar IN ('blue', 'red', 'yellow', 'green', 'purple')),
   maturity_rating varchar NOT NULL DEFAULT 'all' CHECK (maturity_rating IN ('all', 'teen', 'kids')),
   notifications_seen_at timestamptz NOT NULL DEFAULT now(), -- when the profile last opened its notifications
+  locked boolean NOT NULL DEFAULT false, -- has a PIN (only set_profile_pin() changes it)
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (id, user_id),
   UNIQUE (user_id, name)
@@ -362,4 +371,15 @@ CREATE TABLE recent_searches (
   searched_at timestamptz NOT NULL DEFAULT now(),
   FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE,
   UNIQUE (profile_id, query_key)
+);
+
+-- A profile's thumbs ratings: 'dislike' (Not for me: never recommended to that profile), 'like', 'love'
+CREATE TABLE title_reactions (
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  profile_id uuid NOT NULL,
+  title_id varchar NOT NULL REFERENCES titles (id) ON DELETE CASCADE,
+  reaction varchar NOT NULL CHECK (reaction IN ('dislike', 'like', 'love')),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (profile_id, title_id),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE
 );

@@ -55,7 +55,7 @@ const tables = [
   ['tmdb_certifications', 'brick', M, 2330, ['media_type:varchar:pn', 'tmdb_id:integer:pn', 'certification:varchar:n', 'fetched_at:timestamptz:n'], 'NEW · US ratings of listed TMDB titles, used only by the tmdb function'],
   ['watch_progress', 'purple', R, 2160, ['id:uuid:pn', 'user_id:uuid:fn', 'profile_id:uuid:fn', 'title_id:varchar:fn', 'episode:smallint:n', 'position_seconds:numeric(8,1):n', 'progress_percent:smallint:n', 'updated_at:timestamptz:n'], 'NEW · Continue Watching, one row per profile and title'],
   // 2026-10-22: profiles, support, history, custom lists, watch parties, recent searches
-  ['profiles', 'pink', L, 2580, ['id:uuid:pn', 'user_id:uuid:fn', 'name:varchar:n', 'avatar:varchar:n', 'maturity_rating:varchar:n', 'notifications_seen_at:timestamptz:n', 'created_at:timestamptz:n'], 'NEW · who’s watching, 1–5 per account'],
+  ['profiles', 'pink', L, 2580, ['id:uuid:pn', 'user_id:uuid:fn', 'name:varchar:n', 'avatar:varchar:n', 'maturity_rating:varchar:n', 'notifications_seen_at:timestamptz:n', 'locked:boolean:n', 'created_at:timestamptz:n'], 'NEW · who’s watching, 1–5 per account'],
   ['staff', 'blue', L, 2920, ['user_id:uuid:pfn', 'added_at:timestamptz:n'], 'NEW · support team (support dashboard)'],
   ['recent_searches', 'amber', L, 3100, ['id:uuid:pn', 'user_id:uuid:fn', 'profile_id:uuid:fn', 'query:varchar:n', 'query_key:varchar:n', 'searched_at:timestamptz:n'], 'NEW · a profile’s last ten searches'],
   ['ticket_replies', 'blue', M, 2580, ['id:uuid:pn', 'ticket_id:uuid:fn', 'user_id:uuid:fn', 'from_staff:boolean:n', 'author_name:varchar:n', 'body:text:n', 'created_at:timestamptz:n'], 'NEW · member and staff replies'],
@@ -64,6 +64,8 @@ const tables = [
   ['custom_lists', 'teal', R, 2580, ['id:uuid:pn', 'user_id:uuid:fn', 'profile_id:uuid:fn', 'name:varchar:n', 'description:varchar:n', 'is_public:boolean:n', 'share_slug:varchar:un', 'created_at:timestamptz:n', 'updated_at:timestamptz:n'], 'NEW · shareable by link when public'],
   ['custom_list_items', 'teal', R, 2980, ['list_id:uuid:pfn', 'title_id:varchar:pfn', 'user_id:uuid:fn', 'added_at:timestamptz:n']],
   ['watch_party_members', 'red', R, 3230, ['party_id:uuid:pfn', 'user_id:uuid:pfn', 'joined_at:timestamptz:n']],
+  // 2026-10-23: thumbs ratings (profile PINs live in the private schema, outside the API)
+  ['title_reactions', 'indigo', R, 3420, ['user_id:uuid:fn', 'profile_id:uuid:pfn', 'title_id:varchar:pfn', 'reaction:varchar:n', 'updated_at:timestamptz:n'], 'NEW · Not for me / I like this / Love this!'],
 ]
 // [from table, from column, to table, to column]
 const links = [
@@ -80,10 +82,11 @@ const links = [
   ['viewing_history', 'profile_id', 'profiles', 'id'],
   ['custom_list_items', 'list_id', 'custom_lists', 'id'],
   ['watch_party_members', 'party_id', 'watch_parties', 'id'],
+  ['title_reactions', 'profile_id', 'profiles', 'id'],
 ]
 
 const board = document.getElementById('board')
-board.insertAdjacentHTML('beforeend', '<div id="title">Netflix Clone database</div><div id="sub">Supabase Postgres (eagle_platoon / eagle_platoon_dev) · every table has RLS · 28 tables · updated 2026-10-22</div>')
+board.insertAdjacentHTML('beforeend', '<div id="title">Netflix Clone database</div><div id="sub">Supabase Postgres (eagle_platoon / eagle_platoon_dev) · every table has RLS · 29 tables · updated 2026-10-23</div>')
 for (const [name, color, x, y, rows, note] of tables) {
   const [c, bg] = C[color]
   const el = document.createElement('div')

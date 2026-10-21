@@ -163,3 +163,9 @@ from generate_series(1, 36) as n
 union all
 select 'afa00000-0000-4000-8000-000000000002'::uuid, case when n % 4 = 0 then 'signup' else 'click' end, now() - n * interval '1 day'
 from generate_series(1, 8) as n;
+
+-- Thumbs ratings (each account's first profile): Alex loves The Signal and isn't interested in Dead Reckoning
+insert into public.title_reactions (user_id, title_id, reaction) values
+  ('a1e00000-0000-4000-8000-000000000001', 'the-signal', 'love'),
+  ('a1e00000-0000-4000-8000-000000000001', 'dead-reckoning', 'dislike'),
+  ('a1e00000-0000-4000-8000-000000000002', 'night-shift', 'like');
