@@ -13,6 +13,8 @@ const preferenceColumns = {
   personalized: 'personalized',
   playerVolume: 'player_volume', // 0-100, null = never set (the player then uses this browser's level)
   showOnLeaderboards: 'show_on_leaderboards', // opt-in: first name and best scores on game leaderboards
+  keepHistory: 'keep_viewing_history', // off: nothing new goes into viewing history (the database also refuses it)
+  historyRetention: 'history_retention_days', // 90 or 365: older history is deleted nightly; null = kept
 }
 
 // date columns ↔ ISO strings. Local noon, so formatting in any time zone shows the stored day.

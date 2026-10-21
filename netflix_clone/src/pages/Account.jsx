@@ -189,6 +189,7 @@ export function Account() {
               <input type="checkbox" role="switch" checked={user.preferences[key]} onChange={(e) => setPreference(key, e.target.checked)} />
             </label>
           ))}
+          <Link to="/history" className="ghost-cta">Viewing activity and history settings</Link>
           <p className="muted">More choices: <Link to="/info/do-not-sell" className="inline-link">Do Not Sell My Information</Link> · <Link to="/info/privacy" className="inline-link">Privacy Policy</Link></p>
         </section>
 

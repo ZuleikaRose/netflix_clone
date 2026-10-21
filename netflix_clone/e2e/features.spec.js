@@ -282,3 +282,56 @@ test.describe('seasons and episodes', () => {
     await expect(page.getByText(/starts in/)).toHaveCount(0)
   })
 })
+
+test.describe('viewing history and privacy', () => {
+  const watchFirstEpisode = async (page) => {
+    await navigateInApp(page, '/title/behind-the-glass')
+    await page.getByRole('button', { name: /^\s*(Play|Resume)$/ }).click()
+    const seek = page.getByLabel('Seek')
+    await expect(seek).not.toHaveAttribute('max', '0')
+    await seek.fill(await seek.getAttribute('max'))
+    await expect(page.getByRole('group', { name: 'Playback finished' })).toBeVisible()
+    await page.getByRole('button', { name: 'Close player' }).click()
+  }
+
+  test('what a profile watches is listed by day, and entries can be hidden or all cleared', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/history')
+    await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible()
+
+    await watchFirstEpisode(page)
+    await navigateInApp(page, '/account')
+    await page.getByRole('link', { name: 'Viewing activity and history settings' }).click()
+    await expect(page).toHaveURL(/\/history$/)
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    const day = page.locator('.history-day', { has: page.getByRole('heading', { name: today }) })
+    await expect(day.getByRole('link', { name: 'Behind the Glass: S1:E1 Pilot' })).toBeVisible()
+
+    const download = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Download all (CSV)' }).click()
+    expect((await download).suggestedFilename()).toBe('viewing-activity.csv')
+
+    await page.getByRole('button', { name: 'Hide Behind the Glass: S1:E1 Pilot from history' }).click()
+    await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible()
+
+    await watchFirstEpisode(page)
+    await navigateInApp(page, '/history')
+    await page.getByRole('button', { name: 'Hide all…' }).click()
+    await page.getByRole('group', { name: 'Hide all history' }).getByRole('button', { name: 'Hide all' }).click()
+    await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible()
+  })
+
+  test('with history turned off nothing is recorded, and old history can be set to delete itself', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/history')
+    await page.getByRole('switch', { name: /Keep viewing history/ }).uncheck()
+    const retention = page.getByLabel('Delete old history automatically')
+    await retention.selectOption('90')
+    await expect(retention).toHaveValue('90')
+
+    await watchFirstEpisode(page)
+    await navigateInApp(page, '/history')
+    await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible()
+    await expect(page.getByLabel('Delete old history automatically')).toHaveValue('90')
+  })
+})

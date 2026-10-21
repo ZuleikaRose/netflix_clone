@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { catalog } from '../data/catalog.js'
+import { localDay } from '../data/notifications.js'
 import { useAuth } from './authContext.js'
 import { FINISHED_PERCENT, LibraryContext } from './libraryContext.js'
 import { useProfile } from './profileContext.js'
@@ -24,7 +25,8 @@ const memoryStash = new Map()
 const toggleIn = (setter) => (id) => setter((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
 
 export function LibraryProvider({ children }) {
-  const { libraryFor, session } = useAuth()
+  const { libraryFor, session, user } = useAuth()
+  const keepHistory = user.preferences.keepHistory !== false
   const { profile } = useProfile()
   const remote = useMemo(() => libraryFor?.(profile.id) ?? null, [libraryFor, profile.id])
   const accountKey = String(session)
@@ -47,12 +49,16 @@ export function LibraryProvider({ children }) {
   const [dismissedNotices, setDismissedNotices] = useState(kept.dismissedNotices ?? [])
   // { [titleId]: { percent, episode, seconds } }: where the profile stopped (seconds is null for the samples)
   const [progress, setProgress] = useState(() => (remote ? {} : kept.progress ?? sampleProgress()))
+  // Viewing history in memory ({ id, titleId, episode, day, at }, newest first); with Supabase it's read when shown
+  const [history, setHistory] = useState(kept.history ?? [])
+  // With Supabase, each title/episode/day is written once per page load (the player saves every few seconds)
+  const recorded = useRef(new Set())
 
   useEffect(() => {
     if (remote) return
     memoryStash.set(accountKey, { ratings, reviews, feedback, issues, doNotSell, affiliate, dismissedNotices })
-    memoryStash.set(profileKey, { myList, favorites, reminders, reminderDates, bestScores, progress })
-  }, [remote, accountKey, profileKey, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+    memoryStash.set(profileKey, { myList, favorites, reminders, reminderDates, bestScores, progress, history })
+  }, [remote, accountKey, profileKey, myList, favorites, reminders, reminderDates, history, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   useEffect(() => {
     if (!remote) return
@@ -77,6 +83,36 @@ export function LibraryProvider({ children }) {
   const value = useMemo(() => {
     const save = (promise) => promise?.catch(warn)
     // Add or remove a title id, locally and (with Supabase) in its table
+    // Adds a viewing to the history, unless the member paused it (episode 0 for movies)
+    const recordViewing = (titleId, episode) => {
+      if (!keepHistory) return
+      const at = new Date()
+      const day = localDay(at)
+      const ep = catalog.find((t) => t.id === titleId)?.type === 'show' ? episode : 0
+      const entry = { id: `${titleId}:${ep}:${day}`, titleId, episode: ep, day, at }
+      if (!remote) {
+        setHistory((all) => [entry, ...all.filter((e) => e.id !== entry.id)])
+        return
+      }
+      if (recorded.current.has(entry.id)) return
+      recorded.current.add(entry.id)
+      save(remote.recordViewing(entry))
+    }
+    // Resolves to an error message or null
+    const changeHistory = async (memoryChange, remoteChange) => {
+      if (!remote) {
+        setHistory(memoryChange)
+        return null
+      }
+      try {
+        await remoteChange()
+        return null
+      } catch (error) {
+        warn(error)
+        return 'Your viewing history couldn’t be changed. Please try again.'
+      }
+    }
+
     const toggleSaved = (ids, setter, table) => (id) => {
       toggleIn(setter)(id)
       if (remote) save(ids.includes(id) ? remote[table].remove(id) : remote[table].add(id))
@@ -155,7 +191,16 @@ export function LibraryProvider({ children }) {
         save(remote?.saveScore(game, score))
       },
       // Called by the player as the user watches; finishing a title takes it out of Continue Watching
+      // Viewing activity: the profile's history, newest first (resolves to the entries; throws if it can't be read)
+      loadHistory: async () => (remote ? remote.loadHistory() : history),
+      hideFromHistory: (id) => changeHistory((all) => all.filter((e) => e.id !== id), () => remote.hideFromHistory(id)),
+      clearHistory: () => {
+        recorded.current.clear()
+        return changeHistory([], () => remote.clearHistory())
+      },
       saveProgress: (titleId, entry) => {
+        // Moving on to the next episode (at 0) isn't watching it yet
+        if (entry.seconds !== 0) recordViewing(titleId, entry.episode)
         const finished = entry.percent >= FINISHED_PERCENT
         // Newest first, so Continue Watching lists the latest title first
         setProgress((all) => {
@@ -175,7 +220,7 @@ export function LibraryProvider({ children }) {
         setAffiliate((a) => a && ({ ...a, clicks: a.clicks + 1, signups: a.signups + (kind === 'signup' ? 1 : 0) }))
       },
     }
-  }, [remote, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+  }, [remote, keepHistory, history, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
 }

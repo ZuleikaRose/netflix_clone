@@ -2,7 +2,7 @@ import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo } from './helpers.js'
 
 const routes = [
-  '/', '/title/behind-the-glass', '/tmdb/show/1399', '/tmdb/person/6384', '/people/Mara%20Quinn', '/search', '/new', '/my-netflix', '/watchlist', '/favorites', '/account', '/profiles', '/support-dashboard', '/notifications', '/games', '/games/memory', '/games/trivia', '/games/timeline', '/games/cast', '/games/higher-lower', '/games/scramble',
+  '/', '/title/behind-the-glass', '/tmdb/show/1399', '/tmdb/person/6384', '/people/Mara%20Quinn', '/search', '/new', '/my-netflix', '/watchlist', '/favorites', '/account', '/profiles', '/support-dashboard', '/notifications', '/history', '/games', '/games/memory', '/games/trivia', '/games/timeline', '/games/cast', '/games/higher-lower', '/games/scramble',
   ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell', 'accessibility'].map((s) => `/info/${s}`),
 ]
 

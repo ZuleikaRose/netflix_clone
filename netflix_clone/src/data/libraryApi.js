@@ -9,6 +9,9 @@ const unwrap = ({ data, error }) => {
 }
 
 // A reply on a ticket, oldest first in each conversation
+// Viewing activity shows this many entries, newest first
+const HISTORY_LIMIT = 500
+
 export const toReply = (r) => ({ id: r.id, body: r.body, fromStaff: r.from_staff, author: r.author_name, at: new Date(r.created_at) })
 const replyColumns = 'id, body, from_staff, author_name, created_at'
 const ticketColumns = `id, ticket_number, issue_type, title_id, summary, steps, device, status, created_at, ticket_replies(${replyColumns})`
@@ -119,6 +122,17 @@ export function libraryApi(supabase, userId, profileId) {
       user_id: userId, profile_id: profileId, title_id: titleId, episode: p.episode, position_seconds: Math.round(p.seconds * 10) / 10,
       progress_percent: p.percent, updated_at: new Date().toISOString(),
     }, { onConflict: 'profile_id,title_id' }).then(unwrap),
+    // Viewing history: one row per title and episode (0 for movies) per day; watched_at moves to the latest viewing
+    recordViewing: (entry) => supabase.from('viewing_history').upsert({
+      user_id: userId, profile_id: profileId, title_id: entry.titleId, episode: entry.episode, watched_on: entry.day,
+      watched_at: entry.at.toISOString(),
+    }, { onConflict: 'profile_id,title_id,episode,watched_on' }).then(unwrap),
+    loadHistory: () => profiles('viewing_history', 'id, title_id, episode, watched_on, watched_at')
+      .order('watched_at', { ascending: false }).limit(HISTORY_LIMIT).then(unwrap)
+      .then((rows) => rows.map((r) => ({ id: r.id, titleId: r.title_id, episode: r.episode, day: r.watched_on, at: new Date(r.watched_at) }))),
+    hideFromHistory: (id) => supabase.from('viewing_history').delete().eq('user_id', userId).eq('id', id).then(unwrap),
+    clearHistory: () => supabase.from('viewing_history').delete().eq('user_id', userId).eq('profile_id', profileId).then(unwrap),
+
     clearProgress: (titleId) => supabase.from('watch_progress').delete().eq('user_id', userId).eq('profile_id', profileId).eq('title_id', titleId).then(unwrap),
 
     // Codes are unique across all accounts (many demo users are called Alex), so add a random suffix

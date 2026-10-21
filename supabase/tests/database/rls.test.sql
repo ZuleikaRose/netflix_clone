@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(76);
+select plan(82);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
@@ -94,6 +94,16 @@ update public.profiles set notifications_seen_at = '2030-01-01' where id = :'ale
 select is((select notifications_seen_at from public.profiles where id = :'alex_profile'), '2030-01-01'::timestamptz,
   'a member records when a profile last saw its notifications');
 
+-- Viewing history: recorded per profile, and not at all while paused
+insert into public.viewing_history (title_id, episode, watched_on) values ('after-dark', 0, '2026-10-01');
+select is((select profile_id from public.viewing_history where title_id = 'after-dark'), :'alex_profile'::uuid,
+  'history without a profile goes to the account''s first profile');
+update public.preferences set keep_viewing_history = false where user_id = :alex;
+insert into public.viewing_history (title_id, episode, watched_on) values ('the-signal', 0, '2026-10-01');
+select is((select count(*) from public.viewing_history where title_id = 'the-signal'), 0::bigint,
+  'a paused history records nothing');
+update public.preferences set keep_viewing_history = true, history_retention_days = 90 where user_id = :alex;
+
 -- Support: Alex isn't staff
 select is((select count(*) from public.staff), 0::bigint, 'a member who isn''t staff has no staff row');
 select throws_ok('select * from public.staff_tickets()', '42501', null, 'members who aren''t staff can''t read the ticket queue');
@@ -115,6 +125,7 @@ select throws_ok(format('delete from public.profiles where id = %L', :'jordan_pr
   'An account needs at least one profile.', 'an account keeps at least one profile');
 select is((select count(*) from public.referrals where affiliate_id = 'afa00000-0000-4000-8000-000000000002'), 0::bigint,
   'an affiliate cannot see another affiliate''s referrals');
+select is((select count(*) from public.viewing_history), 0::bigint, 'members can''t see each other''s viewing history');
 
 -- Dana, on the support team ------------------------------------------------------------------------------------------
 select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated"}', to_json(:dana::text)), true);
@@ -160,6 +171,15 @@ select is((select count(*) from auth.users where id = 'b0000000-0000-4000-8000-0
   'the cleanup job deletes demo accounts older than 24 hours');
 select is((select count(*) from public.netflix_tables where id = 'b0000000-0000-4000-8000-000000000001'), 1::bigint,
   'the cleanup job keeps ordinary accounts');
+
+-- History older than the member's limit (Alex keeps 90 days) goes in the nightly job
+update public.viewing_history set watched_at = now() - interval '100 days' where title_id = 'after-dark';
+insert into public.viewing_history (user_id, profile_id, title_id, watched_on)
+  values (:jordan, :'jordan_profile', 'after-dark', current_date - 200);
+select ok(private.delete_old_viewing_history() >= 1, 'the history job reports what it deleted');
+select is((select count(*) from public.viewing_history where user_id = :alex), 0::bigint, 'history past the member''s limit is deleted');
+select is((select count(*) from public.viewing_history where user_id = :jordan), 1::bigint,
+  'history is kept for members who chose no limit');
 
 -- Rate limiter (as the Edge Functions call it, with the secret key) -------------------------------------------------
 set local role service_role;
