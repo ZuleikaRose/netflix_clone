@@ -8,6 +8,9 @@
 -- author_name; affiliates gain payout_method and audience_size; tickets are numbered by a sequence; one preferences,
 -- promo code, affiliate and accessibility row per user; every child row is deleted with its account (ON DELETE
 -- CASCADE); new tables promotions (valid promo codes) and rate_limit_hits (Edge Function rate limits).
+-- TMDB (migration ..._tmdb_titles_and_player_volume): titles gains source ('catalog' or 'tmdb'), so TMDB titles members
+-- save can sit in watch lists and favorites like catalog titles; new table tmdb_titles holds their TMDB-only details;
+-- preferences gains player_volume.
 
 CREATE SEQUENCE ticket_number_seq START 48400;
 
@@ -30,7 +33,7 @@ CREATE TABLE netflix_tables (
 );
 
 CREATE TABLE titles (
-  id varchar PRIMARY KEY, -- catalog slug, e.g. 'after-dark'
+  id varchar PRIMARY KEY, -- catalog slug, e.g. 'after-dark', or 'tmdb-<movie|show>-<TMDB id>' for a saved TMDB title
   title varchar NOT NULL,
   type varchar NOT NULL CHECK (type IN ('movie', 'show')),
   release_year smallint,
@@ -47,7 +50,21 @@ CREATE TABLE titles (
   is_new boolean NOT NULL DEFAULT false,
   top10_rank smallint UNIQUE,
   image_url varchar,
-  tint varchar NOT NULL DEFAULT 'none' -- CSS filter the app applies to the poster image
+  tint varchar NOT NULL DEFAULT 'none', -- CSS filter the app applies to the poster image
+  source varchar NOT NULL DEFAULT 'catalog' CHECK (source IN ('catalog', 'tmdb')) -- 'tmdb' rows are added only by the tmdb Edge Function
+);
+
+-- The TMDB-only details of each TMDB title a member has saved (its core fields are a titles row). Anyone can read it;
+-- only the tmdb Edge Function writes it, from TMDB's own data.
+CREATE TABLE tmdb_titles (
+  title_id varchar PRIMARY KEY REFERENCES titles (id) ON DELETE CASCADE, -- e.g. 'tmdb-movie-603'
+  tmdb_id integer NOT NULL,
+  media_type varchar NOT NULL CHECK (media_type IN ('movie', 'tv')),
+  backdrop_url varchar,
+  tmdb_rating numeric(3, 1) CHECK (tmdb_rating BETWEEN 0 AND 10),
+  tmdb_url varchar NOT NULL,
+  fetched_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (media_type, tmdb_id)
 );
 
 CREATE TABLE watch_list_tables (
@@ -105,7 +122,8 @@ CREATE TABLE preferences (
   autoplay_previews boolean,
   email_updates boolean,
   personalized boolean,
-  maturity_rating varchar
+  maturity_rating varchar,
+  player_volume smallint CHECK (player_volume BETWEEN 0 AND 100) -- video player volume; null = full volume
 );
 
 -- The valid promo codes (WELCOME50, STUDENT20, FAMILY15). Only the apply-promo Edge Function can read it.
@@ -186,7 +204,7 @@ CREATE TABLE accessibility_settings (
 );
 
 -- One row per call to a public Edge Function, keyed e.g. 'demo-account:203.0.113.7' or 'tmdb:203.0.113.7' (TMDB
--- lookups; TMDB titles themselves aren't stored). Only the functions can use it; hits older than a day are deleted hourly.
+-- lookups the function's cache can't answer). Only the functions can use it; hits older than a day are deleted hourly.
 CREATE TABLE rate_limit_hits (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   key varchar NOT NULL,

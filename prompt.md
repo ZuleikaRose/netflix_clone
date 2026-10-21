@@ -83,4 +83,17 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
 16. Update `drawsql.png`, `schema.sql`, the READMEs, `user_journey.md`, `user_stories.md`, `prompt.md`, `CLAUDE.md`,
     the style guide and both Supabase databases to match the changes. Commit and push.
 
+17. Let users see more titles left and right in each row; rename "New on Netflix" to New on TMDB; make TMDB titles
+    show in Search and follow the Type, Released and Sort by filters. Open a pull request, merge it once CI passes,
+    deploy the updated function to production, commit and push.
+18. Add four more games besides Poster Match and Plot Twist (Timeline, Cast Call, Higher or Lower, Title Scramble).
+19. Make "Top 10 in the U.S. Today" have 10 entries, filled with TMDB titles.
+20. Add volume controls to the video player.
+21. Add a new table and columns (saving TMDB titles to lists, the player volume per member) and previous/next
+    episode buttons in the player; update `drawsql.png`, `schema.sql`, `user_journey.md`, `user_stories.md`, the
+    style guide, `CLAUDE.md`, `prompt.md`, both Supabase projects and the README, committing and pushing after each.
+22. Make sure `drawsql.png`, `schema.sql`, the READMEs, `user_journey.md`, `user_stories.md`, `prompt.md`, `CLAUDE.md`,
+    the style guide and both Supabase databases are up to date with the changes; commit and push. (Both projects
+    already ran the same 7 migrations and 7 functions; only this file needed the new entry.)
+
 Still to do: custom SMTP for Auth emails, hosting and CAPTCHA on sign-up and sign-in.

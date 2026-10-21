@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(38);
+select plan(44);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
@@ -21,6 +21,10 @@ select throws_ok($$insert into public.titles (id, title, type) values ('x', 'x',
 select throws_ok($$select public.hit_rate_limit('x', 1, 60)$$, '42501', null, 'anon cannot use the rate limiter');
 select throws_ok('select 1 from public.rate_limit_hits', '42501', null, 'anon cannot read rate-limit hits');
 select throws_ok('select 1 from public.promotions', '42501', null, 'anon cannot read the valid promo codes');
+select is((select count(*) from public.titles where source = 'catalog'), 9::bigint, 'catalog titles are marked as the catalog');
+select lives_ok('select 1 from public.tmdb_titles', 'anon can read saved TMDB titles');
+select throws_ok($$insert into public.tmdb_titles (title_id, tmdb_id, media_type, tmdb_url) values ('after-dark', 1, 'movie', 'x')$$,
+  '42501', null, 'anon cannot add saved TMDB titles');
 
 -- Alex, signed in --------------------------------------------------------------------------------------------------
 reset role;
@@ -38,6 +42,10 @@ select throws_ok(format($$insert into public.favorites (user_id, title_id) value
 select results_eq(
   format($$with u as (update public.watch_list_tables set title_id = 'cold-open' where user_id = %L returning 1) select count(*) from u$$, :jordan::text),
   $$values (0::bigint)$$, 'a user cannot change someone else''s rows');
+select throws_ok($$insert into public.titles (id, title, type, source) values ('tmdb-movie-1', 'x', 'movie', 'tmdb')$$,
+  '42501', null, 'a user cannot add TMDB titles directly (only the tmdb function can)');
+select lives_ok($$update public.preferences set player_volume = 60$$, 'a user can save their player volume');
+select throws_ok($$update public.preferences set player_volume = 150$$, '23514', null, 'player volume stays between 0 and 100');
 select results_eq(
   format($$with u as (update public.netflix_tables set plan = 'premium' where id = %L returning 1) select count(*) from u$$, :alex::text),
   $$values (1::bigint)$$, 'a user can change their own plan');

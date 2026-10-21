@@ -63,11 +63,35 @@ test.describe('TMDB titles from the tmdb Edge Function', () => {
     await expect(page.getByText('TV-MA')).toBeVisible()
     await expect(page.getByText('Emilia Clarke')).toBeVisible()
     await expect(page.getByRole('link', { name: 'View Game of Thrones on TMDB' })).toHaveAttribute('href', 'https://www.themoviedb.org/tv/1399')
-    // Not in the catalog: nothing to play or save
-    await expect(page.getByRole('button', { name: /Play|My List/ })).toHaveCount(0)
+    // No sample clip for TMDB titles: nothing to play
+    await expect(page.getByRole('button', { name: /^\s*(Play|Resume)$/ })).toHaveCount(0)
 
     await navigateInApp(page, '/tmdb/movie/999')
     await expect(page.getByRole('heading', { name: /not found|lost/i }).first()).toBeVisible()
+  })
+
+  test('a TMDB title can go on My List and Favorites, and opens from there', async ({ page }) => {
+    await mockTmdb(page)
+    await signInAsDemo(page)
+    await navigateInApp(page, '/tmdb/movie/603')
+    const myList = page.getByRole('button', { name: 'My List' })
+    const favorite = page.getByRole('button', { name: 'Favorite' })
+    await expect(myList).toHaveAttribute('aria-pressed', 'false')
+    await myList.click()
+    await favorite.click()
+    await expect(myList).toHaveAttribute('aria-pressed', 'true')
+    await expect(favorite).toHaveAttribute('aria-pressed', 'true')
+
+    await navigateInApp(page, '/watchlist')
+    await expect(page.getByRole('link', { name: 'The Matrix', exact: true })).toHaveAttribute('href', '/tmdb/movie/603')
+    await navigateInApp(page, '/favorites')
+    await page.getByRole('link', { name: 'The Matrix', exact: true }).click()
+    await expect(page).toHaveURL(/\/tmdb\/movie\/603$/)
+
+    await page.getByRole('button', { name: 'My List' }).click()
+    await expect(page.getByRole('button', { name: 'My List' })).toHaveAttribute('aria-pressed', 'false')
+    await navigateInApp(page, '/watchlist')
+    await expect(page.getByRole('link', { name: 'The Matrix', exact: true })).toHaveCount(0)
   })
 
   test('search adds TMDB results, filtered like the catalog results', async ({ page }) => {

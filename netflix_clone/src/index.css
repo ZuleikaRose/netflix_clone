@@ -113,6 +113,12 @@ svg.filled { fill: currentColor; }
 .player-controls { display: flex; align-items: center; justify-content: space-between; }
 .volume-control { display: flex; align-items: center; }
 .volume { width: 64px; height: 44px; margin: 0; accent-color: #fff; cursor: pointer; }
+.player-episodes { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; font-size: 13px; }
+.episode-button { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 10px; border: 0; border-radius: 8px; color: #fff; background: transparent; font-weight: 600; font-size: 13px; cursor: pointer; }
+.episode-button svg { width: 20px; height: 20px; }
+.episode-button:hover:not([aria-disabled="true"]) { background: #ffffff1a; }
+.episode-button[aria-disabled="true"] { opacity: .4; cursor: default; }
+.episode-number { color: #bcbcbc; }
 .speed select { min-height: 44px; padding: 0 6px; border: 1px solid #555; border-radius: 6px; color: #fff; background: #000; font-size: 13px; }
 .player-controls [aria-pressed="true"] { color: #111; background: #fff; border-radius: 8px; }
 .captions { position: absolute; left: 50%; bottom: 104px; max-width: 92%; margin: 0; padding: 4px 10px; border-radius: 4px; color: #fff; background: #000000d9; text-align: center; line-height: 1.35; white-space: pre-line; transform: translateX(-50%); }

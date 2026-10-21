@@ -40,6 +40,13 @@ export async function searchTmdb(query) {
   return data?.results ? data.results.map(withPath) : null
 }
 
+// Stores a TMDB title in the database (signed-in members only) so My List and Favorites can point to it.
+// Resolves to true once it's stored, false otherwise.
+export async function saveTmdbTitle(title) {
+  const data = await askTmdb({ action: 'save', type: title.type, id: title.tmdbId })
+  return Boolean(data?.title)
+}
+
 // { title } (null when TMDB has no such title), or { unavailable: true }
 export async function fetchTmdbTitle(type, id) {
   const data = await askTmdb({ action: 'title', type, id: Number(id) })

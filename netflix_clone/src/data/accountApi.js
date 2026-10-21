@@ -11,6 +11,7 @@ const preferenceColumns = {
   emailUpdates: 'email_updates',
   personalized: 'personalized',
   maturity: 'maturity_rating',
+  playerVolume: 'player_volume', // 0-100, null = never set (the player then uses this browser's level)
 }
 
 // date columns ↔ ISO strings. Local noon, so formatting in any time zone shows the stored day.

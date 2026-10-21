@@ -33,7 +33,7 @@ supabase/             Supabase CLI project (config.toml); MCP config in supabase
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
   diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
-schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 16 public tables)
+schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 17 public tables)
 user_stories.md       What the database stores, one story per thing the app remembers
 prompt.md             The original build prompt and the Supabase-phase prompts
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
@@ -42,7 +42,7 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Both run the same 6 migrations and 7 functions (production caught up on 2026-10-20). `apply_migration` stamps the
+Both run the same 7 migrations and 7 functions (production caught up on 2026-10-20). `apply_migration` stamps the
 current time as the version: afterwards set it to the file's version in `supabase_migrations.schema_migrations`.
 Each project needs the `TMDB_API_FREE` Edge Function secret for `tmdb` (the dashboard can't show it back; the value
 comes from themoviedb.org → Settings → API). The DROP INDEX steps at the end of `002_query_indexes.sql` haven't run on
@@ -123,8 +123,11 @@ after editing.
   air — trending and popular, for Home's rows and for Search with no query), `search` (Search with a query) and
   `title` (the TMDB page). Its per-IP limit (600/hour) counts only requests its in-memory cache can't answer. Search's
   genre chips also match TMDB's combined names ("Sci-Fi & Fantasy", "Action & Adventure", "Science Fiction"). Catalog
-  titles aren't matched to TMDB: they're fictional, so any name match is an unrelated real title. TMDB titles aren't
-  `titles` rows, so they can't be played, saved or reviewed; list and search items are rated 'NR', so restricted
+  titles aren't matched to TMDB: they're fictional, so any name match is an unrelated real title. A member can save a TMDB
+  title to My List or Favorites: the function's `save` action upserts it into `titles` (`source = 'tmdb'`, id
+  `tmdb-<movie|show>-<id>`) and `tmdb_titles` from TMDB's own data, so the existing foreign keys work. The catalog
+  request reads `source = 'catalog'`; saved TMDB rows load separately and only `findTitle` sees them (My List,
+  Favorites). TMDB titles can't be played or reviewed; list and search items are rated 'NR', so restricted
   profiles don't see them. Without Supabase or on any error the TMDB sections just don't render. Keep the
   `TmdbCredit` notice wherever TMDB data shows (TMDB's terms). Home has no catalog "new" row any more (New on TMDB
   replaced it); `isNew` still drives New & Hot. Top 10 shows the catalog's `top10` titles first, then TMDB's trending
@@ -167,7 +170,9 @@ after editing.
   video. Playwright's Chromium only plays WebM, so keep the WebM source first. Autoplay
   previews (`usePreview`) start only when `preferences.autoplayPreviews` is on **and** motion is allowed
   (`useMotionAllowed`: no reduced motion, no "Stop animations"); every preview has a pause/play toggle. Volume: a slider beside Mute (0 = muted; unmuting from 0 goes to
-  50%), ↑/↓ change it by 10% while focus is in the player, and the level is kept with `writeStored('netflix-clone-volume')`.
+  50%), ↑/↓ change it by 10% while focus is in the player, and the level is kept with `writeStored('netflix-clone-volume')`; for a signed-in member it's also saved as
+  `preferences.playerVolume` (`player_volume`, 0–100) and wins on their other devices. TV shows get Previous/Next
+  episode buttons (Shift+P / Shift+N); episodes are simulated with the same sample clip.
 - **Delete account**: needs `billing.status === 'cancelled'`, the typed email and the account password; it removes
   access only (Supabase: `delete-account` bans the user and sets `access_removed_at`; memory: drops the account). Data
   removal is a support ticket, `/info/report-issue?type=data-removal`. The sign-in notice comes from `notice` in the

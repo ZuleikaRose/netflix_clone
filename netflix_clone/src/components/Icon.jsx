@@ -17,6 +17,8 @@ const iconPaths = {
   accessibility: <><circle cx="12" cy="12" r="10" /><circle cx="12" cy="6.8" r="1.4" /><path d="M7 9.6 12 11l5-1.4M12 11v3.2l-2.4 4.6M12 14.2l2.4 4.6" /></>,
   captions: <><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6M17 10.2a2.2 2.2 0 1 0 0 3.6" /></>,
   volume: <><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4Z" /><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></>,
+  previousEpisode: <path d="M6 6v12M19 6l-9 6 9 6Z" />,
+  nextEpisode: <path d="M18 6v12M5 6l9 6-9 6Z" />,
   mute: <><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4Z" /><path d="m16 9.5 5 5M21 9.5l-5 5" /></>,
   rewind: <><path d="M4 12a8 8 0 1 0 2.4-5.7" /><path d="M4 4v4.5h4.5" /><path d="M10 10v5M13 10h2.5v5H13Z" /></>,
   forward: <><path d="M20 12a8 8 0 1 1-2.4-5.7" /><path d="M20 4v4.5h-4.5" /><path d="M8.5 10v5M11.5 10H14v5h-2.5Z" /></>,
