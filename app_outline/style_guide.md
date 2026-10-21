@@ -53,8 +53,8 @@ together.
 * **Posters:** 124×178px, 4px radius, artwork dimmed (`brightness(.72)`) under a centered condensed title. Posters
   reuse four photos with a per-title CSS tint. TMDB posters are real poster art, so they show undimmed with no title
   on top (the link still carries the name) and load lazily.
-* **Rows:** horizontal scrolling rows (Top 10 with giant outlined rank numbers 1–10 by place, the catalog's ranked titles first and TMDB's trending titles
-  after them, the 10th card wider so both digits show; Continue Watching with a red progress bar and an episode badge (E2…) on shows past episode 1; Because You Liked…, Because You Saved…, then New on TMDB
+* **Rows:** horizontal scrolling rows (Top 10 with giant outlined rank numbers 1–10 by place, TMDB's trending movies and shows (the catalog's ranked titles
+  without TMDB), the 10th card wider so both digits show; Continue Watching with a red progress bar and an episode badge (E2…) on shows past episode 1; Because You Liked…, Because You Saved…, then New on TMDB
   and Trending and Popular Movies and TV Shows on TMDB), each with ‹ › buttons (44px, in the row heading) that page
   through it; a button at the row's end dims (`opacity: .35`) but keeps focus, and both hide when the row fits; grids of three posters on Watch list, Favorites and Search (TMDB
   results get their own grid under the catalog's).
@@ -65,7 +65,9 @@ together.
   loads from YouTube before that. "Where to watch in the U.S." lists services as chips (28px logo + name on `#1f1f1f`)
   under Stream, Rent and Buy, with a muted "Availability from JustWatch" credit; More Like This sits below.
 * **Hero carousel:** a full-bleed 610px featured title with a dark gradient, centered title and actions, arrow
-  buttons and dots. It never auto-advances.
+  buttons and dots. It never auto-advances. It features TMDB's five most popular movies and shows (sharp w780
+  posters, "FILM · TMDB" eyebrow, genres, a white **More Info** button instead of Play, then My List), or the catalog's
+  most popular titles without TMDB.
 * **Chips and tabs:** pill chips for filters (active = white border on `#343434`); underlined tabs for sections.
 * **Banners:** a green status banner on Support (service is up) and a gold maintenance banner on Home, which the
   member can dismiss.

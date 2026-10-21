@@ -27,17 +27,35 @@ test.describe('TMDB titles from the tmdb Edge Function', () => {
     await expect(newRow.getByRole('link', { name: 'The Pitt' })).toHaveCount(0)
   })
 
-  test('Top 10 adds TMDB’s trending titles after the catalog’s ranked ones, numbered by place', async ({ page }) => {
+  test('Top 10 is TMDB’s trending movies and TV shows, alternating and numbered by place', async ({ page }) => {
     await mockTmdb(page)
     await signInAsDemo(page)
     const ranks = page.locator('.ranking .rank-card')
     const labels = () => ranks.evaluateAll((cards) => cards.map((c) => c.getAttribute('aria-label')))
-    // 4 ranked catalog titles, then the mock's trending movie and show, alternating (a real list fills it to 10)
-    await expect.poll(labels).toEqual(['#1: After Dark', '#2: The Signal', '#3: The Veil', '#4: Dead Reckoning', '#5: The Matrix', '#6: Game of Thrones'])
-    await expect(ranks.nth(4)).toHaveAttribute('href', '/tmdb/movie/603')
+    // The mock has one trending movie and one show (a real list fills it to 10); no catalog titles
+    await expect.poll(labels).toEqual(['#1: The Matrix', '#2: Game of Thrones'])
+    await expect(ranks.first()).toHaveAttribute('href', '/tmdb/movie/603')
 
-    await page.getByRole('button', { name: 'Movies', exact: true }).click()
-    await expect.poll(labels).toEqual(['#1: After Dark', '#2: The Signal', '#3: Dead Reckoning', '#4: The Matrix'])
+    await page.getByRole('button', { name: 'TV Shows', exact: true }).click()
+    await expect.poll(labels).toEqual(['#1: Game of Thrones'])
+  })
+
+  test('the featured carousel shows TMDB’s popular movies and TV shows', async ({ page }) => {
+    await mockTmdb(page)
+    await signInAsDemo(page)
+    const heroTitle = page.locator('.hero-title')
+    await expect(heroTitle).toHaveText(/FIGHT\s*CLUB/)
+    await expect(page.locator('.hero .eyebrow')).toHaveText('FILM · TMDB')
+    // TMDB titles can't be played here: More Info opens their page
+    await expect(page.locator('.hero').getByRole('button', { name: /Play$/ })).toHaveCount(0)
+    await expect(page.locator('.hero').getByRole('link', { name: 'More Info' })).toHaveAttribute('href', '/tmdb/movie/550')
+
+    await page.getByRole('button', { name: 'Next featured title' }).click()
+    await expect(heroTitle).toHaveText(/BREAKING\s*BAD/)
+    await page.locator('.hero').getByRole('button', { name: 'My List' }).click()
+    await expect(page.locator('.hero').getByRole('button', { name: 'Saved' })).toHaveAttribute('aria-pressed', 'true')
+    await navigateInApp(page, '/watchlist')
+    await expect(page.getByRole('link', { name: 'Breaking Bad', exact: true })).toHaveAttribute('href', '/tmdb/show/1396')
   })
 
   test('Top 10 stops at ten titles', async ({ page }) => {
@@ -49,7 +67,7 @@ test.describe('TMDB titles from the tmdb Edge Function', () => {
     await signInAsDemo(page)
     const ranks = page.locator('.ranking .rank-card')
     await expect(ranks).toHaveCount(10)
-    await expect(ranks.last()).toHaveAttribute('aria-label', '#10: Show 6')
+    await expect(ranks.last()).toHaveAttribute('aria-label', '#10: Show 10')
     await expect(ranks.last()).toHaveClass(/two-digits/)
   })
 
@@ -139,6 +157,9 @@ test.describe('TMDB titles from the tmdb Edge Function', () => {
     await mockTmdb(page, { fail: true })
     await signInAsDemo(page)
     await expect(page.getByRole('heading', { name: 'Top 10 in the U.S. Today' })).toBeVisible()
+    // The carousel and Top 10 fall back to the catalog's own titles
+    await expect(page.locator('.hero-title')).toHaveText(/BEHIND\s*THE GLASS/)
+    await expect(page.locator('.ranking .rank-card').first()).toHaveAttribute('aria-label', '#1: After Dark')
     await expect(page.getByRole('heading', { name: /on TMDB$/ })).toHaveCount(0)
     await navigateInApp(page, '/search')
     await expect(page.getByRole('heading', { name: 'Top Searches' })).toBeVisible()

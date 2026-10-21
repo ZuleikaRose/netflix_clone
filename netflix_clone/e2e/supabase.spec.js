@@ -4,6 +4,9 @@ import { supabaseConfigured as configured } from './ports.js'
 
 const titlesEndpoint = '**/rest/v1/titles*'
 
+// These check the catalog's own titles on Home, which the carousel and Top 10 show when TMDB isn't available
+test.use({ tmdb: 'fail' })
+
 test.describe('catalog from the Supabase REST API', () => {
   test.skip(!configured, 'Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.development.local to run these')
 

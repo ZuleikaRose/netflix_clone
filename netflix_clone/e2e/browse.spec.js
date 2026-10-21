@@ -1,6 +1,9 @@
 import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo, tabBar } from './helpers.js'
 
+// The catalog's own Home: without TMDB the carousel and Top 10 show catalog titles
+test.use({ tmdb: 'fail' })
+
 test.beforeEach(async ({ page }) => {
   await signInAsDemo(page)
 })
