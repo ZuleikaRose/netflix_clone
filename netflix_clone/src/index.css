@@ -689,6 +689,13 @@ kbd { display: inline-block; min-width: 28px; padding: 3px 7px; border: 1px soli
 .year-facts dd { margin: 0; font-size: 16px; font-weight: 600; }
 .year-note { margin: 0; font-size: 13px; }
 
+/* ---------- Profile locks and Kids ---------- */
+.pin-prompt { justify-items: center; text-align: center; }
+.pin-prompt .field { width: 100%; max-width: 240px; text-align: left; }
+.pin-prompt .cta, .pin-prompt .ghost-cta { width: 100%; max-width: 240px; }
+.profile-name svg { width: 15px; height: 15px; margin-right: 4px; vertical-align: -2px; }
+.lock-form { display: grid; gap: 12px; }
+
 /* Accessibility menu settings, set as data-a11y-* attributes on <html> by AccessibilityProvider */
 html[data-a11y-text-size] :is(.page, .auth-body) { zoom: var(--a11y-zoom); }
 html[data-a11y-font="readable"] :is(body, body *:not(kbd)) { font-family: "Atkinson Hyperlegible", Verdana, sans-serif !important; }

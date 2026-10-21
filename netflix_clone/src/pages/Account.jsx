@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Field } from '../components/Field.jsx'
+import { GrownUpGate } from '../components/GrownUpGate.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PlanPicker } from '../components/PlanPicker.jsx'
 import { useAccessibility } from '../state/accessibilityContext.js'
@@ -157,82 +158,84 @@ export function Account() {
     <>
       <PageHeader title="Account" back />
       <div className="settings">
-        <section className="settings-card membership" aria-labelledby="membership-heading">
-          <h2 id="membership-heading">Membership</h2>
-          <p><b>{plan.name}</b> · {promo ? <><span className="sr-only">was </span><s className="muted">{plan.price}</s> <span className="sr-only">now </span>{discountedPrice(plan.price, promo.percent)}</> : plan.price}/month</p>
-          {promo && <p className="muted">Code {promo.code}: {promo.percent}% off · <Link to="/info/promotions" className="inline-link">Manage</Link></p>}
-          <p className="muted">{billingSummary(user.billing)}</p>
-          <p className="muted">Member since 2026 · {user.email}</p>
-        </section>
+        <GrownUpGate what="account settings">
+          <section className="settings-card membership" aria-labelledby="membership-heading">
+            <h2 id="membership-heading">Membership</h2>
+            <p><b>{plan.name}</b> · {promo ? <><span className="sr-only">was </span><s className="muted">{plan.price}</s> <span className="sr-only">now </span>{discountedPrice(plan.price, promo.percent)}</> : plan.price}/month</p>
+            {promo && <p className="muted">Code {promo.code}: {promo.percent}% off · <Link to="/info/promotions" className="inline-link">Manage</Link></p>}
+            <p className="muted">{billingSummary(user.billing)}</p>
+            <p className="muted">Member since 2026 · {user.email}</p>
+          </section>
 
-        {user.isStaff && (
-          <nav className="settings-card link-list" aria-label="Staff">
-            <Link to="/support-dashboard">Support dashboard</Link>
+          {user.isStaff && (
+            <nav className="settings-card link-list" aria-label="Staff">
+              <Link to="/support-dashboard">Support dashboard</Link>
+            </nav>
+          )}
+
+          <ProfileForm user={user} updateProfile={updateProfile} />
+          <PasswordForm email={user.email} changePassword={changePassword} demoPassword={user.email === demoEmail ? demoPassword : null} />
+
+          <section className="settings-card" aria-labelledby="plan-heading">
+            <h2 id="plan-heading">Plan</h2>
+            <PlanPicker name="account-plan" value={user.plan} onChange={switchPlan} />
+            <Status message={planStatus} />
+          </section>
+
+          <Billing />
+
+          <section className="settings-card" aria-labelledby="playback-heading">
+            <h2 id="playback-heading">Playback &amp; notifications</h2>
+            {toggles.map(({ key, label, hint }) => (
+              <label key={key} className="switch-row">
+                <span><span className="switch-label">{label}</span><span className="muted">{hint}</span></span>
+                <input type="checkbox" role="switch" checked={user.preferences[key]} onChange={(e) => setPreference(key, e.target.checked)} />
+              </label>
+            ))}
+            <label className="select-row">
+              <span className="switch-label">Maturity rating</span>
+              <span className="muted">For {profile.name}. Each profile has its own; <Link to="/profiles" className="inline-link">manage profiles</Link>.</span>
+              <select value={profile.maturity} onChange={(e) => changeMaturity(e.target.value)}>
+                {maturityChoices.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
+            </label>
+            {maturityError && <p className="form-alert" role="alert">{maturityError}</p>}
+          </section>
+
+          <InstallCard />
+
+          <section className="settings-card" aria-labelledby="a11y-settings-heading">
+            <h2 id="a11y-settings-heading">Accessibility</h2>
+            <p className="muted">Text size, readable fonts, contrast, captions, reading aids and more. The menu is also behind the accessibility icon at the top of every page.</p>
+            <button type="button" className="cta" aria-haspopup="dialog" onClick={openMenu}>Open accessibility menu</button>
+            <Link to="/info/accessibility" className="ghost-cta">Read our Accessibility Policy</Link>
+          </section>
+
+          <section className="settings-card" aria-labelledby="privacy-heading">
+            <h2 id="privacy-heading">Privacy &amp; data</h2>
+            {privacyToggles.map(({ key, label, hint }) => (
+              <label key={key} className="switch-row">
+                <span><span className="switch-label">{label}</span><span className="muted">{hint}</span></span>
+                <input type="checkbox" role="switch" checked={user.preferences[key]} onChange={(e) => setPreference(key, e.target.checked)} />
+              </label>
+            ))}
+            <Link to="/history" className="ghost-cta">Viewing activity and history settings</Link>
+            <Link to="/year-in-review" className="ghost-cta">Year in Review</Link>
+            <p className="muted">More choices: <Link to="/info/do-not-sell" className="inline-link">Do Not Sell My Information</Link> · <Link to="/info/privacy" className="inline-link">Privacy Policy</Link></p>
+          </section>
+
+          <nav className="settings-card link-list" aria-label="Help">
+            <Link to="/info/support">Customer Support</Link>
+            <Link to="/info/faqs">FAQs</Link>
+            <Link to="/info/promotions">Promotions &amp; Discounts</Link>
+            <Link to="/info/affiliate">Affiliate Program</Link>
+            <Link to="/info/legal">Legal &amp; Privacy</Link>
+            <Link to="/info/accessibility">Accessibility Policy</Link>
+            <Link to="/logout" className="danger-link">Sign out</Link>
           </nav>
-        )}
 
-        <ProfileForm user={user} updateProfile={updateProfile} />
-        <PasswordForm email={user.email} changePassword={changePassword} demoPassword={user.email === demoEmail ? demoPassword : null} />
-
-        <section className="settings-card" aria-labelledby="plan-heading">
-          <h2 id="plan-heading">Plan</h2>
-          <PlanPicker name="account-plan" value={user.plan} onChange={switchPlan} />
-          <Status message={planStatus} />
-        </section>
-
-        <Billing />
-
-        <section className="settings-card" aria-labelledby="playback-heading">
-          <h2 id="playback-heading">Playback &amp; notifications</h2>
-          {toggles.map(({ key, label, hint }) => (
-            <label key={key} className="switch-row">
-              <span><span className="switch-label">{label}</span><span className="muted">{hint}</span></span>
-              <input type="checkbox" role="switch" checked={user.preferences[key]} onChange={(e) => setPreference(key, e.target.checked)} />
-            </label>
-          ))}
-          <label className="select-row">
-            <span className="switch-label">Maturity rating</span>
-            <span className="muted">For {profile.name}. Each profile has its own; <Link to="/profiles" className="inline-link">manage profiles</Link>.</span>
-            <select value={profile.maturity} onChange={(e) => changeMaturity(e.target.value)}>
-              {maturityChoices.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
-          </label>
-          {maturityError && <p className="form-alert" role="alert">{maturityError}</p>}
-        </section>
-
-        <InstallCard />
-
-        <section className="settings-card" aria-labelledby="a11y-settings-heading">
-          <h2 id="a11y-settings-heading">Accessibility</h2>
-          <p className="muted">Text size, readable fonts, contrast, captions, reading aids and more. The menu is also behind the accessibility icon at the top of every page.</p>
-          <button type="button" className="cta" aria-haspopup="dialog" onClick={openMenu}>Open accessibility menu</button>
-          <Link to="/info/accessibility" className="ghost-cta">Read our Accessibility Policy</Link>
-        </section>
-
-        <section className="settings-card" aria-labelledby="privacy-heading">
-          <h2 id="privacy-heading">Privacy &amp; data</h2>
-          {privacyToggles.map(({ key, label, hint }) => (
-            <label key={key} className="switch-row">
-              <span><span className="switch-label">{label}</span><span className="muted">{hint}</span></span>
-              <input type="checkbox" role="switch" checked={user.preferences[key]} onChange={(e) => setPreference(key, e.target.checked)} />
-            </label>
-          ))}
-          <Link to="/history" className="ghost-cta">Viewing activity and history settings</Link>
-          <Link to="/year-in-review" className="ghost-cta">Year in Review</Link>
-          <p className="muted">More choices: <Link to="/info/do-not-sell" className="inline-link">Do Not Sell My Information</Link> · <Link to="/info/privacy" className="inline-link">Privacy Policy</Link></p>
-        </section>
-
-        <nav className="settings-card link-list" aria-label="Help">
-          <Link to="/info/support">Customer Support</Link>
-          <Link to="/info/faqs">FAQs</Link>
-          <Link to="/info/promotions">Promotions &amp; Discounts</Link>
-          <Link to="/info/affiliate">Affiliate Program</Link>
-          <Link to="/info/legal">Legal &amp; Privacy</Link>
-          <Link to="/info/accessibility">Accessibility Policy</Link>
-          <Link to="/logout" className="danger-link">Sign out</Link>
-        </nav>
-
-        <DeleteAccount />
+          <DeleteAccount />
+        </GrownUpGate>
       </div>
     </>
   )

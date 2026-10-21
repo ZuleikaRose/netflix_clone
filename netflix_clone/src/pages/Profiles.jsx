@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Field } from '../components/Field.jsx'
+import { GrownUpGate } from '../components/GrownUpGate.jsx'
+import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { ProfileAvatar } from '../components/ProfileAvatar.jsx'
-import { MAX_PROFILES, MAX_PROFILE_NAME, avatarColors, maturityChoices, profileNameProblem } from '../data/profiles.js'
+import { MAX_PROFILES, MAX_PROFILE_NAME, PIN_PATTERN, avatarColors, maturityChoices, profileNameProblem } from '../data/profiles.js'
 import { useAuth } from '../state/authContext.js'
 import { useProfile } from '../state/profileContext.js'
 import { focusFirstError } from './formUtils.js'
@@ -79,13 +81,126 @@ function ProfileForm({ profile, others, onDone }) {
   )
 }
 
+// Asks for a locked profile's PIN; onUnlocked runs once it's right
+function PinPrompt({ profile, onUnlocked, onCancel }) {
+  const { unlockProfile } = useAuth()
+  const { markUnlocked } = useProfile()
+  const [pin, setPin] = useState('')
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    const form = e.currentTarget
+    let problem = PIN_PATTERN.test(pin) ? null : 'Enter the profile’s four-digit PIN.'
+    if (!problem) {
+      setBusy(true)
+      problem = await unlockProfile(profile.id, pin)
+      setBusy(false)
+    }
+    setError(problem)
+    if (problem) {
+      setPin('')
+      return focusFirstError(form)
+    }
+    markUnlocked(profile.id)
+    onUnlocked()
+  }
+
+  return (
+    <form className="settings-card pin-prompt" onSubmit={submit} noValidate aria-labelledby="pin-heading">
+      <ProfileAvatar profile={profile} large />
+      <h2 id="pin-heading">{profile.name} is locked</h2>
+      <Field label="Profile PIN" type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={pin} autoFocus
+        onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} error={error} />
+      <button type="submit" className="cta" disabled={busy}>Unlock</button>
+      <button type="button" className="ghost-cta" onClick={onCancel}>Cancel</button>
+    </form>
+  )
+}
+
+// Adds, changes or removes a profile's PIN; the account password confirms it's the account holder
+function ProfileLockForm({ profile }) {
+  const { setProfilePin } = useAuth()
+  const { markUnlocked } = useProfile()
+  const blank = { pin: '', confirm: '', password: '' }
+  const [open, setOpen] = useState(null) // null | 'set' | 'remove'
+  const [form, setForm] = useState(blank)
+  const [errors, setErrors] = useState({})
+  const [status, setStatus] = useState('')
+  const [busy, setBusy] = useState(false)
+  const updateField = (key, digitsOnly = false) => (e) => {
+    const value = digitsOnly ? e.target.value.replace(/\D/g, '') : e.target.value
+    setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    const formElement = e.currentTarget
+    const next = {}
+    if (open === 'set') {
+      if (!PIN_PATTERN.test(form.pin)) next.pin = 'A PIN is four digits.'
+      else if (form.confirm !== form.pin) next.confirm = 'PINs don’t match.'
+    }
+    if (!form.password) next.password = 'Please enter the account password.'
+    if (!Object.keys(next).length) {
+      setBusy(true)
+      const failed = await setProfilePin(profile.id, open === 'set' ? form.pin : null, form.password)
+      setBusy(false)
+      if (failed) next.password = failed
+    }
+    setErrors(next)
+    if (Object.keys(next).length) return focusFirstError(formElement)
+    // Locking the profile that's watching shouldn't send this device back to Who's watching
+    markUnlocked(profile.id)
+    setStatus(open === 'set' ? `${profile.name} is locked with a PIN` : `PIN removed from ${profile.name}`)
+    setForm(blank)
+    setOpen(null)
+  }
+
+  return (
+    <section className="settings-card" aria-labelledby="lock-heading">
+      <h2 id="lock-heading">Profile lock</h2>
+      <p className="muted">{profile.locked ? `${profile.name} needs a four-digit PIN to open.` : `Anyone can open ${profile.name}. Add a PIN to keep it to yourself.`}</p>
+      {open
+        ? (
+          <form className="lock-form" onSubmit={submit} noValidate aria-label={open === 'set' ? 'Set a PIN' : 'Remove the PIN'}>
+            {open === 'set' && (
+              <>
+                <Field label="New PIN" type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={form.pin}
+                  onChange={updateField('pin', true)} error={errors.pin} hint="Four digits." />
+                <Field label="Confirm PIN" type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={form.confirm}
+                  onChange={updateField('confirm', true)} error={errors.confirm} />
+              </>
+            )}
+            <Field label="Account password" type="password" autoComplete="current-password" value={form.password}
+              onChange={updateField('password')} error={errors.password} />
+            <button type="submit" className={open === 'set' ? 'cta' : 'cta delete-fill'} disabled={busy}>{open === 'set' ? 'Save PIN' : 'Remove PIN'}</button>
+            <button type="button" className="ghost-cta" onClick={() => { setOpen(null); setErrors({}); setForm(blank) }}>Cancel</button>
+          </form>
+        )
+        : (
+          <>
+            <button type="button" className="ghost-cta" onClick={() => { setOpen('set'); setStatus('') }}>{profile.locked ? 'Change PIN' : 'Add a PIN'}</button>
+            {profile.locked && <button type="button" className="ghost-cta" onClick={() => { setOpen('remove'); setStatus('') }}>Remove PIN</button>}
+          </>
+        )}
+      <p className="save-status" role="status">{status && <><span aria-hidden="true">✓</span> {status}</>}</p>
+    </section>
+  )
+}
+
 // "Who's watching?": pick a profile, or manage them (add, rename, recolour, change the maturity rating, delete)
 export function Profiles() {
-  const { profiles, chooseProfile } = useProfile()
+  const { profiles, chooseProfile, isUnlocked } = useProfile()
   const navigate = useNavigate()
   const location = useLocation()
   const [mode, setMode] = useState('choose') // 'choose' | 'manage' | 'add' | a profile id being edited
+  // A locked profile asking for its PIN before it opens ('watch') or before it can be edited ('edit')
+  const [asking, setAsking] = useState(null) // { id, then } | null
   const editing = profiles.find((p) => p.id === mode)
+  const askingFor = profiles.find((p) => p.id === asking?.id)
+  const managing = mode === 'manage'
 
   const watch = (id) => {
     chooseProfile(id)
@@ -93,18 +208,42 @@ export function Profiles() {
     navigate(from && from.pathname !== '/profiles' ? `${from.pathname}${from.search ?? ''}` : '/', { replace: true })
   }
 
-  if (mode === 'add' || editing) {
+  const pick = (p) => {
+    if (p.locked && !isUnlocked(p.id)) return setAsking({ id: p.id, then: managing ? 'edit' : 'watch' })
+    if (managing) setMode(p.id)
+    else watch(p.id)
+  }
+
+  if (askingFor) {
+    const unlocked = () => {
+      setAsking(null)
+      if (asking.then === 'edit') setMode(askingFor.id)
+      else watch(askingFor.id)
+    }
     return (
       <>
         <PageHeader title="Profiles" />
         <div className="settings">
-          <ProfileForm key={mode} profile={editing} others={profiles.filter((p) => p.id !== editing?.id)} onDone={() => setMode('manage')} />
+          <PinPrompt key={askingFor.id} profile={askingFor} onUnlocked={unlocked} onCancel={() => setAsking(null)} />
         </div>
       </>
     )
   }
 
-  const managing = mode === 'manage'
+  if (mode === 'add' || editing) {
+    return (
+      <>
+        <PageHeader title="Profiles" />
+        <div className="settings">
+          <GrownUpGate what="profile settings">
+            <ProfileForm key={mode} profile={editing} others={profiles.filter((p) => p.id !== editing?.id)} onDone={() => setMode('manage')} />
+            {editing && <ProfileLockForm profile={editing} />}
+          </GrownUpGate>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <PageHeader title="Profiles" />
@@ -113,10 +252,10 @@ export function Profiles() {
         <ul className="profile-grid">
           {profiles.map((p) => (
             <li key={p.id}>
-              <button type="button" className="profile-tile" onClick={() => (managing ? setMode(p.id) : watch(p.id))}
-                aria-label={managing ? `Edit ${p.name}` : p.name}>
+              <button type="button" className="profile-tile" onClick={() => pick(p)}
+                aria-label={`${managing ? `Edit ${p.name}` : p.name}${p.locked ? ' (locked)' : ''}`}>
                 <ProfileAvatar profile={p} large />
-                <span className="profile-name">{p.name}</span>
+                <span className="profile-name">{p.locked && <Icon name="lock" />}{p.name}</span>
                 {p.maturity === 'kids' && <span className="profile-badge">Kids</span>}
               </button>
             </li>

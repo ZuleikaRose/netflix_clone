@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { defaultBilling } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
-import { MAX_PROFILES, newProfileId, profileNameProblem } from '../data/profiles.js'
+import { MAX_PIN_ATTEMPTS, MAX_PROFILES, PIN_LOCKOUT_MINUTES, newProfileId, pinMessages, profileNameProblem } from '../data/profiles.js'
 import { findPromotion } from '../data/promotions.js'
 import { AuthContext, defaultPreferences, demoAccount, normalizeEmail } from './authContext.js'
 
@@ -16,7 +16,7 @@ const READABLE = 'abcdefghjkmnpqrstuvwxyz23456789'
 const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(10)), (b) => READABLE[b % READABLE.length]).join('')
 
 // Every account starts with one profile named after the member
-const firstProfile = (name) => ({ id: newProfileId(), name: name.trim().slice(0, 30) || 'Me', avatar: 'blue', maturity: 'all' })
+const firstProfile = (name) => ({ id: newProfileId(), name: name.trim().slice(0, 30) || 'Me', avatar: 'blue', maturity: 'all', locked: false })
 // The in-memory demo account is also the support team, so the support dashboard can be tried without a backend
 const newDemoAccount = () => ({ ...demoAccount, isStaff: true, password: randomSecret(), preferences: defaultPreferences, billing: defaultBilling, profiles: [firstProfile(demoAccount.name)] })
 
@@ -143,7 +143,7 @@ export function MemoryAuthProvider({ children }) {
         if (user.profiles.length >= MAX_PROFILES) return `An account can have at most ${MAX_PROFILES} profiles.`
         const problem = profileNameProblem(profile.name, user.profiles)
         if (problem) return problem
-        patchUser({ profiles: [...user.profiles, { ...profile, id: newProfileId(), name: profile.name.trim() }] })
+        patchUser({ profiles: [...user.profiles, { ...profile, id: newProfileId(), name: profile.name.trim(), locked: false }] })
         return null
       },
       async editProfile(id, patch) {
@@ -158,6 +158,32 @@ export function MemoryAuthProvider({ children }) {
         if (user.profiles.length <= 1) return 'An account needs at least one profile.'
         patchUser({ profiles: user.profiles.filter((p) => p.id !== id) })
         return null
+      },
+      async checkPassword(password) {
+        return user.password === password ? null : 'That password isn’t right.'
+      },
+      // PINs are kept on the account (`pins`: { [profileId]: { pin, failed, lockedUntil } }), like the database's
+      // private.profile_pins
+      async setProfilePin(id, pin, password) {
+        if (user.password !== password) return 'Your password is incorrect.'
+        const pins = { ...user.pins }
+        if (pin === null) delete pins[id]
+        else pins[id] = { pin, failed: 0, lockedUntil: 0 }
+        patchUser({ pins, profiles: user.profiles.map((p) => (p.id === id ? { ...p, locked: pin !== null } : p)) })
+        return null
+      },
+      async unlockProfile(id, pin) {
+        const lock = user.pins?.[id]
+        if (!lock) return null
+        if (lock.lockedUntil > Date.now()) return pinMessages.locked
+        if (lock.pin === pin) {
+          patchUser({ pins: { ...user.pins, [id]: { ...lock, failed: 0, lockedUntil: 0 } } })
+          return null
+        }
+        const failed = lock.failed + 1
+        const lockedOut = failed >= MAX_PIN_ATTEMPTS
+        patchUser({ pins: { ...user.pins, [id]: { ...lock, failed: lockedOut ? 0 : failed, lockedUntil: lockedOut ? Date.now() + PIN_LOCKOUT_MINUTES * 60_000 : 0 } } })
+        return lockedOut ? pinMessages.locked : pinMessages.wrong
       },
       // Referral clicks are only simulated (Affiliate → Demo tools) without Supabase
       recordReferralClick() {},

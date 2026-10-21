@@ -29,5 +29,14 @@ export function profileNameProblem(name, others) {
   return null
 }
 
+// Profile locks: a four-digit PIN; five wrong ones in a row lock the profile for this long (as in the database)
+export const PIN_PATTERN = /^\d{4}$/
+export const PIN_LOCKOUT_MINUTES = 15
+export const MAX_PIN_ATTEMPTS = 5
+export const pinMessages = {
+  wrong: 'That PIN isn’t right. Please try again.',
+  locked: `Too many wrong PINs. Try again in ${PIN_LOCKOUT_MINUTES} minutes.`,
+}
+
 // In memory: a profile with a random id (getRandomValues also works on plain-HTTP origins)
 export const newProfileId = () => `profile-${Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => b.toString(16).padStart(2, '0')).join('')}`

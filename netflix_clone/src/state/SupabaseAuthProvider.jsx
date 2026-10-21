@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { authErrorMessage, billingColumns, callFunction, loadAccount, saveAccount, savePreference } from '../data/accountApi.js'
 import { libraryApi } from '../data/libraryApi.js'
-import { deleteProfileRow, insertProfile, profileErrorMessage, updateProfileRow } from '../data/profilesApi.js'
+import { pinMessages } from '../data/profiles.js'
+import { deleteProfileRow, insertProfile, profileErrorMessage, setProfilePinRow, unlockProfileRow, updateProfileRow, verifyPassword } from '../data/profilesApi.js'
 import { getSupabase, hasStoredSession, readStored, writeStored } from '../lib/supabaseConfig.js'
 import { AuthContext, normalizeEmail } from './authContext.js'
 
@@ -193,9 +194,9 @@ export function SupabaseAuthProvider({ children }) {
       },
       async changePassword(current, next) {
         try {
-          // Signing in again is how Supabase checks a password; it keeps the same user signed in
-          const { error: checkError } = await client.auth.signInWithPassword({ email: user.email, password: current })
-          if (checkError) return checkError.code === 'invalid_credentials' ? 'Your current password is incorrect.' : authErrorMessage(checkError)
+          // Checked by the database (verify_account_password), not by signing in again: a new sign-in would replace
+          // this session, and with two-step sign-in on it would need a code again
+          if (!(await verifyPassword(client, current))) return 'Your current password is incorrect.'
           const { error } = await client.auth.updateUser({ password: next })
           if (error) return authErrorMessage(error)
         } catch (error) {
@@ -302,6 +303,35 @@ export function SupabaseAuthProvider({ children }) {
         }
         setUser((u) => ({ ...u, profiles: u.profiles.filter((p) => p.id !== id) }))
         return null
+      },
+      // Kids profiles ask for the account password ("Ask a grown-up"); resolves to an error message or null
+      async checkPassword(password) {
+        try {
+          return (await verifyPassword(client, password)) ? null : 'That password isn’t right.'
+        } catch (error) {
+          warn(error)
+          return error?.code === 'P0001' ? error.message : 'Your password couldn’t be checked. Please try again.'
+        }
+      },
+      // A profile's PIN (four digits), or null to remove it; needs the account password
+      async setProfilePin(id, pin, password) {
+        try {
+          await setProfilePinRow(client, id, pin, password)
+        } catch (error) {
+          warn(error)
+          return profileErrorMessage(error)
+        }
+        setUser((u) => ({ ...u, profiles: u.profiles.map((p) => (p.id === id ? { ...p, locked: pin !== null } : p)) }))
+        return null
+      },
+      async unlockProfile(id, pin) {
+        try {
+          const result = await unlockProfileRow(client, id, pin)
+          return result === 'ok' ? null : pinMessages[result]
+        } catch (error) {
+          warn(error)
+          return 'The PIN couldn’t be checked. Please try again.'
+        }
       },
       async recordReferralClick(code) {
         if (!code || countedReferrals.has(code)) return

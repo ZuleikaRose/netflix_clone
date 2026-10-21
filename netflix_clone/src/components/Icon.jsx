@@ -12,6 +12,7 @@ const iconPaths = {
   thumbUp: <><path d="M7 10v10H4V10Z" /><path d="M7 10l4-7a2 2 0 0 1 2.5 2.4L12.5 9H19a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.8 20H7" /></>,
   thumbDown: <><path d="M7 14V4H4v10Z" /><path d="M7 14l4 7a2 2 0 0 0 2.5-2.4L12.5 15H19a2 2 0 0 0 2-2.3l-1.2-7A2 2 0 0 0 17.8 4H7" /></>,
   thumbsUp: <><path d="M5 11v9H2.5v-9Z" /><path d="M5 11l3.2-6a1.7 1.7 0 0 1 2.1 2L9.6 10H15a1.7 1.7 0 0 1 1.7 2l-1 6a1.7 1.7 0 0 1-1.7 1.5H5" /><path d="M14 8.5l2.4-4.4a1.7 1.7 0 0 1 2.1 2l-.7 3h3.4a1.7 1.7 0 0 1 1.7 2l-1 6a1.7 1.7 0 0 1-1.7 1.5h-1.5" /></>,
+  lock: <><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></>,
   bell: <><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4Z" /><path d="M10 20a2 2 0 0 0 4 0" /></>,
   chat: <path d="M4 5h16v11H9l-5 4Z" />,
   party: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20a6 6 0 0 1 12 0M14 20a4.5 4.5 0 0 1 7-3.8" /></>,
