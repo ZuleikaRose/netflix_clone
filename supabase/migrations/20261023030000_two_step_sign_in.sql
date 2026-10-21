@@ -16,8 +16,8 @@ as $$
   select coalesce(auth.jwt() ->> 'aal', 'aal1') = 'aal2'
     or not exists (select 1 from auth.mfa_factors f where f.user_id = auth.uid() and f.status = 'verified');
 $$;
-revoke execute on function public.second_step_done() from public;
-grant execute on function public.second_step_done() to anon, authenticated;
+revoke execute on function public.second_step_done() from public, anon;
+grant execute on function public.second_step_done() to authenticated;
 
 do $$
 declare
