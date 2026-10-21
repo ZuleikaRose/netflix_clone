@@ -66,3 +66,10 @@ export async function fetchTmdbPerson(id) {
   if (data?.person) return { person: { ...data.person, credits: data.person.credits.map(withPath) } }
   return data?.error === 'Person not found.' ? { person: null } : { unavailable: true }
 }
+
+// { season } with its episodes (null when TMDB has no such season), or { unavailable: true }
+export async function fetchTmdbSeason(id, season) {
+  const data = await askTmdb({ action: 'season', id: Number(id), season: Number(season) })
+  if (data?.season) return { season: data.season }
+  return data?.error === 'Season not found.' ? { season: null } : { unavailable: true }
+}

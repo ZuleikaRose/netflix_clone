@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { captionsCredit, clipFor, clipSources } from '../data/clips.js'
+import { episodeCode, episodeCount, findEpisode } from '../data/episodes.js'
 import { readStored, writeStored } from '../lib/supabaseConfig.js'
 import { useAccessibility } from '../state/accessibilityContext.js'
 import { useAuth } from '../state/authContext.js'
@@ -46,16 +47,21 @@ function saveWatched(w) {
 
 const cueText = (cue) => cue.text.replace(/<[^>]+>/g, '')
 
-export function Player({ title, onClose }) {
+// startEpisode (shows): play that episode from the start, unless it's the one the viewer stopped in
+export function Player({ title, startEpisode = null, onClose }) {
   const { user, setPreference } = useAuth()
   const { settings, update } = useAccessibility()
   const { progress, saveProgress } = useLibrary()
-  const [resumeFrom] = useState(() => progress[title.id] ?? null)
+  const lastEpisode = episodeCount(title)
+  const [resumeFrom] = useState(() => {
+    const saved = progress[title.id] ?? null
+    return startEpisode && saved?.episode !== startEpisode ? null : saved
+  })
   const clip = clipFor(title.id)
   const sources = clipSources(clip)
   const playerRef = useRef(null)
   const videoRef = useRef(null)
-  const [episode, setEpisode] = useState(resumeFrom?.episode ?? 1)
+  const [episode, setEpisode] = useState(() => Math.min(Math.max(1, startEpisode ?? resumeFrom?.episode ?? 1), lastEpisode || 1))
   const [time, setTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [paused, setPaused] = useState(true)
@@ -73,7 +79,12 @@ export function Player({ title, onClose }) {
   const watched = useRef({ titleId: title.id, seconds: 0, duration: 0, episode: 1, savedAt: 0, ended: false, save: saveProgress })
 
   const isShow = title.type === 'show'
-  const countingDown = ended && isShow && user.preferences.autoplayNext && !stayHere
+  const finale = isShow && episode >= lastEpisode
+  const countingDown = ended && isShow && !finale && user.preferences.autoplayNext && !stayHere
+  const describe = (n) => {
+    const found = findEpisode(title, n)
+    return found ? `${episodeCode(found)} ${found.name}` : `Episode ${n}`
+  }
 
   // The browser can refuse to start playback (e.g. autoplay without a user gesture); show Play instead
   const play = () => videoRef.current.play().catch(() => setPaused(true))
@@ -91,11 +102,14 @@ export function Player({ title, onClose }) {
     const w = watched.current
     return () => saveWatched(w)
   }, [])
-  // A movie watched to the end leaves Continue Watching; a show moves on to the start of the next episode
+  // A movie or a show's last episode watched to the end leaves Continue Watching; otherwise a show moves on to the
+  // start of the next episode
   const recordFinished = () => {
     const w = watched.current
     w.ended = true
-    w.save(w.titleId, isShow ? { percent: 0, episode: w.episode + 1, seconds: 0 } : { percent: 100, episode: 1, seconds: w.duration })
+    w.save(w.titleId, isShow && w.episode < lastEpisode
+      ? { percent: 0, episode: w.episode + 1, seconds: 0 }
+      : { percent: 100, episode: w.episode, seconds: w.duration })
   }
 
   // The member's volume is saved a moment after the last change, and right away if the player closes first
@@ -144,6 +158,11 @@ export function Player({ title, onClose }) {
     return () => clearInterval(id)
   }, [countingDown])
 
+  // Opened from an episode further down the page: bring the player into view
+  useEffect(() => {
+    playerRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [])
+
   useEffect(() => {
     const sync = () => setFullscreen(document.fullscreenElement === playerRef.current)
     document.addEventListener('fullscreenchange', sync)
@@ -180,7 +199,7 @@ export function Player({ title, onClose }) {
   }
   // Episodes are simulated: the sample clip stands in for each one
   const goToPreviousEpisode = () => { if (episode > 1) playEpisode(episode - 1) }
-  const goToNextEpisode = () => playEpisode(episode + 1)
+  const goToNextEpisode = () => { if (!finale) playEpisode(episode + 1) }
   const togglePlay = () => {
     if (ended) playEpisode(episode)
     else if (paused) play()
@@ -229,7 +248,7 @@ export function Player({ title, onClose }) {
   }
 
   const state = ended ? 'Finished' : paused ? 'Paused' : 'Now playing'
-  const status = `${state} · ${title.title}${isShow ? ` · Episode ${episode}` : ''}`
+  const status = `${state} · ${title.title}${isShow ? ` · ${describe(episode)}` : ''}`
 
   return (
     <>
@@ -263,13 +282,13 @@ export function Player({ title, onClose }) {
           <div className="player-end" role="group" aria-label="Playback finished">
             {countingDown
               ? <>
-                <p>Episode {episode + 1} starts in {nextIn}s</p>
+                <p>{describe(episode + 1)} starts in {nextIn}s</p>
                 <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>Play now</button>
                 <button type="button" className="secondary" onClick={() => setStayHere(true)}>Cancel</button>
               </>
               : <>
-                <p>{isShow ? `Episode ${episode} finished` : 'Finished'}</p>
-                {isShow && <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>Play next episode</button>}
+                <p>{!isShow ? 'Finished' : finale ? `${describe(episode)} finished · that’s the end of the series` : `${describe(episode)} finished`}</p>
+                {isShow && !finale && <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>Play next episode</button>}
                 <button type="button" className="secondary" onClick={() => playEpisode(episode)}>Replay</button>
               </>}
           </div>
@@ -281,8 +300,8 @@ export function Player({ title, onClose }) {
               <button type="button" className="episode-button" aria-disabled={episode === 1} aria-keyshortcuts="Shift+P" onClick={goToPreviousEpisode}>
                 <Icon name="previousEpisode" /> Previous episode
               </button>
-              <span className="episode-number">Episode {episode}</span>
-              <button type="button" className="episode-button" aria-keyshortcuts="Shift+N" onClick={goToNextEpisode}>
+              <span className="episode-number">{findEpisode(title, episode) ? episodeCode(findEpisode(title, episode)) : `Episode ${episode}`}</span>
+              <button type="button" className="episode-button" aria-disabled={finale} aria-keyshortcuts="Shift+N" onClick={goToNextEpisode}>
                 Next episode <Icon name="nextEpisode" />
               </button>
             </div>

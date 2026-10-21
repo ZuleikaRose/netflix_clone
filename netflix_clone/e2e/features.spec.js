@@ -250,3 +250,35 @@ test.describe('continue watching', () => {
     await expect(card.locator('.episode-badge')).toHaveText('E2')
   })
 })
+
+test.describe('seasons and episodes', () => {
+  test('a show lists its episodes by season, and playing one starts that episode', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/title/night-shift')
+    const season1 = page.getByRole('list', { name: 'Night Shift, Season 1' })
+    await expect(season1.locator('li')).toHaveCount(8)
+    await expect(season1.locator('li').first()).toContainText('S1:E1 Pilot')
+
+    await page.getByRole('combobox', { name: 'Season', exact: true }).selectOption('2')
+    const season2 = page.getByRole('list', { name: 'Night Shift, Season 2' })
+    await expect(season2.locator('li')).toHaveCount(6)
+    const first = (await season2.locator('.episode-name').first().innerText()).trim()
+    await season2.getByRole('button', { name: `Play ${first}` }).click()
+    await expect(page).toHaveURL(/play=1&episode=9/)
+    await expect(page.getByRole('status').filter({ hasText: 'Night Shift' })).toContainText(first)
+  })
+
+  test('the last episode ends the series instead of offering a next one', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/title/the-veil')
+    const finale = page.getByRole('list', { name: 'The Veil, Season 1' }).locator('li').last()
+    await finale.getByRole('button', { name: /^Play S1:E8/ }).click()
+    await expect(page.getByRole('button', { name: 'Next episode' })).toHaveAttribute('aria-disabled', 'true')
+    const seek = page.getByLabel('Seek')
+    await expect(seek).not.toHaveAttribute('max', '0')
+    await seek.fill(await seek.getAttribute('max'))
+    await expect(page.getByText(/that’s the end of the series/)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Play next episode' })).toHaveCount(0)
+    await expect(page.getByText(/starts in/)).toHaveCount(0)
+  })
+})

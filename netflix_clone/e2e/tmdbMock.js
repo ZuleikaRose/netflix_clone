@@ -31,7 +31,15 @@ const details = {
     trailer: { key: 'vKQi3bBA1y8', name: 'The Matrix (1999) Official Trailer' },
     providers: { link: 'https://www.themoviedb.org/movie/603/watch?locale=US', stream: [{ name: 'Max', logo: '/favicon.svg' }], rent: [{ name: 'Apple TV', logo: '/favicon.svg' }], buy: [] },
   },
-  'show:1399': { ...thrones, maturity: 'TV-MA', seasons: 8, cast: ['Emilia Clarke'], crew: { director: 'David Benioff', writer: null }, trailer: null, providers: null },
+  'show:1399': {
+    ...thrones, maturity: 'TV-MA', seasons: 8, cast: ['Emilia Clarke'], crew: { director: 'David Benioff', writer: null }, trailer: null, providers: null,
+    seasonList: [{ number: 1, name: 'Season 1', episodes: 2, year: 2011 }, { number: 2, name: 'Season 2', episodes: 1, year: 2012 }],
+  },
+}
+const episode = (number, name, airDate) => ({ number, name, overview: `${name} overview.`, airDate, runtime: '58m', still: '/favicon.svg', rating: 8 })
+const seasons = {
+  '1399:1': { number: 1, name: 'Season 1', overview: null, episodes: [episode(1, 'Winter Is Coming', '2011-04-17'), episode(2, 'The Kingsroad', '2011-04-24')] },
+  '1399:2': { number: 2, name: 'Season 2', overview: null, episodes: [episode(1, 'The North Remembers', '2012-04-01')] },
 }
 // A long biography, so the page folds it
 const people = {
@@ -55,6 +63,7 @@ export async function mockTmdb(page, { fail = false } = {}) {
       search: () => ({ results: [matrix, thrones].filter((t) => t.title.toLowerCase().includes(body.query.toLowerCase())) }),
       title: () => details[`${body.type}:${body.id}`] ? { title: details[`${body.type}:${body.id}`] } : null,
       recommendations: () => ({ results: recommendations[`${body.type}:${body.id}`] ?? [] }),
+      season: () => seasons[`${body.id}:${body.season}`] ? { season: seasons[`${body.id}:${body.season}`] } : { status: 404, error: 'Season not found.' },
       person: () => people[body.id] ? { person: people[body.id] } : { status: 404, error: 'Person not found.' },
       save: () => details[`${body.type}:${body.id}`] ? { title: details[`${body.type}:${body.id}`] } : null,
     }[body.action]?.()

@@ -280,3 +280,21 @@ test.describe('TMDB actor and director pages', () => {
     await expect(page.getByText('TMDB isn’t available right now. Please try again later.')).toBeVisible()
   })
 })
+
+test.describe('TMDB seasons and episodes', () => {
+  test.skip(!configured, 'Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.development.local to run these')
+
+  test('a TMDB show lists each season’s episodes', async ({ page }) => {
+    await mockTmdb(page)
+    await signInAsDemo(page)
+    await navigateInApp(page, '/tmdb/show/1399')
+    const list = page.getByRole('list', { name: 'Game of Thrones, Season 1' })
+    await expect(list.locator('li')).toHaveCount(2)
+    await expect(list.locator('li').first()).toContainText('E1 Winter Is Coming')
+    await expect(list.locator('li').first()).toContainText('Apr 17, 2011 · 58m')
+    await expect(list.getByRole('button', { name: /^Play/ })).toHaveCount(0)
+
+    await page.getByRole('combobox', { name: 'Season', exact: true }).selectOption('2')
+    await expect(page.getByRole('list', { name: 'Game of Thrones, Season 2' })).toContainText('The North Remembers')
+  })
+})

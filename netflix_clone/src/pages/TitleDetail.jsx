@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { CreditLinks } from '../components/CreditLinks.jsx'
+import { Episodes } from '../components/Episodes.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { Player } from '../components/Player.jsx'
@@ -13,7 +15,33 @@ import { describeLength } from '../data/catalog.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { NotFound } from './NotFound.jsx'
+import { episodeCode, findEpisode, seasonsFor } from '../data/episodes.js'
 import { personPath, splitNames } from '../data/people.js'
+
+// The show's seasons; the list opens on the season the viewer is in
+function CatalogEpisodes({ title, progress, onPlay }) {
+  const seasons = seasonsFor(title)
+  const current = progress ? findEpisode(title, progress.episode) : null
+  const [season, setSeason] = useState(current?.season ?? 1)
+  const episodes = seasons.find((s) => s.season === season)?.episodes ?? []
+  return (
+    <Episodes
+      title={title.title}
+      seasons={seasons.map((s) => ({ number: s.season, label: `Season ${s.season}` }))}
+      season={season}
+      onSeason={setSeason}
+      episodes={episodes.map((e) => ({
+        key: e.number,
+        number: e.number,
+        code: episodeCode(e),
+        name: e.name,
+        meta: `${e.minutes}m${current?.number === e.number ? ' · Continue watching' : ''}`,
+        percent: current?.number === e.number ? progress.percent : 0,
+      }))}
+      onPlay={(e) => onPlay(e.number)}
+    />
+  )
+}
 
 export function TitleDetail() {
   const { id } = useParams()
@@ -47,7 +75,7 @@ export function TitleDetail() {
       <PageHeader title={title.type === 'show' ? 'TV Show' : 'Movie'} back />
 
       {playing
-        ? <Player title={title} onClose={() => setParams({}, { replace: true })} />
+        ? <Player key={params.get('episode')} title={title} startEpisode={Number(params.get('episode')) || null} onClose={() => setParams({}, { replace: true })} />
         : (
           <div className="detail-art">
             <Preview title={title} />
@@ -81,6 +109,9 @@ export function TitleDetail() {
         <CreditLinks label="Writer" people={splitNames(title.crew.writer).map((name) => ({ name, to: personPath(name) }))} />
         <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>
 
+        {title.type === 'show' && (
+          <CatalogEpisodes title={title} progress={progress[id]} onPlay={(n) => setParams({ play: '1', episode: String(n) }, { replace: true })} />
+        )}
         <Reviews title={title} />
       </div>
 

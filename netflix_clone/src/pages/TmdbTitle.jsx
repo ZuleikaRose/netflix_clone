@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { CreditLinks } from '../components/CreditLinks.jsx'
+import { Episodes } from '../components/Episodes.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
@@ -12,7 +13,7 @@ import { describeLength } from '../data/catalog.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useStoreTitle } from '../state/useStoreTitle.js'
-import { useTmdbRecommendations, useTmdbTitle } from '../state/useTmdb.js'
+import { useTmdbRecommendations, useTmdbSeason, useTmdbTitle } from '../state/useTmdb.js'
 import { NotFound } from './NotFound.jsx'
 
 // A movie or TV show from TMDB (/tmdb/movie/:tmdbId, /tmdb/show/:tmdbId): TMDB's details and trailer, where to
@@ -61,6 +62,32 @@ function Trailer({ title, onClose }) {
     </div>
   )
 }
+const seasonStatus = { loading: 'Loading episodes…', unavailable: 'Episodes couldn’t be loaded from TMDB. Please try again later.', missing: 'TMDB has no episodes for this season.' }
+const formatAirDate = (day) => new Date(`${day}T00:00:00`).toLocaleDateString('en-US', { dateStyle: 'medium' })
+
+// A TMDB show's episodes, loaded a season at a time (there's no player: TMDB titles can't be watched here)
+function TmdbEpisodes({ title }) {
+  const [number, setNumber] = useState(title.seasonList[0].number)
+  const { status, season } = useTmdbSeason(title.tmdbId, number)
+  return (
+    <Episodes
+      title={title.title}
+      seasons={title.seasonList.map((s) => ({ number: s.number, label: s.name }))}
+      season={number}
+      onSeason={setNumber}
+      status={status === 'ready' ? null : seasonStatus[status]}
+      episodes={season?.episodes.map((e) => ({
+        key: e.number,
+        code: `E${e.number}`,
+        name: e.name,
+        meta: [e.airDate && formatAirDate(e.airDate), e.runtime].filter(Boolean).join(' · '),
+        synopsis: e.overview,
+        still: e.still,
+      })) ?? null}
+    />
+  )
+}
+
 const tmdbPerson = (p) => ({ key: p.id, name: p.name, to: `/tmdb/person/${p.id}` })
 const directs = (p) => p.job === 'Director' || p.job === 'Creator'
 
@@ -178,6 +205,7 @@ export function TmdbTitle() {
         <Credits title={title} />
         {title.genres.length > 0 && <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>}
 
+        {title.seasonList?.length > 0 && <TmdbEpisodes key={title.id} title={title} />}
         <WhereToWatch title={title} />
         <Reviews title={title} beforeSave={storeTitle} />
         <TmdbCredit />

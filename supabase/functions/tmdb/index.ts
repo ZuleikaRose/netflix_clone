@@ -7,6 +7,7 @@
 //   { action: 'recommendations', type, id }          → { results }: titles TMDB recommends to fans of this one
 //   { action: 'save', type, id } (signed in)         → { title } after storing it, so it can go on My List or Favorites
 //   { action: 'person', id }                         → { person }: an actor's or director's details and best-known titles
+//   { action: 'season', id, season }                 → { season }: a TV show's season and its episodes
 // Public like the catalog itself (except `save`); the TMDB key stays in the TMDB_API_FREE secret and never reaches
 // the browser. List, search and recommendation results carry real US certifications (looked up once per title and
 // kept in public.tmdb_certifications), so restricted profiles see the titles within their maturity setting.
@@ -219,7 +220,16 @@ const title = (type: Type, id: number) => cached(`title:${type}:${id}`, LIST_TTL
   return {
     ...toTitle(item, type, (item.genres ?? []).map((g: Item) => g.name)),
     maturity: certification(item, type),
-    ...(type === 'show' ? { seasons: item.number_of_seasons ?? 1 } : { runtime: formatRuntime(item.runtime) }),
+    ...(type === 'show'
+      ? {
+        seasons: item.number_of_seasons ?? 1,
+        // Numbered seasons (TMDB's season 0 holds specials)
+        seasonList: (item.seasons ?? []).filter((x: Item) => x.season_number > 0 && x.episode_count > 0).map((x: Item) => ({
+          number: x.season_number, name: x.name || `Season ${x.season_number}`, episodes: x.episode_count,
+          year: Number((x.air_date ?? '').slice(0, 4)) || null,
+        })),
+      }
+      : { runtime: formatRuntime(item.runtime) }),
     cast: (item.credits?.cast ?? []).slice(0, CAST_SIZE).map((p: Item) => p.name),
     // The same people with their TMDB ids, so the page can link to each person
     people: {
@@ -300,6 +310,25 @@ const person = (id: number) => cached(`person:${id}`, LIST_TTL_MS, async () => {
   }
 })
 
+// One season of a TV show, with its episodes in order
+const season = (id: number, number: number) => cached(`season:${id}:${number}`, LIST_TTL_MS, async () => {
+  const item = await tmdb(`/tv/${id}/season/${number}`)
+  return {
+    number,
+    name: item.name || `Season ${number}`,
+    overview: item.overview || null,
+    episodes: (item.episodes ?? []).map((e: Item) => ({
+      number: e.episode_number,
+      name: e.name || `Episode ${e.episode_number}`,
+      overview: e.overview || null,
+      airDate: e.air_date || null,
+      runtime: formatRuntime(e.runtime),
+      still: image(e.still_path, 'w300'),
+      rating: e.vote_count ? Math.round(e.vote_average * 10) / 10 : null,
+    })),
+  }
+})
+
 const asType = (value: unknown): Type | null => (value === 'movie' || value === 'show' ? value : null)
 
 // The request as [cache key, answer], or an error response for a bad request
@@ -324,13 +353,21 @@ function route(body: Record<string, unknown>): [string, () => Promise<unknown>] 
       }
       return [`title:${type}:${id}`, async () => ({ title: await title(type, id) })]
     }
+    case 'season': {
+      const id = Number(body.id)
+      const number = Number(body.season)
+      if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(number) || number < 0 || number > 500) {
+        return json({ error: 'Send a TMDB TV show id and a season number.' }, 400)
+      }
+      return [`season:${id}:${number}`, async () => ({ season: await season(id, number) })]
+    }
     case 'person': {
       const id = Number(body.id)
       if (!Number.isInteger(id) || id <= 0) return json({ error: 'Send a TMDB person id.' }, 400)
       return [`person:${id}`, async () => ({ person: await person(id) })]
     }
     default:
-      return json({ error: 'Unknown action. Use lists, search, title, recommendations, save or person.' }, 400)
+      return json({ error: 'Unknown action. Use lists, search, title, recommendations, save, person or season.' }, 400)
   }
 }
 
@@ -348,7 +385,9 @@ serve(async (req, body) => {
   try {
     return json(await answer())
   } catch (error) {
-    if (error instanceof NotFound) return json({ error: body.action === 'person' ? 'Person not found.' : 'Title not found.' }, 404)
+    if (error instanceof NotFound) {
+      return json({ error: { person: 'Person not found.', season: 'Season not found.' }[body.action as string] ?? 'Title not found.' }, 404)
+    }
     throw error
   }
 })
