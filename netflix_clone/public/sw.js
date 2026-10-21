@@ -10,6 +10,9 @@ const SHELL_CACHE = `shell-${VERSION}`
 const ASSET_CACHE = `assets-${VERSION}`
 const SHELL = ['/', '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png']
 
+// Keeps a copy for offline use; a full or blocked cache only means no offline copy, never a failed page
+const keep = (cacheName, key, response) => caches.open(cacheName).then((cache) => cache.put(key, response)).catch(() => {})
+
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL)))
 })
@@ -36,7 +39,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith((async () => {
       try {
         const page = await fetch(request)
-        if (page.ok) (await caches.open(SHELL_CACHE)).put('/', page.clone())
+        if (page.ok) event.waitUntil(keep(SHELL_CACHE, '/', page.clone()))
         return page
       } catch {
         return (await caches.match('/')) ?? Response.error()
@@ -50,7 +53,7 @@ self.addEventListener('fetch', (event) => {
       const cached = await caches.match(request)
       if (cached) return cached
       const response = await fetch(request)
-      if (response.ok) (await caches.open(ASSET_CACHE)).put(request, response.clone())
+      if (response.ok) event.waitUntil(keep(ASSET_CACHE, request, response.clone()))
       return response
     })())
   }

@@ -24,6 +24,11 @@ export function usePartyChannel(code, me, onMessage) {
     let cleanup = () => {}
 
     if (authBackend !== 'supabase') {
+      // Older browsers (Safari before 15.4) have no BroadcastChannel
+      if (typeof BroadcastChannel === 'undefined') {
+        queueMicrotask(() => { if (!closed) setStatus('failed') })
+        return () => { closed = true }
+      }
       const channel = new BroadcastChannel(`party:${code}`)
       const others = new Map()
       const show = () => setPeople([me, ...others.values()])
