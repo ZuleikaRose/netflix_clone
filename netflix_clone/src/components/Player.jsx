@@ -207,6 +207,9 @@ export function Player({ title, startEpisode = null, onClose }) {
   }
   const toggleCaptions = () => update({ captions: !settings.captions })
   // 0 counts as muted, so the slider and the Mute button always agree
+  // From the element, not state: state catches up on 'volumechange', so quick key presses would each start from the
+  // same old level
+  const currentLevel = () => (videoRef.current.muted ? 0 : videoRef.current.volume)
   const changeVolume = (level) => {
     const video = videoRef.current
     const next = Math.round(Math.max(0, Math.min(1, level)) * 100) / 100
@@ -236,7 +239,7 @@ export function Player({ title, startEpisode = null, onClose }) {
   // Shortcuts work while focus is inside the player (the sliders and speed menu keep their own keys)
   const shortcuts = {
     k: togglePlay, j: () => seekTo(time - SKIP_SECONDS), l: () => seekTo(time + SKIP_SECONDS), c: toggleCaptions, m: toggleMute, f: toggleFullscreen,
-    arrowup: () => changeVolume((muted ? 0 : volume) + VOLUME_STEP), arrowdown: () => changeVolume((muted ? 0 : volume) - VOLUME_STEP),
+    arrowup: () => changeVolume(currentLevel() + VOLUME_STEP), arrowdown: () => changeVolume(currentLevel() - VOLUME_STEP),
     ...(isShow && { 'shift+p': goToPreviousEpisode, 'shift+n': goToNextEpisode }),
   }
   const onKeyDown = (e) => {
