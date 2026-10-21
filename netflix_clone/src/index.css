@@ -194,6 +194,7 @@ svg.filled { fill: currentColor; }
 .notifications { display: grid; gap: 20px; padding: 12px 17px 28px; }
 .notifications h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 .notifications p { margin: 0; }
+.notifications .notifications-since { margin-bottom: 4px; font-size: 13px; }
 .notification-list { display: grid; margin: 0; padding: 0; list-style: none; }
 .notification { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid #2a2a2a; }
 .notification > svg { width: 22px; flex: none; margin-top: 2px; color: #a3a3a3; }
