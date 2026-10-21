@@ -660,6 +660,23 @@ textarea { resize: vertical; }
 .shortcut-list dd { margin: 0; color: #d4d4d4; }
 kbd { display: inline-block; min-width: 28px; padding: 3px 7px; border: 1px solid #555; border-bottom-width: 2px; border-radius: 5px; background: #1b1b1b; font: 600 13px/1.2 ui-monospace, monospace; text-align: center; }
 
+/* ---------- Thumbs ratings ---------- */
+.reaction { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 4px; }
+.reaction-note { flex-basis: 100%; margin: 0; font-size: 13px; }
+
+/* ---------- Player: chapters, seek previews, skip, picture-in-picture ---------- */
+.player-chapter { position: absolute; top: 34px; left: 16px; right: 60px; margin: 0; color: #d4d4d4; font-size: 12px; text-shadow: 0 1px 6px #000; }
+.seek-track { position: relative; display: flex; flex: 1; align-items: center; min-width: 0; }
+.chapter-mark { position: absolute; top: 50%; width: 3px; height: 10px; margin-left: -1px; border-radius: 1px; background: #000c; transform: translateY(-50%); pointer-events: none; }
+.seek-preview { position: absolute; bottom: calc(100% + 6px); display: grid; gap: 4px; justify-items: center; color: #fff; font-size: 12px; white-space: nowrap; transform: translateX(-50%); pointer-events: none; }
+.seek-thumb { display: block; border: 2px solid #fff; border-radius: 4px; background-color: #000; background-repeat: no-repeat; box-shadow: 0 2px 12px #000; }
+.skip-button { position: absolute; top: 58px; right: 12px; min-height: 44px; padding: 0 16px; border: 1px solid #fff; border-radius: 6px; color: #fff; background: #000000d9; font-weight: 700; cursor: pointer; }
+.skip-button:hover { background: #000; }
+/* Picture-in-picture sits beside Close: the controls row has no room left at phone width */
+.player-pip { position: absolute; top: 2px; right: 50px; }
+.player-pip[aria-pressed="true"] { color: #111; background: #fff; border-radius: 8px; }
+.player:has(.player-pip) :is(.player-status, .player-chapter) { right: 104px; }
+
 /* Accessibility menu settings, set as data-a11y-* attributes on <html> by AccessibilityProvider */
 html[data-a11y-text-size] :is(.page, .auth-body) { zoom: var(--a11y-zoom); }
 html[data-a11y-font="readable"] :is(body, body *:not(kbd)) { font-family: "Atkinson Hyperlegible", Verdana, sans-serif !important; }

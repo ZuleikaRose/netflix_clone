@@ -99,7 +99,7 @@ test.describe('video player', () => {
     expect(await video(page).evaluate((v) => v.paused)).toBe(true)
 
     await seek(page).fill('20')
-    await expect(seek(page)).toHaveAttribute('aria-valuetext', '0:20 of 0:57')
+    await expect(seek(page)).toHaveAttribute('aria-valuetext', '0:20 of 0:57, chapter: Watch out!')
     await page.getByRole('button', { name: 'Forward 10 seconds' }).click()
     await expect.poll(() => video(page).evaluate((v) => Math.round(v.currentTime))).toBe(30)
     await page.getByRole('button', { name: 'Back 10 seconds' }).click()
@@ -132,6 +132,58 @@ test.describe('video player', () => {
     await page.keyboard.press('Shift+P')
     await expect(status).toContainText('S1:E1 Pilot')
     await expect.poll(() => video(page).evaluate((v) => v.currentTime)).toBeLessThan(5)
+  })
+
+  test('shows offer Skip Intro, and Skip Recap from the second episode', async ({ page }) => {
+    await openPlayer(page, 'night-shift')
+    const time = () => video(page).evaluate((v) => v.currentTime)
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    // Episode 1 has no recap; the intro (4.8–10.6 s in this clip) can be skipped
+    await seek(page).fill('2')
+    await expect(page.getByRole('button', { name: 'Skip Recap' })).toHaveCount(0)
+    await seek(page).fill('6')
+    await page.getByRole('button', { name: 'Skip Intro' }).click()
+    await expect.poll(time).toBeCloseTo(10.6, 0)
+    await expect(page.getByRole('button', { name: 'Skip Intro' })).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Next episode' }).click()
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    await seek(page).fill('1')
+    await expect(page.getByRole('button', { name: 'Skip Recap' })).toBeVisible()
+    // Shortcuts are for the player's buttons; the sliders keep their own keys
+    await page.getByRole('button', { name: 'Closed captions' }).focus()
+    await page.keyboard.press('s')
+    await expect.poll(time).toBeCloseTo(4.8, 0)
+    await expect(page.getByRole('button', { name: 'Skip Intro' })).toBeVisible()
+  })
+
+  test('the seek bar shows chapters and previews the frame under the pointer', async ({ page }) => {
+    await openPlayer(page, 'after-dark')
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    await seek(page).fill('2')
+    await expect(page.getByText('Chapter: The machine')).toBeVisible()
+    await expect(page.locator('.chapter-mark')).toHaveCount(3)
+    await seek(page).fill('40')
+    await expect(page.getByText('Chapter: Are you hurt?')).toBeVisible()
+
+    const box = await seek(page).boundingBox()
+    await page.mouse.move(box.x + box.width * 0.9, box.y + box.height / 2)
+    const preview = page.locator('.seek-preview')
+    await expect(preview).toContainText('What’s next?')
+    await expect(preview.locator('.seek-thumb')).toHaveCSS('background-image', /elephants-dream\.thumbs\.jpg/)
+    await page.mouse.move(box.x + box.width / 2, box.y - 150)
+    await expect(preview).toHaveCount(0)
+  })
+
+  test('picture-in-picture opens from the button and the I key', async ({ page }) => {
+    await openPlayer(page, 'after-dark')
+    test.skip(!(await page.evaluate(() => document.pictureInPictureEnabled)), 'This browser has no picture-in-picture')
+    const button = page.getByRole('button', { name: 'Picture in picture' })
+    await button.click()
+    await expect(button).toHaveAttribute('aria-pressed', 'true')
+    await button.focus()
+    await page.keyboard.press('i')
+    await expect(button).toHaveAttribute('aria-pressed', 'false')
   })
 
   test('movies have no episode buttons', async ({ page }) => {

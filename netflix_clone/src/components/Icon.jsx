@@ -9,6 +9,9 @@ const iconPaths = {
   chevron: <path d="m9 18 6-6-6-6" />,
   back: <path d="m15 18-6-6 6-6" />,
   heart: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" />,
+  thumbUp: <><path d="M7 10v10H4V10Z" /><path d="M7 10l4-7a2 2 0 0 1 2.5 2.4L12.5 9H19a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.8 20H7" /></>,
+  thumbDown: <><path d="M7 14V4H4v10Z" /><path d="M7 14l4 7a2 2 0 0 0 2.5-2.4L12.5 15H19a2 2 0 0 0 2-2.3l-1.2-7A2 2 0 0 0 17.8 4H7" /></>,
+  thumbsUp: <><path d="M5 11v9H2.5v-9Z" /><path d="M5 11l3.2-6a1.7 1.7 0 0 1 2.1 2L9.6 10H15a1.7 1.7 0 0 1 1.7 2l-1 6a1.7 1.7 0 0 1-1.7 1.5H5" /><path d="M14 8.5l2.4-4.4a1.7 1.7 0 0 1 2.1 2l-.7 3h3.4a1.7 1.7 0 0 1 1.7 2l-1 6a1.7 1.7 0 0 1-1.7 1.5h-1.5" /></>,
   bell: <><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4Z" /><path d="M10 20a2 2 0 0 0 4 0" /></>,
   chat: <path d="M4 5h16v11H9l-5 4Z" />,
   party: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20a6 6 0 0 1 12 0M14 20a4.5 4.5 0 0 1 7-3.8" /></>,
@@ -26,6 +29,7 @@ const iconPaths = {
   mute: <><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4Z" /><path d="m16 9.5 5 5M21 9.5l-5 5" /></>,
   rewind: <><path d="M4 12a8 8 0 1 0 2.4-5.7" /><path d="M4 4v4.5h4.5" /><path d="M10 10v5M13 10h2.5v5H13Z" /></>,
   forward: <><path d="M20 12a8 8 0 1 1-2.4-5.7" /><path d="M20 4v4.5h-4.5" /><path d="M8.5 10v5M11.5 10H14v5h-2.5Z" /></>,
+  pictureInPicture: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M12.5 12h6v5h-6Z" /></>,
   fullscreen: <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />,
   exitFullscreen: <path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" />,
 }
