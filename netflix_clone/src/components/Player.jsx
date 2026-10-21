@@ -21,6 +21,8 @@ const VOLUME_STEP = 0.1
 // in counts as having started
 const PROGRESS_SAVE_EVERY_SECONDS = 15
 const MIN_WATCHED_SECONDS = 5
+// Watch parties: positions closer than this count as in step
+const SYNC_TOLERANCE_SECONDS = 1.5
 const UNMUTE_VOLUME = 0.5 // unmuting from 0 has to land somewhere audible
 const VOLUME_SAVE_DELAY_MS = 600 // dragging the slider saves once it stops
 const startVolume = (preferences) => {
@@ -47,14 +49,17 @@ function saveWatched(w) {
 
 const cueText = (cue) => cue.text.replace(/<[^>]+>/g, '')
 
-// startEpisode (shows): play that episode from the start, unless it's the one the viewer stopped in
-export function Player({ title, startEpisode = null, onClose }) {
+// startEpisode (shows): play that episode from the start, unless it's the one the viewer stopped in.
+// Watch parties: `party` turns off starting by itself, resuming and the next-episode countdown (everyone moves
+// together); onUserAction(state) reports the viewer's own play, pause, seek and episode changes, and controlRef gets
+// { apply(state), snapshot() } so other members' changes can be applied. state: { playing, time, episode }.
+export function Player({ title, startEpisode = null, onClose, party = false, onUserAction, controlRef }) {
   const { user, setPreference } = useAuth()
   const { settings, update } = useAccessibility()
   const { progress, saveProgress } = useLibrary()
   const lastEpisode = episodeCount(title)
   const [resumeFrom] = useState(() => {
-    const saved = progress[title.id] ?? null
+    const saved = party ? null : progress[title.id] ?? null
     return startEpisode && saved?.episode !== startEpisode ? null : saved
   })
   const clip = clipFor(title.id)
@@ -80,7 +85,7 @@ export function Player({ title, startEpisode = null, onClose }) {
 
   const isShow = title.type === 'show'
   const finale = isShow && episode >= lastEpisode
-  const countingDown = ended && isShow && !finale && user.preferences.autoplayNext && !stayHere
+  const countingDown = ended && isShow && !finale && !party && user.preferences.autoplayNext && !stayHere
   const describe = (n) => {
     const found = findEpisode(title, n)
     return found ? `${episodeCode(found)} ${found.name}` : `Episode ${n}`
@@ -174,7 +179,7 @@ export function Player({ title, startEpisode = null, onClose }) {
     setDuration(video.duration)
     // "Continue watching" titles resume where the viewer stopped (the built-in samples only know a percentage)
     if (resumeFrom) video.currentTime = resumeFrom.seconds ?? (video.duration * resumeFrom.percent) / 100
-    play()
+    if (!party) play()
   }
   const syncPosition = () => {
     const video = videoRef.current
@@ -184,27 +189,68 @@ export function Player({ title, startEpisode = null, onClose }) {
     if (Math.abs(video.currentTime - watched.current.savedAt) >= PROGRESS_SAVE_EVERY_SECONDS) recordProgress()
   }
 
-  const seekTo = (seconds) => {
+  // Tells a watch party what this viewer just did
+  const report = (state) => {
     const video = videoRef.current
-    video.currentTime = Math.max(0, Math.min(duration, seconds))
+    onUserAction?.({ playing: !video.paused && !video.ended, time: video.currentTime, episode, ...state })
+  }
+  const moveTo = (seconds) => {
+    const video = videoRef.current
+    // Before the metadata loads (a party member joining) the length isn't known yet
+    video.currentTime = Math.max(0, Math.min(duration || video.duration || Infinity, seconds))
     setTime(video.currentTime)
     setNextIn(NEXT_EPISODE_DELAY)
     setStayHere(false)
   }
-  const playEpisode = (n) => {
+  const seekTo = (seconds) => {
+    moveTo(seconds)
+    report({ time: videoRef.current.currentTime })
+  }
+  const startEpisodeAt = (n) => {
     setEpisode(n)
-    seekTo(0)
+    moveTo(0)
     setEnded(false)
     play()
+  }
+  const playEpisode = (n) => {
+    startEpisodeAt(n)
+    report({ episode: n, time: 0, playing: true })
   }
   // Episodes are simulated: the sample clip stands in for each one
   const goToPreviousEpisode = () => { if (episode > 1) playEpisode(episode - 1) }
   const goToNextEpisode = () => { if (!finale) playEpisode(episode + 1) }
   const togglePlay = () => {
     if (ended) playEpisode(episode)
-    else if (paused) play()
-    else videoRef.current.pause()
+    else if (paused) {
+      play()
+      report({ playing: true })
+    } else {
+      videoRef.current.pause()
+      report({ playing: false })
+    }
   }
+
+  // Another party member's change. Small differences in position are left alone, so playback doesn't stutter.
+  useEffect(() => {
+    if (!controlRef) return
+    controlRef.current = {
+      apply({ playing, time: at, episode: ep }) {
+        const video = videoRef.current
+        if (!video) return
+        if (ep && ep !== episode) {
+          setEpisode(ep)
+          setEnded(false)
+        }
+        if (Math.abs(video.currentTime - at) > SYNC_TOLERANCE_SECONDS) moveTo(at)
+        if (playing && video.paused) play()
+        else if (!playing && !video.paused) video.pause()
+      },
+      snapshot: () => {
+        const video = videoRef.current
+        return video ? { playing: !video.paused && !video.ended, time: video.currentTime, episode } : null
+      },
+    }
+  })
   const toggleCaptions = () => update({ captions: !settings.captions })
   // 0 counts as muted, so the slider and the Mute button always agree
   // From the element, not state: state catches up on 'volumechange', so quick key presses would each start from the

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AddToList } from '../components/AddToList.jsx'
 import { CreditLinks } from '../components/CreditLinks.jsx'
 import { Episodes } from '../components/Episodes.jsx'
@@ -17,6 +17,7 @@ import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { NotFound } from './NotFound.jsx'
 import { episodeCode, findEpisode, seasonsFor } from '../data/episodes.js'
+import { invitePath, startParty } from '../data/partyApi.js'
 import { personPath, splitNames } from '../data/people.js'
 
 // The show's seasons; the list opens on the season the viewer is in
@@ -41,6 +42,26 @@ function CatalogEpisodes({ title, progress, onPlay }) {
       }))}
       onPlay={(e) => onPlay(e.number)}
     />
+  )
+}
+
+// Starts a watch party for this title and opens it
+function PartyButton({ title }) {
+  const navigate = useNavigate()
+  const [error, setError] = useState(null)
+  const start = async () => {
+    setError(null)
+    try {
+      navigate(invitePath(await startParty(title.id)))
+    } catch {
+      setError('The watch party couldn’t be started. Please try again.')
+    }
+  }
+  return (
+    <>
+      <button type="button" className="ghost-action" onClick={start}><Icon name="party" /><span>Watch party</span></button>
+      {error && <p className="form-alert" role="alert">{error}</p>}
+    </>
   )
 }
 
@@ -101,6 +122,7 @@ export function TitleDetail() {
               <Icon name="heart" filled={favorite} /><span>Favorite</span>
             </button>
             <ShareButton title={title} />
+            <PartyButton title={title} />
           </div>
         </div>
 

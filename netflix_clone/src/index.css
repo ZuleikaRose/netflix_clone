@@ -229,6 +229,11 @@ svg.filled { fill: currentColor; }
 .shared-list { display: grid; gap: 12px; margin-bottom: 18px; }
 .shared-list p { margin: 0; }
 .shared-list .poster-grid { padding: 0; }
+.party-activity { min-height: 1.4em; margin: 8px 0 0; font-size: 14px; }
+.party-people { display: grid; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; font-size: 15px; }
+.party-chat { display: grid; gap: 8px; max-height: 260px; margin: 0 0 12px; padding: 0; overflow-y: auto; list-style: none; font-size: 14px; overflow-wrap: anywhere; }
+.party-chat-form { display: grid; gap: 4px; }
+.party > .ghost-cta { margin-top: 0; }
 .tmdb-credit { margin: 18px 17px 0; color: #a3a3a3; font-size: 12px; line-height: 1.45; }
 .detail-body .tmdb-credit, .settings-card .tmdb-credit { margin: 12px 0 0; }
 .stars { display: flex; align-items: center; gap: 2px; margin: 0 0 12px; padding: 0; border: 0; }

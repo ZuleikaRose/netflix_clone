@@ -145,6 +145,30 @@ test('title pages show members’ reviews from the database; a list shared by li
   await visitor.close()
 })
 
+test('a watch party runs over a private Realtime channel that only its members can join', async ({ page, context }) => {
+  await signInAsDemo(page, '/title/after-dark')
+  await page.getByRole('button', { name: 'Watch party' }).click()
+  await expect(page).toHaveURL(/\/party\/[0-9a-f]{10}$/)
+  await expect(page.getByRole('heading', { name: 'Watching now (1)' })).toBeVisible()
+  const invite = await page.getByLabel('Invite link').inputValue()
+
+  // A second tab shares the saved session, so it joins as the same member over its own connection
+  const guest = await context.newPage()
+  await guest.goto(invite)
+  for (const p of [page, guest]) await expect(p.getByRole('heading', { name: 'Watching now (2)' })).toBeVisible()
+  await expect(page.getByLabel('Seek')).not.toHaveAttribute('max', '0')
+  await page.locator('.player').getByRole('button', { name: 'Play', exact: true }).click()
+  await expect.poll(() => guest.locator('.player video').evaluate((v) => !v.paused)).toBe(true)
+  await guest.getByLabel('Message').fill('Hello from tab two')
+  await guest.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByRole('list', { name: 'Party chat' })).toContainText('Hello from tab two')
+  await guest.close()
+
+  // A made-up code isn't a party
+  await page.goto('/party/0000000000')
+  await expect(page.getByText('This watch party has ended or doesn’t exist.')).toBeVisible()
+})
+
 test('sign up, apply a promo code, review, then delete the account', async ({ page }) => {
   const settings = await supabaseAuthSettings()
   test.skip(!settings.mailer_autoconfirm, 'The dev project still requires email confirmation (Authentication → Sign In / Providers → Email)')

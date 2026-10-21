@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(86);
+select plan(92);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
@@ -110,6 +110,10 @@ insert into public.custom_list_items (list_id, title_id) values (:'alex_list', '
 select is(public.shared_list(:'alex_slug'), null, 'a private list isn''t shared');
 update public.custom_lists set is_public = true where id = :'alex_list';
 
+-- Watch parties: the host is the first member
+insert into public.watch_parties (title_id) values ('after-dark') returning code as party_code \gset
+select is((select count(*) from public.watch_party_members), 1::bigint, 'the host is the party''s first member');
+
 -- Support: Alex isn't staff
 select is((select count(*) from public.staff), 0::bigint, 'a member who isn''t staff has no staff row');
 select throws_ok('select * from public.staff_tickets()', '42501', null, 'members who aren''t staff can''t read the ticket queue');
@@ -133,6 +137,9 @@ select is((select count(*) from public.referrals where affiliate_id = 'afa00000-
   'an affiliate cannot see another affiliate''s referrals');
 select is((select count(*) from public.viewing_history), 0::bigint, 'members can''t see each other''s viewing history');
 select is((select count(*) from public.custom_lists), 0::bigint, 'members can''t see each other''s lists');
+select is((select count(*) from public.watch_parties), 0::bigint, 'a party is hidden until you join it');
+select is(public.join_watch_party(:'party_code') ->> 'titleId', 'after-dark', 'joining by invite code returns the party''s title');
+select is((select count(*) from public.watch_parties), 1::bigint, 'members see the parties they joined');
 select throws_ok(format('insert into public.custom_list_items (list_id, title_id) values (%L, %L)', :'alex_list', 'the-signal'),
   '42501', null, 'members can''t add to someone else''s list');
 set local role anon;
@@ -186,6 +193,11 @@ select is((select count(*) from auth.users where id = 'b0000000-0000-4000-8000-0
   'the cleanup job deletes demo accounts older than 24 hours');
 select is((select count(*) from public.netflix_tables where id = 'b0000000-0000-4000-8000-000000000001'), 1::bigint,
   'the cleanup job keeps ordinary accounts');
+
+-- Ended parties can't be joined, and go a day later
+update public.watch_parties set expires_at = now() - interval '2 days' where code = :'party_code';
+select throws_ok(format('select public.join_watch_party(%L)', :'party_code'), 'P0002', null, 'an ended party can''t be joined');
+select ok(private.delete_old_watch_parties() >= 1, 'the party job deletes parties that ended over a day ago');
 
 -- History older than the member's limit (Alex keeps 90 days) goes in the nightly job
 update public.viewing_history set watched_at = now() - interval '100 days' where title_id = 'after-dark';

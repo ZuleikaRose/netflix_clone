@@ -26,6 +26,7 @@ import { ViewingActivity } from './pages/ViewingActivity.jsx'
 import { MyLists } from './pages/MyLists.jsx'
 import { ListDetail } from './pages/ListDetail.jsx'
 import { SharedList } from './pages/SharedList.jsx'
+import { WatchParty } from './pages/WatchParty.jsx'
 import { useAuth } from './state/authContext.js'
 import { ProfileProvider } from './state/ProfileProvider.jsx'
 
@@ -58,6 +59,7 @@ function App() {
           <Route path="notifications" element={<Notifications />} />
           <Route path="history" element={<ViewingActivity />} />
           <Route path="lists" element={<MyLists />} />
+          <Route path="party/:code" element={<WatchParty />} />
           <Route path="lists/:listId" element={<ListDetail />} />
           <Route path="my-netflix" element={<MyNetflix />} />
           <Route path="watchlist" element={<MyNetflix />} />
