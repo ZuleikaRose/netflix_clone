@@ -13,6 +13,8 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${E2E_PORT}`,
     trace: 'on-first-retry',
+    // The app's service worker would answer requests before page.route() mocks see them; pwa.spec.js allows it
+    serviceWorkers: 'block',
     screenshot: 'only-on-failure',
   },
   projects: [

@@ -8,6 +8,8 @@ import { billingSummary } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
 import { maturityChoices } from '../data/profiles.js'
 import { useProfile } from '../state/profileContext.js'
+import { usePwa } from '../state/usePwa.js'
+import { promptInstall } from '../lib/pwa.js'
 import { discountedPrice, findPromotion } from '../data/promotions.js'
 import { EMAIL_PATTERN, PASSWORD_HINT, passwordProblem, useAuth } from '../state/authContext.js'
 import { Billing } from './account/Billing.jsx'
@@ -25,6 +27,30 @@ const privacyToggles = [
   { key: 'personalized', label: 'Personalized recommendations', hint: 'Use what you save, favorite and rate to suggest titles on Home.' },
   { key: 'showOnLeaderboards', label: 'Show me on game leaderboards', hint: 'Your first name and best scores appear on each game’s leaderboard for other members.' },
 ]
+
+// Install as an app: the browser's own prompt where there is one, else how to do it by hand
+function InstallCard() {
+  const { canInstall, installed } = usePwa()
+  const [declined, setDeclined] = useState(false)
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent)
+  const install = async () => setDeclined(!(await promptInstall()))
+  return (
+    <section className="settings-card" aria-labelledby="app-heading">
+      <h2 id="app-heading">App</h2>
+      {installed
+        ? <p className="muted"><span aria-hidden="true">✓</span> Netflix Clone is installed on this device. It opens from your home screen or app list, and pages you’ve visited work offline.</p>
+        : canInstall
+          ? (
+            <>
+              <p className="muted">Add Netflix Clone to your home screen or desktop: it opens in its own window and works offline.</p>
+              <button type="button" className="cta" onClick={install}>Install Netflix Clone</button>
+              {declined && <p className="muted" role="status">Not installed. You can install it any time from here.</p>}
+            </>
+          )
+          : <p className="muted">{ios ? 'To install: tap Share, then Add to Home Screen.' : 'To install, use your browser’s menu: Install app, or Add to Home Screen.'}</p>}
+    </section>
+  )
+}
 
 function Status({ message }) {
   return <p className="save-status" role="status">{message && <><span aria-hidden="true">✓</span> {message}</>}</p>
@@ -173,6 +199,8 @@ export function Account() {
           </label>
           {maturityError && <p className="form-alert" role="alert">{maturityError}</p>}
         </section>
+
+        <InstallCard />
 
         <section className="settings-card" aria-labelledby="a11y-settings-heading">
           <h2 id="a11y-settings-heading">Accessibility</h2>

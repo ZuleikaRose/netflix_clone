@@ -8,7 +8,7 @@ const speeds = [
 ]
 
 const devices = [
-  ['Phones & tablets', 'iOS 16+ or Android 10+, in Safari, Chrome or the app'],
+  ['Phones & tablets', 'iOS 16+ or Android 10+, in Safari or Chrome; install it from Account → App to use it like an app'],
   ['Computers', 'Latest two versions of Chrome, Edge, Firefox or Safari'],
   ['TVs & streaming sticks', 'Smart TVs from 2019 or newer'],
 ]
@@ -21,6 +21,8 @@ function checkDevice() {
     ['Screen', `${window.screen.width}×${window.screen.height}`, true],
     ['Estimated speed', downlink ? `${downlink} Mbps` : 'Unknown in this browser', downlink ? downlink >= 3 : null],
     ['Video playback', document.createElement('video').canPlayType('video/mp4') ? 'Supported' : 'Not supported', Boolean(document.createElement('video').canPlayType('video/mp4'))],
+    // Installing and opening offline need a service worker
+    ['Install as an app', 'serviceWorker' in navigator ? 'Supported' : 'Not supported', 'serviceWorker' in navigator],
   ]
 }
 

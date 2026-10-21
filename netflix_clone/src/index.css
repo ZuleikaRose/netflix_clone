@@ -243,6 +243,9 @@ svg.filled { fill: currentColor; }
 .search-option.active, .search-option:hover { background: #2a2a2a; }
 .search-option-kind { font-size: 12px; }
 .search-clear { width: 100%; min-height: 44px; border: 0; border-top: 1px solid #333; color: #e5e5e5; background: transparent; font: inherit; font-size: 14px; cursor: pointer; }
+.app-notices:empty { display: none; }
+.app-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 10px 17px; border-bottom: 1px solid #3a3a3a; color: #fff; background: #262626; font-size: 14px; line-height: 1.4; }
+.app-notice-action { flex: none; min-height: 44px; padding: 0 14px; border: 0; border-radius: 4px; color: #111; background: #fff; font: inherit; font-weight: 700; cursor: pointer; }
 .tmdb-credit { margin: 18px 17px 0; color: #a3a3a3; font-size: 12px; line-height: 1.45; }
 .detail-body .tmdb-credit, .settings-card .tmdb-credit { margin: 12px 0 0; }
 .stars { display: flex; align-items: center; gap: 2px; margin: 0 0 12px; padding: 0; border: 0; }
