@@ -4,6 +4,7 @@ import { listNameProblem, newShareSlug } from '../data/lists.js'
 import { memorySharedLists } from '../data/listsApi.js'
 import { RECENT_SEARCHES } from '../data/libraryApi.js'
 import { localDay } from '../data/notifications.js'
+import { historyYears, summarizeHistory } from '../data/yearInReview.js'
 import { useAuth } from './authContext.js'
 import { FINISHED_PERCENT, LibraryContext } from './libraryContext.js'
 import { useProfile } from './profileContext.js'
@@ -293,6 +294,10 @@ export function LibraryProvider({ children }) {
       },
       // Viewing activity: the profile's history, newest first (resolves to the entries; throws if it can't be read)
       loadHistory: async () => (remote ? remote.loadHistory() : history),
+      // Year in Review: { years, days, months, titles } for one year (throws if it can't be read)
+      loadYear: async (year) => (remote
+        ? remote.loadYear(year)
+        : { years: historyYears(history, new Date().getFullYear()), ...summarizeHistory(history, year) }),
       hideFromHistory: (id) => changeHistory((all) => all.filter((e) => e.id !== id), () => remote.hideFromHistory(id)),
       clearHistory: () => {
         recorded.current.clear()

@@ -44,6 +44,34 @@ test.describe('homepage', () => {
     await expect(page.getByRole('heading', { name: /Because You Liked/ })).toHaveCount(0)
   })
 
+  test('thumbs ratings: Love this! seeds Because You Liked and Not for me hides a title from recommendations', async ({ page }) => {
+    const row = (name) => page.locator('.row-section', { has: page.getByRole('heading', { name, exact: true }) })
+    await navigateInApp(page, '/title/the-signal')
+    await page.getByRole('heading', { name: 'THE SIGNAL' }).waitFor()
+    const rating = page.getByRole('group', { name: 'Rate The Signal' })
+    await rating.getByRole('button', { name: 'Love this!' }).click()
+    await expect(rating.getByRole('button', { name: 'Love this!' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('.poster-link', { hasText: 'AFTER DARK' })).toHaveCount(1)
+
+    await navigateInApp(page, '/title/after-dark')
+    await page.getByRole('heading', { name: 'AFTER DARK' }).waitFor()
+    await page.getByRole('button', { name: 'Not for me' }).click()
+    await expect(page.getByText('We won’t recommend After Dark to this profile.')).toBeVisible()
+
+    await tabBar(page).getByRole('link', { name: 'Home' }).click()
+    const liked = row('Because You Liked The Signal')
+    await expect(liked).toBeVisible()
+    await expect(liked.getByRole('link', { name: 'Behind the Glass' })).toBeVisible()
+    await expect(liked.getByRole('link', { name: 'After Dark' })).toHaveCount(0)
+
+    // Choosing it again takes the rating back
+    await navigateInApp(page, '/title/after-dark')
+    await page.getByRole('button', { name: 'Not for me' }).click()
+    await expect(page.getByRole('button', { name: 'Not for me' })).toHaveAttribute('aria-pressed', 'false')
+    await tabBar(page).getByRole('link', { name: 'Home' }).click()
+    await expect(row('Because You Liked The Signal').getByRole('link', { name: 'After Dark' })).toBeVisible()
+  })
+
   test('row arrows page through a row and stop at its ends', async ({ page }) => {
     const left = page.getByRole('button', { name: 'Scroll Top 10 in the U.S. Today left' })
     const right = page.getByRole('button', { name: 'Scroll Top 10 in the U.S. Today right' })
@@ -293,6 +321,32 @@ test.describe('viewing history and privacy', () => {
     await expect(page.getByRole('group', { name: 'Playback finished' })).toBeVisible()
     await page.getByRole('button', { name: 'Close player' }).click()
   }
+
+  test('Year in Review sums up the profile’s year and shares a summary', async ({ page }) => {
+    await navigateInApp(page, '/year-in-review')
+    await expect(page.getByText(/Nothing watched in \d{4} yet/)).toBeVisible()
+
+    await watchFirstEpisode(page)
+    await navigateInApp(page, '/history')
+    await page.getByRole('link', { name: 'See your Year in Review' }).click()
+    const year = new Date().getFullYear()
+    await expect(page.getByRole('heading', { name: `Alex’s ${year}` })).toBeVisible()
+    const numbers = page.getByRole('list', { name: `${year} in numbers` })
+    await expect(numbers).toContainText('1title')
+    await expect(numbers).toContainText('1episode')
+    await expect(numbers).toContainText('1day watching')
+    const highlights = page.getByRole('region', { name: 'Highlights' })
+    await expect(highlights.getByRole('link', { name: 'Behind the Glass' })).toBeVisible()
+    await expect(highlights).toContainText('Top genresMystery, Thriller')
+    // Everyone in it was seen once: ties go alphabetically
+    await expect(highlights.getByRole('link', { name: 'Lena Voss' })).toBeVisible()
+    await expect(highlights).toContainText('1 day in a row')
+    await expect(highlights).toContainText(new Date().toLocaleDateString('en-US', { month: 'long' }))
+
+    await page.evaluate(() => { delete Navigator.prototype.share })
+    await page.getByRole('button', { name: 'Share my year' }).click()
+    await expect(highlights.getByRole('status')).toHaveText(new RegExp(`Summary copied|Copy this summary: My ${year} on Netflix Clone: 1 title, 1 episode`))
+  })
 
   test('what a profile watches is listed by day, and entries can be hidden or all cleared', async ({ page }) => {
     await signInAsDemo(page)

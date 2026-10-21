@@ -23,6 +23,7 @@ import { TmdbPerson } from './pages/TmdbPerson.jsx'
 import { Person } from './pages/Person.jsx'
 import { Notifications } from './pages/Notifications.jsx'
 import { ViewingActivity } from './pages/ViewingActivity.jsx'
+import { YearInReview } from './pages/YearInReview.jsx'
 import { MyLists } from './pages/MyLists.jsx'
 import { ListDetail } from './pages/ListDetail.jsx'
 import { SharedList } from './pages/SharedList.jsx'
@@ -58,6 +59,7 @@ function App() {
           <Route path="new" element={<NewHot />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="history" element={<ViewingActivity />} />
+          <Route path="year-in-review" element={<YearInReview />} />
           <Route path="lists" element={<MyLists />} />
           <Route path="party/:code" element={<WatchParty />} />
           <Route path="lists/:listId" element={<ListDetail />} />

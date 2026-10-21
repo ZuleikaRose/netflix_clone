@@ -218,6 +218,7 @@ export function Account() {
             </label>
           ))}
           <Link to="/history" className="ghost-cta">Viewing activity and history settings</Link>
+          <Link to="/year-in-review" className="ghost-cta">Year in Review</Link>
           <p className="muted">More choices: <Link to="/info/do-not-sell" className="inline-link">Do Not Sell My Information</Link> · <Link to="/info/privacy" className="inline-link">Privacy Policy</Link></p>
         </section>
 

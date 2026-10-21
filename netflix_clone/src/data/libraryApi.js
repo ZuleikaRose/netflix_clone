@@ -155,6 +155,8 @@ export function libraryApi(supabase, userId, profileId) {
     loadHistory: () => profiles('viewing_history', 'id, title_id, episode, watched_on, watched_at')
       .order('watched_at', { ascending: false }).limit(HISTORY_LIMIT).then(unwrap)
       .then((rows) => rows.map((r) => ({ id: r.id, titleId: r.title_id, episode: r.episode, day: r.watched_on, at: new Date(r.watched_at) }))),
+    // Year in Review: the year's history summed up by public.year_in_review() (shape in data/yearInReview.js)
+    loadYear: (year) => supabase.rpc('year_in_review', { p_profile: profileId, p_year: year }).then(unwrap),
     hideFromHistory: (id) => supabase.from('viewing_history').delete().eq('user_id', userId).eq('id', id).then(unwrap),
     clearHistory: () => supabase.from('viewing_history').delete().eq('user_id', userId).eq('profile_id', profileId).then(unwrap),
 

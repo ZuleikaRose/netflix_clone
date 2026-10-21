@@ -677,6 +677,18 @@ kbd { display: inline-block; min-width: 28px; padding: 3px 7px; border: 1px soli
 .player-pip[aria-pressed="true"] { color: #111; background: #fff; border-radius: 8px; }
 .player:has(.player-pip) :is(.player-status, .player-chapter) { right: 104px; }
 
+/* ---------- Year in Review ---------- */
+.year-hero h2 { font-size: 22px; }
+.year-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.year-stats li { display: grid; gap: 2px; padding: 16px; border: 1px solid #262626; border-radius: 12px; background: linear-gradient(135deg, #3a0a0d, #141414 70%); }
+.year-stats b { font-size: 34px; line-height: 1; }
+.year-stats span { color: #d4d4d4; font-size: 13px; }
+.year-facts { display: grid; gap: 12px; margin: 0 0 6px; }
+.year-facts div { display: grid; gap: 2px; }
+.year-facts dt { color: #bcbcbc; font-size: 13px; }
+.year-facts dd { margin: 0; font-size: 16px; font-weight: 600; }
+.year-note { margin: 0; font-size: 13px; }
+
 /* Accessibility menu settings, set as data-a11y-* attributes on <html> by AccessibilityProvider */
 html[data-a11y-text-size] :is(.page, .auth-body) { zoom: var(--a11y-zoom); }
 html[data-a11y-font="readable"] :is(body, body *:not(kbd)) { font-family: "Atkinson Hyperlegible", Verdana, sans-serif !important; }
