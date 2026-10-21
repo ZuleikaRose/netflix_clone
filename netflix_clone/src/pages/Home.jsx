@@ -12,7 +12,7 @@ import { serviceStatus } from '../data/serviceStatus.js'
 import { useAuth } from '../state/authContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
-import { useTmdbLists } from '../state/useTmdb.js'
+import { useTmdbLists, useTmdbRecommendations } from '../state/useTmdb.js'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
 
 const filters = [['TV Shows', 'show'], ['Movies', 'movie']]
@@ -34,10 +34,10 @@ const interleave = (lists) => Array.from({ length: Math.max(0, ...lists.map((l) 
 export function Home() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { myList, favorites, ratings, toggleMyList, dismissedNotices, dismissNotice } = useLibrary()
+  const { myList, favorites, ratings, progress, toggleMyList, dismissedNotices, dismissNotice } = useLibrary()
   const [type, setType] = useState(null)
   const [slide, setSlide] = useState(0)
-  const { titles: catalog, isAllowed } = useCatalog()
+  const { titles: catalog, isAllowed, findTitle } = useCatalog()
   const tmdbLists = useTmdbLists()
   useDocumentTitle('Home')
 
@@ -48,12 +48,13 @@ export function Home() {
   const featured = featuredList[current]
   const showSlide = (i) => setSlide((i + featuredList.length) % featuredList.length)
   const notice = serviceStatus.notice && !dismissedNotices.includes(serviceStatus.notice.id) ? serviceStatus.notice : null
-  const continueWatching = titles.filter((t) => t.progress)
+  // Most recently watched first (LibraryProvider keeps progress newest first)
+  const continueWatching = Object.keys(progress).map((id) => titles.find((t) => t.id === id)).filter(Boolean)
   const saved = featured && myList.includes(featured.id)
   const preview = usePreview(featured ?? {})
   const [first, ...rest] = featured ? featured.title.toUpperCase().split(' ') : []
-  // The TV Shows / Movies chips filter these too. TMDB list items have no certification ('NR'), so restricted
-  // profiles don't see them
+  // The TV Shows / Movies chips filter these too. The tmdb function looks up each title's US certification, so
+  // restricted profiles see the ones within their setting (titles TMDB has no rating for stay 'NR' and hidden)
   const showsHere = (t) => (!type || t.type === type) && isAllowed(t)
   const tmdbRowsShown = tmdbLists
     ? tmdbRows
@@ -69,6 +70,13 @@ export function Home() {
   // Respect the "Personalized recommendations" permission from Account
   const seed = user.preferences.personalized ? likedIds.map((id) => titles.find((t) => t.id === id)).find(Boolean) : null
   const sharedGenres = (t) => t.genres.filter((g) => seed.genres.includes(g)).length
+  // Because You Saved: TMDB's recommendations for the TMDB title most recently added to Favorites or My List
+  const savedTmdb = user.preferences.personalized
+    ? [...[...favorites].reverse(), ...[...myList].reverse()].map(findTitle).find((t) => t?.source === 'tmdb' && t.tmdbId)
+    : null
+  const recommended = useTmdbRecommendations(savedTmdb?.type, savedTmdb?.tmdbId)
+  const becauseYouSaved = (recommended ?? [])
+    .filter((t) => showsHere(t) && t.id !== savedTmdb?.id && !myList.includes(t.id) && !favorites.includes(t.id))
   const becauseYouLiked = seed
     ? titles.filter((t) => t.id !== seed.id && !myList.includes(t.id) && sharedGenres(t) > 0)
       .sort((a, b) => sharedGenres(b) - sharedGenres(a) || b.popularity - a.popularity)
@@ -141,7 +149,8 @@ export function Home() {
             {continueWatching.map((t) => (
               <PosterCard key={t.id} title={t}>
                 <Link to={`/title/${t.id}?play=1`} aria-label={`Resume ${t.title}`} className="resume"><span aria-hidden="true">▶</span></Link>
-                <div className="progress"><span style={{ width: `${t.progress}%` }} /></div>
+                <div className="progress"><span style={{ width: `${progress[t.id].percent}%` }} /></div>
+                {t.type === 'show' && progress[t.id].episode > 1 && <span className="episode-badge">E{progress[t.id].episode}</span>}
               </PosterCard>
             ))}
           </Row>
@@ -165,12 +174,18 @@ export function Home() {
           </Row>
         )}
 
+        {becauseYouSaved.length > 0 && (
+          <Row title={`Because You Saved ${savedTmdb.title}`}>
+            {becauseYouSaved.map((t) => <PosterCard key={t.id} title={t} />)}
+          </Row>
+        )}
+
         {tmdbRowsShown.map(([heading, titles]) => (
           <Row key={heading} title={heading}>
             {titles.map((t) => <PosterCard key={t.id} title={t} />)}
           </Row>
         ))}
-        {tmdbRowsShown.length > 0 && <TmdbCredit />}
+        {(tmdbRowsShown.length > 0 || becauseYouSaved.length > 0) && <TmdbCredit />}
       </div>
     </>
   )

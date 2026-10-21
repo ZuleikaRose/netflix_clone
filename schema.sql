@@ -11,6 +11,10 @@
 -- TMDB (migration ..._tmdb_titles_and_player_volume): titles gains source ('catalog' or 'tmdb'), so TMDB titles members
 -- save can sit in watch lists and favorites like catalog titles; new table tmdb_titles holds their TMDB-only details;
 -- preferences gains player_volume.
+-- Migration ..._watch_progress_and_leaderboards: new table watch_progress (Continue Watching per member); tmdb_titles
+-- gains trailer_youtube_key; new table tmdb_certifications (US ratings of listed TMDB titles, used only by the tmdb
+-- function); preferences gains show_on_leaderboards (opt-in); game_scores gains updated_at. Leaderboards are read
+-- through the function game_leaderboard(game), which returns first names only.
 
 CREATE SEQUENCE ticket_number_seq START 48400;
 
@@ -63,8 +67,19 @@ CREATE TABLE tmdb_titles (
   backdrop_url varchar,
   tmdb_rating numeric(3, 1) CHECK (tmdb_rating BETWEEN 0 AND 10),
   tmdb_url varchar NOT NULL,
+  trailer_youtube_key varchar, -- the YouTube video key of the title's trailer, if TMDB lists one
   fetched_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (media_type, tmdb_id)
+);
+
+-- US certifications (PG-13, TV-MA…) of the TMDB titles the app lists, looked up once per title ('NR' when TMDB has
+-- none) so restricted profiles see the ones within their setting. Only the tmdb Edge Function reads or writes it.
+CREATE TABLE tmdb_certifications (
+  media_type varchar NOT NULL CHECK (media_type IN ('movie', 'tv')),
+  tmdb_id integer NOT NULL,
+  certification varchar NOT NULL,
+  fetched_at timestamptz NOT NULL DEFAULT now(), -- looked up again after 30 days
+  PRIMARY KEY (media_type, tmdb_id)
 );
 
 CREATE TABLE watch_list_tables (
@@ -123,7 +138,8 @@ CREATE TABLE preferences (
   email_updates boolean,
   personalized boolean,
   maturity_rating varchar,
-  player_volume smallint CHECK (player_volume BETWEEN 0 AND 100) -- video player volume; null = full volume
+  player_volume smallint CHECK (player_volume BETWEEN 0 AND 100), -- video player volume; null = full volume
+  show_on_leaderboards boolean NOT NULL DEFAULT false -- opt-in: first name and best scores on game leaderboards
 );
 
 -- The valid promo codes (WELCOME50, STUDENT20, FAMILY15). Only the apply-promo Edge Function can read it.
@@ -158,7 +174,21 @@ CREATE TABLE game_scores (
   game varchar NOT NULL,
   best_score int,
   created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(), -- when the best score was set; leaderboard ties go to the earlier one
   UNIQUE (user_id, game)
+);
+
+-- Where each member stopped in each title (Continue Watching on any device). A finished movie's row is removed; a
+-- finished episode moves the row to the start of the next one.
+CREATE TABLE watch_progress (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE, -- defaults to auth.uid()
+  title_id varchar NOT NULL REFERENCES titles (id) ON DELETE CASCADE,
+  episode smallint NOT NULL DEFAULT 1 CHECK (episode >= 1), -- shows only; movies stay at 1
+  position_seconds numeric(8, 1) NOT NULL DEFAULT 0 CHECK (position_seconds >= 0),
+  progress_percent smallint NOT NULL CHECK (progress_percent BETWEEN 0 AND 100),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, title_id)
 );
 
 CREATE TABLE affiliates (

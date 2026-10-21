@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
+import { Leaderboard } from '../components/Leaderboard.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
@@ -11,9 +12,10 @@ import { TitleScramble } from './games/TitleScramble.jsx'
 import { NotFound } from './NotFound.jsx'
 
 const atLeast = (n) => (titles) => titles.length >= n
-// The keys are the routes (/games/:gameId) and the names scores are saved under (game_scores.game)
+// The keys are the routes (/games/:gameId) and the names scores are saved under (game_scores.game). `better`: 'low'
+// when fewer is better (moves), else 'high'; public.game_leaderboard() ranks 'memory' the same way.
 const games = {
-  memory: { name: 'Poster Match', art: '🃏', blurb: 'Flip cards to find matching posters in as few moves as you can.', canPlay: atLeast(3), scoreLabel: 'moves', Component: MemoryMatch },
+  memory: { name: 'Poster Match', art: '🃏', blurb: 'Flip cards to find matching posters in as few moves as you can.', canPlay: atLeast(3), scoreLabel: 'moves', better: 'low', Component: MemoryMatch },
   trivia: { name: 'Plot Twist', art: '🎬', blurb: 'Read the synopsis, pick the title. Five rounds.', canPlay: atLeast(4), scoreLabel: 'points', Component: PlotTwist },
   timeline: { name: 'Timeline', art: '📅', blurb: 'Put four titles in release order, oldest first. Three rounds.', canPlay: (titles) => new Set(titles.map((t) => t.year)).size >= 4, scoreLabel: 'of 3', Component: Timeline },
   cast: { name: 'Cast Call', art: '🎭', blurb: 'We name an actor, you pick the title they star in. Five rounds.', canPlay: atLeast(4), scoreLabel: 'points', Component: CastCall },
@@ -33,7 +35,7 @@ export function Games() {
       <>
         <PageHeader title={game.name} back />
         {game.canPlay(titles)
-          ? <game.Component titles={titles} />
+          ? <><game.Component titles={titles} /><Leaderboard game={gameId} better={game.better ?? 'high'} scoreLabel={game.scoreLabel} /></>
           : (
             <div className="empty">
               <p>Not enough titles for this game with the current maturity setting.</p>

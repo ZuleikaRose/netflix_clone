@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(44);
+select plan(52);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
@@ -25,6 +25,10 @@ select is((select count(*) from public.titles where source = 'catalog'), 9::bigi
 select lives_ok('select 1 from public.tmdb_titles', 'anon can read saved TMDB titles');
 select throws_ok($$insert into public.tmdb_titles (title_id, tmdb_id, media_type, tmdb_url) values ('after-dark', 1, 'movie', 'x')$$,
   '42501', null, 'anon cannot add saved TMDB titles');
+select throws_ok('select 1 from public.watch_progress', '42501', null, 'anon cannot read watch progress');
+select throws_ok('select 1 from public.tmdb_certifications', '42501', null, 'only the tmdb function reads TMDB certifications');
+select results_eq($$select player, best_score from public.game_leaderboard('memory')$$,
+  $$values ('Jordan'::varchar, 11), ('Dana'::varchar, 19)$$, 'leaderboards list only members who opted in, fewest moves first');
 
 -- Alex, signed in --------------------------------------------------------------------------------------------------
 reset role;
@@ -46,6 +50,14 @@ select throws_ok($$insert into public.titles (id, title, type, source) values ('
   '42501', null, 'a user cannot add TMDB titles directly (only the tmdb function can)');
 select lives_ok($$update public.preferences set player_volume = 60$$, 'a user can save their player volume');
 select throws_ok($$update public.preferences set player_volume = 150$$, '23514', null, 'player volume stays between 0 and 100');
+select is((select count(*) from public.watch_progress), 2::bigint, 'a user sees only their own watch progress');
+select lives_ok($$insert into public.watch_progress (title_id, position_seconds, progress_percent) values ('the-veil', 9, 20)$$,
+  'a user can save where they stopped');
+select throws_ok($$update public.watch_progress set progress_percent = 120$$, '23514', null, 'progress stays between 0 and 100');
+select is((select count(*) from public.game_leaderboard('memory') where is_me), 0::bigint, 'leaderboards are opt-in');
+update public.preferences set show_on_leaderboards = true;
+select results_eq($$select place, player from public.game_leaderboard('memory') where is_me$$,
+  $$values (2, 'Alex'::varchar)$$, 'after opting in, a member shows by first name in their place');
 select results_eq(
   format($$with u as (update public.netflix_tables set plan = 'premium' where id = %L returning 1) select count(*) from u$$, :alex::text),
   $$values (1::bigint)$$, 'a user can change their own plan');

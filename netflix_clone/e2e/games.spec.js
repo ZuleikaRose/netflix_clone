@@ -178,3 +178,24 @@ test('Title Scramble: checks guesses, counts down, and scores less with a hint',
   }
   await expect(page.getByRole('heading', { name: 'You scored 7 of 10' })).toBeVisible()
 })
+
+test('leaderboards show members who opt in, by first name', async ({ page }) => {
+  await navigateInApp(page, '/games/trivia')
+  const board = page.getByRole('region', { name: 'Leaderboard' })
+  await expect(board.getByRole('listitem').first()).toContainText('Priya')
+  const optIn = board.getByRole('switch', { name: /Show me on leaderboards/ })
+  await expect(optIn).not.toBeChecked()
+
+  for (let round = 1; round <= 5; round++) {
+    await page.locator('.answer').first().click()
+    await page.getByRole('button', { name: round < 5 ? 'Next question' : 'See score' }).click()
+  }
+  // A best score alone doesn't put anyone on the board
+  await expect(board.getByText('(you)')).toHaveCount(0)
+  await optIn.check()
+  await expect(board.locator('li.me')).toContainText('Alex')
+
+  // The same choice is in Account → Privacy & data
+  await navigateInApp(page, '/account')
+  await expect(page.getByRole('switch', { name: /Show me on game leaderboards/ })).toBeChecked()
+})

@@ -3,6 +3,7 @@ import { captionsCredit, clipFor, clipSources } from '../data/clips.js'
 import { readStored, writeStored } from '../lib/supabaseConfig.js'
 import { useAccessibility } from '../state/accessibilityContext.js'
 import { useAuth } from '../state/authContext.js'
+import { useLibrary } from '../state/libraryContext.js'
 import { Icon } from './Icon.jsx'
 
 // Video player for the title's sample clip (data/clips.js) with custom, keyboard-accessible controls.
@@ -15,6 +16,10 @@ const speeds = [0.75, 1, 1.25, 1.5]
 // for a member, in their preferences (0–100), which win so it follows them to any device.
 const VOLUME_KEY = 'netflix-clone-volume'
 const VOLUME_STEP = 0.1
+// Continue Watching: where the viewer is gets saved on pause, on close and every so often while playing; a few seconds
+// in counts as having started
+const PROGRESS_SAVE_EVERY_SECONDS = 15
+const MIN_WATCHED_SECONDS = 5
 const UNMUTE_VOLUME = 0.5 // unmuting from 0 has to land somewhere audible
 const VOLUME_SAVE_DELAY_MS = 600 // dragging the slider saves once it stops
 const startVolume = (preferences) => {
@@ -32,16 +37,25 @@ function clock(seconds) {
   return `${h ? `${h}:` : ''}${mm}:${String(s % 60).padStart(2, '0')}`
 }
 
+// Saves where the viewer is (watched: the player's position ref), unless they've barely started or just finished
+function saveWatched(w) {
+  if (!w.duration || w.ended || w.seconds < MIN_WATCHED_SECONDS) return
+  w.savedAt = w.seconds
+  w.save(w.titleId, { percent: Math.min(100, Math.round((w.seconds / w.duration) * 100)), episode: w.episode, seconds: w.seconds })
+}
+
 const cueText = (cue) => cue.text.replace(/<[^>]+>/g, '')
 
 export function Player({ title, onClose }) {
   const { user, setPreference } = useAuth()
   const { settings, update } = useAccessibility()
+  const { progress, saveProgress } = useLibrary()
+  const [resumeFrom] = useState(() => progress[title.id] ?? null)
   const clip = clipFor(title.id)
   const sources = clipSources(clip)
   const playerRef = useRef(null)
   const videoRef = useRef(null)
-  const [episode, setEpisode] = useState(1)
+  const [episode, setEpisode] = useState(resumeFrom?.episode ?? 1)
   const [time, setTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [paused, setPaused] = useState(true)
@@ -55,6 +69,8 @@ export function Player({ title, onClose }) {
   const [nextIn, setNextIn] = useState(NEXT_EPISODE_DELAY)
   const [stayHere, setStayHere] = useState(false) // viewer cancelled the next-episode countdown
   const [fullscreen, setFullscreen] = useState(false)
+  // The latest position, kept in a ref so closing the player can still save it after the video element is gone
+  const watched = useRef({ titleId: title.id, seconds: 0, duration: 0, episode: 1, savedAt: 0, ended: false, save: saveProgress })
 
   const isShow = title.type === 'show'
   const countingDown = ended && isShow && user.preferences.autoplayNext && !stayHere
@@ -66,6 +82,21 @@ export function Player({ title, onClose }) {
   useEffect(() => {
     videoRef.current.volume = startLevel
   }, [startLevel])
+
+  const recordProgress = () => saveWatched(watched.current)
+  useEffect(() => {
+    watched.current.save = saveProgress
+  })
+  useEffect(() => {
+    const w = watched.current
+    return () => saveWatched(w)
+  }, [])
+  // A movie watched to the end leaves Continue Watching; a show moves on to the start of the next episode
+  const recordFinished = () => {
+    const w = watched.current
+    w.ended = true
+    w.save(w.titleId, isShow ? { percent: 0, episode: w.episode + 1, seconds: 0 } : { percent: 100, episode: 1, seconds: w.duration })
+  }
 
   // The member's volume is saved a moment after the last change, and right away if the player closes first
   useEffect(() => {
@@ -122,13 +153,16 @@ export function Player({ title, onClose }) {
   const onLoadedMetadata = () => {
     const video = videoRef.current
     setDuration(video.duration)
-    // "Continue watching" titles resume part-way through
-    if (title.progress) video.currentTime = (video.duration * title.progress) / 100
+    // "Continue watching" titles resume where the viewer stopped (the built-in samples only know a percentage)
+    if (resumeFrom) video.currentTime = resumeFrom.seconds ?? (video.duration * resumeFrom.percent) / 100
     play()
   }
   const syncPosition = () => {
-    setTime(videoRef.current.currentTime)
-    setEnded(videoRef.current.ended)
+    const video = videoRef.current
+    setTime(video.currentTime)
+    setEnded(video.ended)
+    Object.assign(watched.current, { seconds: video.currentTime, duration: video.duration || 0, episode })
+    if (Math.abs(video.currentTime - watched.current.savedAt) >= PROGRESS_SAVE_EVERY_SECONDS) recordProgress()
   }
 
   const seekTo = (seconds) => {
@@ -210,9 +244,9 @@ export function Player({ title, onClose }) {
           onDurationChange={() => setDuration(videoRef.current.duration)}
           onTimeUpdate={syncPosition}
           onSeeked={syncPosition}
-          onPlay={() => { setPaused(false); setEnded(false) }}
-          onPause={() => setPaused(true)}
-          onEnded={() => setEnded(true)}
+          onPlay={() => { setPaused(false); setEnded(false); watched.current.ended = false }}
+          onPause={() => { setPaused(true); recordProgress() }}
+          onEnded={() => { setEnded(true); recordFinished() }}
           onVolumeChange={onVolumeChange}
           onRateChange={() => setSpeed(videoRef.current.playbackRate)}
         >

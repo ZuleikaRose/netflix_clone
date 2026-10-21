@@ -109,6 +109,17 @@ insert into public.game_scores (user_id, game, best_score) values
   ('a1e00000-0000-4000-8000-000000000004', 'trivia', 5),
   ('a1e00000-0000-4000-8000-000000000006', 'memory', 19);
 
+-- Jordan, Priya and Dana chose to show their scores on the game leaderboards (off by default)
+update public.preferences set show_on_leaderboards = true
+where user_id in ('a1e00000-0000-4000-8000-000000000002', 'a1e00000-0000-4000-8000-000000000004',
+  'a1e00000-0000-4000-8000-000000000006');
+
+-- Continue Watching: where Alex and Jordan stopped
+insert into public.watch_progress (user_id, title_id, episode, position_seconds, progress_percent, updated_at) values
+  ('a1e00000-0000-4000-8000-000000000001', 'night-shift', 2, 14.0, 38, now() - interval '1 day'),
+  ('a1e00000-0000-4000-8000-000000000001', 'after-dark', 1, 21.5, 57, now() - interval '2 hours'),
+  ('a1e00000-0000-4000-8000-000000000002', 'the-signal', 1, 30.0, 76, now() - interval '3 days');
+
 insert into public.feedback (user_id, score, area, message, created_at) values
   ('a1e00000-0000-4000-8000-000000000001', 5, 'Playback', 'Captions are easy to read and the player is quick to start.', now() - interval '5 days'),
   ('a1e00000-0000-4000-8000-000000000003', 3, 'Browsing & search', 'I would like to filter search results by mood.', now() - interval '12 days'),

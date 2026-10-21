@@ -12,6 +12,7 @@ const preferenceColumns = {
   personalized: 'personalized',
   maturity: 'maturity_rating',
   playerVolume: 'player_volume', // 0-100, null = never set (the player then uses this browser's level)
+  showOnLeaderboards: 'show_on_leaderboards', // opt-in: first name and best scores on game leaderboards
 }
 
 // date columns ↔ ISO strings. Local noon, so formatting in any time zone shows the stored day.

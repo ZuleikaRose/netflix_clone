@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchTmdbLists, fetchTmdbTitle, searchTmdb } from '../data/tmdbApi.js'
+import { fetchTmdbLists, fetchTmdbRecommendations, fetchTmdbTitle, searchTmdb } from '../data/tmdbApi.js'
 import { supabaseConfig } from '../lib/supabaseConfig.js'
 
 // Waits for typing to pause before asking TMDB
@@ -46,4 +46,17 @@ export function useTmdbTitle(type, id) {
   if (found.key !== key) return { status: 'loading', title: null }
   if (found.unavailable) return { status: 'unavailable', title: null }
   return found.title ? { status: 'ready', title: found.title } : { status: 'missing', title: null }
+}
+
+// Titles TMDB recommends for a TMDB title, or null (no title, still loading, or TMDB isn't available)
+export function useTmdbRecommendations(type, id) {
+  const key = `${type}:${id}`
+  const [found, setFound] = useState({ key: null, results: null })
+  useEffect(() => {
+    if (!type || !id) return undefined
+    let ignore = false
+    fetchTmdbRecommendations(type, id).then((results) => { if (!ignore) setFound({ key, results }) })
+    return () => { ignore = true }
+  }, [key, type, id])
+  return found.key === key ? found.results : null
 }

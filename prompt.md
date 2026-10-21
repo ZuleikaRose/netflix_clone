@@ -96,4 +96,11 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     the style guide and both Supabase databases are up to date with the changes; commit and push. (Both projects
     already ran the same 7 migrations and 7 functions; only this file needed the new entry.)
 
+23. Recommended next features, all built: Continue Watching saved per member, TMDB trailers, member reviews of TMDB
+    titles, Because You Saved recommendations, where to watch, real certifications for TMDB titles so restricted
+    profiles see them, and opt-in game leaderboards. Merge pull request #11 first. Test, commit and push; update
+    `drawsql.png` and `schema.sql` (new tables `watch_progress` and `tmdb_certifications`, new columns); update
+    `user_journey.md`, `user_stories.md`, the style guide, `CLAUDE.md` and `prompt.md`; apply the changes to both
+    Supabase projects; update the README, committing and pushing after each step.
+
 Still to do: custom SMTP for Auth emails, hosting and CAPTCHA on sign-up and sign-in.

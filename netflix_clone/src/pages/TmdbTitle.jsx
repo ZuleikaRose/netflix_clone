@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
+import { PosterCard } from '../components/PosterCard.jsx'
+import { Reviews } from '../components/Reviews.jsx'
+import { Row } from '../components/Row.jsx'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { describeLength } from '../data/catalog.js'
@@ -9,15 +12,61 @@ import { saveTmdbTitle } from '../data/tmdbApi.js'
 import { authBackend } from '../lib/supabaseConfig.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
-import { useTmdbTitle } from '../state/useTmdb.js'
+import { useTmdbRecommendations, useTmdbTitle } from '../state/useTmdb.js'
 import { NotFound } from './NotFound.jsx'
 
-// A movie or TV show from TMDB (/tmdb/movie/:tmdbId, /tmdb/show/:tmdbId): TMDB's details, a link to its page, and
-// My List / Favorite. There's no player or reviews (no sample clip; reviews are for the catalog).
+// A movie or TV show from TMDB (/tmdb/movie/:tmdbId, /tmdb/show/:tmdbId): TMDB's details and trailer, where to
+// watch it, My List / Favorite, ratings and reviews, and TMDB's recommendations. There's no player (no sample clip).
+const JUSTWATCH_URL = 'https://www.justwatch.com'
+const providerKinds = [['stream', 'Stream'], ['rent', 'Rent'], ['buy', 'Buy']]
+
+function WhereToWatch({ title }) {
+  const { providers } = title
+  return (
+    <section className="providers" aria-labelledby="providers-heading">
+      <h3 id="providers-heading">Where to watch in the U.S.</h3>
+      {!providers
+        ? <p className="muted">No streaming, rental or purchase options are listed for {title.title} right now.</p>
+        : (
+          <>
+            {providerKinds.filter(([kind]) => providers[kind].length > 0).map(([kind, label]) => (
+              <div key={kind} className="provider-group">
+                <h4>{label}</h4>
+                <ul className="provider-list">
+                  {providers[kind].map((p) => (
+                    <li key={p.name}>{p.logo && <img src={p.logo} alt="" loading="lazy" />}<span>{p.name}</span></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            {providers.link && <p><a href={providers.link} className="inline-link" target="_blank" rel="noreferrer">See every option on TMDB</a></p>}
+          </>
+        )}
+      <p className="tmdb-credit">Availability from <a href={JUSTWATCH_URL} target="_blank" rel="noreferrer">JustWatch</a>.</p>
+    </section>
+  )
+}
+
+function Trailer({ title, onClose }) {
+  return (
+    <div className="trailer">
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${title.trailer.key}?autoplay=1&rel=0`}
+        title={`${title.title} trailer`}
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+      <button type="button" className="icon-button player-close" aria-label="Close trailer" onClick={onClose}><Icon name="close" /></button>
+    </div>
+  )
+}
 export function TmdbTitle() {
   const { type, tmdbId } = useParams()
   const validId = (type === 'movie' || type === 'show') && /^\d+$/.test(tmdbId)
   const { status, title } = useTmdbTitle(validId ? type : null, validId ? tmdbId : null)
+  const recommended = useTmdbRecommendations(status === 'ready' ? type : null, status === 'ready' ? tmdbId : null)
+  const [watchingTrailer, setWatchingTrailer] = useState(false)
   const { isAllowed, rememberTitle } = useCatalog()
   const { myList, favorites, toggleMyList, toggleFavorite } = useLibrary()
   const [saveError, setSaveError] = useState(null)
@@ -50,23 +99,32 @@ export function TmdbTitle() {
   const length = describeLength(title)
   const saved = myList.includes(title.id)
   const favorite = favorites.includes(title.id)
-  // Lists point at `titles` rows: with Supabase, the tmdb function stores the title before it's first added
+  // Lists, ratings and reviews point at `titles` rows: with Supabase, the tmdb function stores the title first
+  const storeTitle = async () => {
+    if (authBackend === 'supabase' && !(await saveTmdbTitle(title))) return false
+    rememberTitle(title)
+    return true
+  }
   const keep = async (toggle, isOn) => {
     setSaveError(null)
-    if (!isOn && authBackend === 'supabase' && !(await saveTmdbTitle(title))) {
+    if (!isOn && !(await storeTitle())) {
       setSaveError('Couldn’t save this title. Please try again.')
       return
     }
-    rememberTitle(title)
     toggle(title.id)
   }
+  const moreLikeThis = (recommended ?? []).filter(isAllowed)
   return (
     <>
       <PageHeader title={heading} back />
-      <div className="detail-art">
-        <img src={title.backdrop ?? title.image} alt="" />
-        <div className="hero-shade" />
-      </div>
+      {watchingTrailer && title.trailer
+        ? <Trailer title={title} onClose={() => setWatchingTrailer(false)} />
+        : (
+          <div className="detail-art">
+            <img src={title.backdrop ?? title.image} alt="" />
+            <div className="hero-shade" />
+          </div>
+        )}
 
       <div className="detail-body">
         <p className="eyebrow">{title.type === 'show' ? 'SERIES' : 'FILM'} · TMDB</p>
@@ -77,9 +135,12 @@ export function TmdbTitle() {
           {length && <span>{length}</span>}
           {title.rating != null && <span>TMDB rating {title.rating}/10</span>}
         </p>
-        <p className="muted">Not available to stream here. <a href={title.tmdbUrl} className="inline-link" target="_blank" rel="noreferrer">View {title.title} on TMDB</a></p>
+        <p className="muted">Not available to stream here (see where to watch below). <a href={title.tmdbUrl} className="inline-link" target="_blank" rel="noreferrer">View {title.title} on TMDB</a></p>
 
         <div className="detail-actions">
+          {title.trailer && !watchingTrailer && (
+            <button type="button" className="play wide" onClick={() => setWatchingTrailer(true)}><span aria-hidden="true">▶</span> Play trailer</button>
+          )}
           <div className="action-row">
             <button className={saved ? 'ghost-action on' : 'ghost-action'} aria-pressed={saved} onClick={() => keep(toggleMyList, saved)}>
               <Icon name={saved ? 'check' : 'plus'} /><span>My List</span>
@@ -96,8 +157,15 @@ export function TmdbTitle() {
         {title.crew.director && <p className="credits"><span>{title.type === 'show' ? 'Created by' : 'Director'}:</span> {title.crew.director}</p>}
         {title.crew.writer && <p className="credits"><span>Writer:</span> {title.crew.writer}</p>}
         {title.genres.length > 0 && <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>}
+
+        <WhereToWatch title={title} />
+        <Reviews title={title} beforeSave={storeTitle} />
         <TmdbCredit />
       </div>
+
+      {moreLikeThis.length > 0 && (
+        <Row title="More Like This">{moreLikeThis.map((t) => <PosterCard key={t.id} title={t} />)}</Row>
+      )}
     </>
   )
 }

@@ -1,45 +1,25 @@
-import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { Player } from '../components/Player.jsx'
 import { Preview } from '../components/Preview.jsx'
+import { Reviews } from '../components/Reviews.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
 import { Row } from '../components/Row.jsx'
 import { ShareButton } from '../components/ShareButton.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { describeLength } from '../data/catalog.js'
 import { useCatalog } from '../state/useCatalog.js'
-import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
-import { useReviews } from '../state/useReviews.js'
 import { NotFound } from './NotFound.jsx'
-
-function StarRating({ value, onChange, label }) {
-  return (
-    <fieldset className="stars">
-      <legend>{label}</legend>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <label key={n} className={n <= value ? 'star on' : 'star'}>
-          <input type="radio" name={label} value={n} checked={value === n} onChange={() => onChange(n)} />
-          <span aria-hidden="true">★</span><span className="sr-only">{n} star{n > 1 ? 's' : ''}</span>
-        </label>
-      ))}
-    </fieldset>
-  )
-}
 
 export function TitleDetail() {
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
-  const { myList, favorites, ratings, toggleMyList, toggleFavorite, rate } = useLibrary()
-  const { user } = useAuth()
-  const [draft, setDraft] = useState('')
-  const [reviewError, setReviewError] = useState(null)
+  const { myList, favorites, progress, toggleMyList, toggleFavorite } = useLibrary()
   const { titles: catalog, isAllowed, findTitle } = useCatalog()
 
   const title = findTitle(id)
-  const { reviews: allReviews, addReview } = useReviews(title)
   // Runs after PageHeader's effect (parents run last), so the tab shows the show's name, not "TV Show"
   useDocumentTitle(title?.title)
   if (!title) return <NotFound />
@@ -58,16 +38,7 @@ export function TitleDetail() {
   const playing = params.get('play') === '1'
   const saved = myList.includes(id)
   const favorite = favorites.includes(id)
-  const myRating = ratings[id] ?? 0
   const related = catalog.filter((t) => t.id !== id && t.genres.some((g) => title.genres.includes(g)))
-
-  const submitReview = async (e) => {
-    e.preventDefault()
-    if (!draft.trim()) return
-    const error = await addReview({ author: user.name, stars: myRating || null, text: draft.trim() })
-    setReviewError(error ?? null)
-    if (!error) setDraft('')
-  }
 
   return (
     <>
@@ -90,7 +61,7 @@ export function TitleDetail() {
         </p>
 
         <div className="detail-actions">
-          <button className="play wide" onClick={() => setParams({ play: '1' }, { replace: true })}><span aria-hidden="true">▶</span> {title.progress ? 'Resume' : 'Play'}</button>
+          <button className="play wide" onClick={() => setParams({ play: '1' }, { replace: true })}><span aria-hidden="true">▶</span> {progress[id] ? 'Resume' : 'Play'}</button>
           <div className="action-row">
             <button className={saved ? 'ghost-action on' : 'ghost-action'} aria-pressed={saved} onClick={() => toggleMyList(id)}>
               <Icon name={saved ? 'check' : 'plus'} /><span>My List</span>
@@ -107,28 +78,7 @@ export function TitleDetail() {
         <p className="credits"><span>Director:</span> {title.crew.director} · <span>Writer:</span> {title.crew.writer}</p>
         <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>
 
-        <section className="reviews" aria-labelledby="reviews-heading">
-          <h3 id="reviews-heading">Ratings &amp; Reviews</h3>
-          <StarRating label="Your rating" value={myRating} onChange={(n) => rate(id, n)} />
-          <form className="review-form" onSubmit={submitReview}>
-            <label htmlFor="review">Write a review</label>
-            <textarea id="review" rows="3" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What did you think?" />
-            <button type="submit" className="play wide" disabled={!draft.trim()}>Post review</button>
-            {reviewError && <p className="form-alert" role="alert">{reviewError}</p>}
-          </form>
-          {allReviews.length === 0
-            ? <p className="muted">No reviews yet — be the first.</p>
-            : (
-              <ul className="review-list">
-                {allReviews.map((r, i) => (
-                  <li key={`${r.author}-${i}`}>
-                    <p><b>{r.author}</b>{r.stars && <span className="review-stars" aria-label={`${r.stars} out of 5 stars`}>{'★'.repeat(r.stars)}</span>}</p>
-                    <p>{r.text}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-        </section>
+        <Reviews title={title} />
       </div>
 
       {related.length > 0 && (
