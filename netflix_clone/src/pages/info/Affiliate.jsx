@@ -28,7 +28,7 @@ function JoinForm({ onJoin }) {
   const [form, setForm] = useState({ site: '', audience: audienceSizes[0], channels: [], payout: payoutMethods[0], agree: false })
   const [errors, setErrors] = useState({})
 
-  const toggleChannel = (c) => setForm({ ...form, channels: form.channels.includes(c) ? form.channels.filter((x) => x !== c) : [...form.channels, c] })
+  const toggleChannel = (c) => setForm((f) => ({ ...f, channels: f.channels.includes(c) ? f.channels.filter((x) => x !== c) : [...f.channels, c] }))
 
   const submit = (e) => {
     e.preventDefault()
@@ -46,13 +46,13 @@ function JoinForm({ onJoin }) {
       <h2 id="join-heading">Join the program</h2>
       <div className={errors.site ? 'field has-error' : 'field'}>
         <label htmlFor="aff-site">Website or channel URL</label>
-        <input id="aff-site" type="url" inputMode="url" value={form.site} onChange={(e) => setForm({ ...form, site: e.target.value })} placeholder="https://youtube.com/@yourchannel" aria-invalid={Boolean(errors.site)} aria-describedby={errors.site ? 'aff-site-error' : undefined} />
+        <input id="aff-site" type="url" inputMode="url" value={form.site} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, site: value })) }} placeholder="https://youtube.com/@yourchannel" aria-invalid={Boolean(errors.site)} aria-describedby={errors.site ? 'aff-site-error' : undefined} />
         {errors.site && <p id="aff-site-error" className="field-error"><span aria-hidden="true">⚠</span> {errors.site}</p>}
       </div>
 
       <label className="select-row">
         <span className="switch-label">Audience size</span>
-        <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })}>
+        <select value={form.audience} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, audience: value })) }}>
           {audienceSizes.map((a) => <option key={a}>{a}</option>)}
         </select>
       </label>
@@ -70,13 +70,13 @@ function JoinForm({ onJoin }) {
 
       <label className="select-row">
         <span className="switch-label">Get paid by</span>
-        <select value={form.payout} onChange={(e) => setForm({ ...form, payout: e.target.value })}>
+        <select value={form.payout} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, payout: value })) }}>
           {payoutMethods.map((p) => <option key={p}>{p}</option>)}
         </select>
       </label>
 
       <label className="check-row">
-        <input type="checkbox" checked={form.agree} onChange={(e) => setForm({ ...form, agree: e.target.checked })} aria-invalid={Boolean(errors.agree)} aria-describedby={errors.agree ? 'aff-agree-error' : undefined} />
+        <input type="checkbox" checked={form.agree} onChange={(e) => { const { checked } = e.target; setForm((f) => ({ ...f, agree: checked })) }} aria-invalid={Boolean(errors.agree)} aria-describedby={errors.agree ? 'aff-agree-error' : undefined} />
         <span>I agree to the program terms, eligibility rules and promotion restrictions below.</span>
       </label>
       {errors.agree && <p id="aff-agree-error" className="field-error"><span aria-hidden="true">⚠</span> {errors.agree}</p>}

@@ -45,19 +45,19 @@ function ProfileForm({ profile, others, onDone }) {
     <form className="settings-card profile-form" onSubmit={submit} noValidate aria-labelledby="profile-form-heading">
       <h2 id="profile-form-heading">{profile ? `Edit ${profile.name}` : 'Add a profile'}</h2>
       <Field label="Profile name" value={form.name} maxLength={MAX_PROFILE_NAME} autoComplete="off" error={error}
-        onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, name: value })) }} />
       <fieldset className="avatar-choices">
         <legend>Avatar colour</legend>
         {avatarColors.map((a) => (
           <label key={a.key} className="avatar-choice">
-            <input type="radio" name="avatar" value={a.key} checked={form.avatar === a.key} onChange={() => setForm({ ...form, avatar: a.key })} />
+            <input type="radio" name="avatar" value={a.key} checked={form.avatar === a.key} onChange={() => setForm((f) => ({ ...f, avatar: a.key }))} />
             <ProfileAvatar profile={{ avatar: a.key }} /><span>{a.label}</span>
           </label>
         ))}
       </fieldset>
       <label className="select-row">
         <span className="switch-label">Maturity rating</span>
-        <select value={form.maturity} onChange={(e) => setForm({ ...form, maturity: e.target.value })}>
+        <select value={form.maturity} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, maturity: value })) }}>
           {maturityChoices.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
         </select>
       </label>

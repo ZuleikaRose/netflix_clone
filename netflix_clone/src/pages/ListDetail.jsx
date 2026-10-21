@@ -25,8 +25,8 @@ function DetailsForm({ list, updateList }) {
   return (
     <form className="settings-card" onSubmit={submit} noValidate aria-labelledby="list-details-heading">
       <h2 id="list-details-heading">Details</h2>
-      <Field label="Name" value={form.name} maxLength={MAX_LIST_NAME} onChange={(e) => setForm({ ...form, name: e.target.value })} error={error} />
-      <Field label="Description (optional)" value={form.description} maxLength={MAX_LIST_DESCRIPTION} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+      <Field label="Name" value={form.name} maxLength={MAX_LIST_NAME} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, name: value })) }} error={error} />
+      <Field label="Description (optional)" value={form.description} maxLength={MAX_LIST_DESCRIPTION} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, description: value })) }} />
       <button type="submit" className="cta">Save list</button>
       <p className="save-status" role="status">{status && <><span aria-hidden="true">✓</span> {status}</>}</p>
     </form>

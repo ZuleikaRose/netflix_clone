@@ -20,7 +20,7 @@ export function Login() {
   if (!ready) return <p className="session-restoring" role="status">Signing you in…</p>
   if (user) return <Navigate to={destination} replace />
 
-  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => { const { value } = e.target; setForm((f) => ({ ...f, [key]: value })) }
 
   const finish = async (signIn) => {
     setPending(true)

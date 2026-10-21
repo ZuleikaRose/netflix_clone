@@ -53,8 +53,8 @@ function ProfileForm({ user, updateProfile }) {
   return (
     <form className="settings-card" onSubmit={submit} noValidate aria-labelledby="profile-heading">
       <h2 id="profile-heading">Profile</h2>
-      <Field label="Name" autoComplete="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={errors.name} />
-      <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={errors.email} />
+      <Field label="Name" autoComplete="name" value={form.name} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, name: value })) }} error={errors.name} />
+      <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, email: value })) }} error={errors.email} />
       <button type="submit" className="cta">Save profile</button>
       <Status message={status} />
     </form>
@@ -66,7 +66,7 @@ function PasswordForm({ email, changePassword, demoPassword }) {
   const [form, setForm] = useState(blank)
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('')
-  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => { const { value } = e.target; setForm((f) => ({ ...f, [key]: value })) }
 
   const submit = async (e) => {
     e.preventDefault()

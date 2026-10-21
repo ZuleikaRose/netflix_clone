@@ -50,7 +50,7 @@ export function ResetPassword() {
     )
   }
 
-  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => { const { value } = e.target; setForm((f) => ({ ...f, [key]: value })) }
 
   const submit = async (e) => {
     e.preventDefault()

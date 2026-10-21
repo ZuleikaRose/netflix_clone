@@ -23,7 +23,7 @@ export function ReportIssue() {
   const [form, setForm] = useState(() => ({ ...blank, type: typeParams[params.get('type')] ?? blank.type }))
   const [errors, setErrors] = useState({})
   const [justFiled, setJustFiled] = useState(null)
-  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => { const { value } = e.target; setForm((f) => ({ ...f, [key]: value })) }
 
   const submit = async (e) => {
     e.preventDefault()
