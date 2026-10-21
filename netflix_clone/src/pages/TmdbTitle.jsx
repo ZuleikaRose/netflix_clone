@@ -8,10 +8,9 @@ import { Row } from '../components/Row.jsx'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { describeLength } from '../data/catalog.js'
-import { saveTmdbTitle } from '../data/tmdbApi.js'
-import { authBackend } from '../lib/supabaseConfig.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
+import { useStoreTitle } from '../state/useStoreTitle.js'
 import { useTmdbRecommendations, useTmdbTitle } from '../state/useTmdb.js'
 import { NotFound } from './NotFound.jsx'
 
@@ -67,7 +66,8 @@ export function TmdbTitle() {
   const { status, title } = useTmdbTitle(validId ? type : null, validId ? tmdbId : null)
   const recommended = useTmdbRecommendations(status === 'ready' ? type : null, status === 'ready' ? tmdbId : null)
   const [watchingTrailer, setWatchingTrailer] = useState(false)
-  const { isAllowed, rememberTitle } = useCatalog()
+  const { isAllowed } = useCatalog()
+  const store = useStoreTitle()
   const { myList, favorites, toggleMyList, toggleFavorite } = useLibrary()
   const [saveError, setSaveError] = useState(null)
   useDocumentTitle(title?.title)
@@ -100,11 +100,7 @@ export function TmdbTitle() {
   const saved = myList.includes(title.id)
   const favorite = favorites.includes(title.id)
   // Lists, ratings and reviews point at `titles` rows: with Supabase, the tmdb function stores the title first
-  const storeTitle = async () => {
-    if (authBackend === 'supabase' && !(await saveTmdbTitle(title))) return false
-    rememberTitle(title)
-    return true
-  }
+  const storeTitle = () => store(title)
   const keep = async (toggle, isOn) => {
     setSaveError(null)
     if (!isOn && !(await storeTitle())) {

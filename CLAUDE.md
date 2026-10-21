@@ -135,8 +135,10 @@ after editing.
   'NR' when TMDB has none, which restricted profiles don't see). Trailers embed from `youtube-nocookie.com` only
   after "Play trailer"; keep the JustWatch credit next to Where to watch. Without Supabase or on any error the TMDB sections just don't render. Keep the
   `TmdbCredit` notice wherever TMDB data shows (TMDB's terms). Home has no catalog "new" row any more (New on TMDB
-  replaced it); `isNew` still drives New & Hot. Top 10 shows the catalog's `top10` titles first, then TMDB's trending
-  movies and shows (alternating) up to ten, numbered by place (1–10), not by `top10`.
+  replaced it); `isNew` still drives New & Hot. Top 10 is TMDB's ten trending movies and shows (alternating), numbered by
+  place; the featured carousel is TMDB's five most popular movies and shows (More Info instead of Play; My List stores
+  the title first via `state/useStoreTitle.js`). Both fall back to the catalog (`top10`, `popularity`) without TMDB,
+  as in CI; specs about the catalog's own Home use `test.use({ tmdb: 'fail' })`.
 - **Rows**: horizontal rows use `components/Row.jsx` (title, ‹ › buttons that page by 85% of the width, quick clicks
   add up, `aria-disabled` at the ends, hidden when the row fits).
 - **Supabase security**: new `public` tables get no anon/authenticated grants by default (migration

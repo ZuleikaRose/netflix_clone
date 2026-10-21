@@ -12,6 +12,7 @@ import { serviceStatus } from '../data/serviceStatus.js'
 import { useAuth } from '../state/authContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
+import { useStoreTitle } from '../state/useStoreTitle.js'
 import { useTmdbLists, useTmdbRecommendations } from '../state/useTmdb.js'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
 
@@ -25,7 +26,9 @@ const tmdbRows = [
   ['Popular Movies on TMDB', ['popularMovies']],
   ['Popular TV Shows on TMDB', ['popularShows']],
 ]
-const FEATURED_COUNT = 3
+const FEATURED_COUNT = 5
+// TMDB posters come at w342 for rows; the full-height hero needs a sharper one
+const heroImage = (t) => (t.source === 'tmdb' ? t.image?.replace('/w342/', '/w780/') : t.image)
 const TOP_COUNT = 10
 
 const interleave = (lists) => Array.from({ length: Math.max(0, ...lists.map((l) => l.length)) }, (_, i) => lists.map((l) => l[i]))
@@ -39,11 +42,21 @@ export function Home() {
   const [slide, setSlide] = useState(0)
   const { titles: catalog, isAllowed, findTitle } = useCatalog()
   const tmdbLists = useTmdbLists()
+  const storeTitle = useStoreTitle()
+  const [saveError, setSaveError] = useState(null)
   useDocumentTitle('Home')
 
   const titles = type ? catalog.filter((t) => t.type === type) : catalog
-  // Outline: "a carousel of featured movies and TV shows" — manual controls only (no auto-advance, WCAG 2.2.2)
-  const featuredList = [...titles].sort((a, b) => b.popularity - a.popularity).slice(0, FEATURED_COUNT)
+  // The TV Shows / Movies chips filter TMDB's titles too. The tmdb function looks up each title's US certification,
+  // so restricted profiles see the ones within their setting (titles TMDB has no rating for stay 'NR' and hidden)
+  const showsHere = (t) => (!type || t.type === type) && isAllowed(t)
+  const fromTmdb = (names) => (tmdbLists ? interleave(names.map((name) => tmdbLists[name] ?? [])).filter(showsHere) : [])
+  // Outline: "a carousel of featured movies and TV shows" — TMDB's popular movies and shows (alternating), or the
+  // catalog's most popular titles when TMDB isn't available. Manual controls only (no auto-advance, WCAG 2.2.2)
+  const tmdbFeatured = fromTmdb(['popularMovies', 'popularShows']).slice(0, FEATURED_COUNT)
+  const featuredList = tmdbFeatured.length
+    ? tmdbFeatured
+    : [...titles].sort((a, b) => b.popularity - a.popularity).slice(0, FEATURED_COUNT)
   const current = featuredList.length ? slide % featuredList.length : 0
   const featured = featuredList[current]
   const showSlide = (i) => setSlide((i + featuredList.length) % featuredList.length)
@@ -53,17 +66,20 @@ export function Home() {
   const saved = featured && myList.includes(featured.id)
   const preview = usePreview(featured ?? {})
   const [first, ...rest] = featured ? featured.title.toUpperCase().split(' ') : []
-  // The TV Shows / Movies chips filter these too. The tmdb function looks up each title's US certification, so
-  // restricted profiles see the ones within their setting (titles TMDB has no rating for stay 'NR' and hidden)
-  const showsHere = (t) => (!type || t.type === type) && isAllowed(t)
-  const tmdbRowsShown = tmdbLists
-    ? tmdbRows
-      .map(([heading, names]) => [heading, interleave(names.map((name) => tmdbLists[name] ?? [])).filter(showsHere)])
-      .filter(([, titles]) => titles.length > 0)
-    : []
-  // The catalog's ranked titles first, then TMDB's trending movies and shows (alternating) up to ten, numbered by place
-  const tmdbTrending = tmdbLists ? interleave([tmdbLists.trendingMovies ?? [], tmdbLists.trendingShows ?? []]).filter(showsHere) : []
-  const top10 = [...titles.filter((t) => t.top10).sort((a, b) => a.top10 - b.top10), ...tmdbTrending].slice(0, TOP_COUNT)
+  const featuredIsTmdb = featured?.source === 'tmdb'
+  const tmdbRowsShown = tmdbRows
+    .map(([heading, names]) => [heading, fromTmdb(names)])
+    .filter(([, titles]) => titles.length > 0)
+  // TMDB's ten trending movies and shows (alternating), numbered by place; the catalog's ranked titles when TMDB
+  // isn't available
+  const tmdbTop = fromTmdb(['trendingMovies', 'trendingShows'])
+  const top10 = (tmdbTop.length ? tmdbTop : titles.filter((t) => t.top10).sort((a, b) => a.top10 - b.top10)).slice(0, TOP_COUNT)
+  // My List on the hero: a TMDB title is stored first (lists point at `titles` rows)
+  const toggleFeaturedOnList = async () => {
+    setSaveError(null)
+    if (!saved && !(await storeTitle(featured))) return setSaveError('Couldn’t save this title. Please try again.')
+    toggleMyList(featured.id)
+  }
 
   // Personalized row: seed from the most recent favorite, then 4★+ ratings, then My List
   const likedIds = [...[...favorites].reverse(), ...Object.keys(ratings).filter((id) => ratings[id] >= 4), ...[...myList].reverse()]
@@ -115,19 +131,23 @@ export function Home() {
       )}
 
       {featured && <section className="hero" aria-roledescription="carousel" aria-label="Featured titles">
-        <PreviewArt title={featured} preview={preview} />
+        <PreviewArt title={{ ...featured, image: heroImage(featured) }} preview={preview} />
         <div className="hero-shade" />
         <div className="hero-copy">
-          <p className="eyebrow"><b>N</b> {featured.type === 'show' ? 'SERIES' : 'FILM'}</p>
+          <p className="eyebrow">{featuredIsTmdb ? null : <b>N</b>} {featured.type === 'show' ? 'SERIES' : 'FILM'}{featuredIsTmdb && ' · TMDB'}</p>
           <h1 className="hero-title">{first}<br />{rest.join(' ')}</h1>
-          <p className="meta">{featured.mood.join('  ·  ')}</p>
+          <p className="meta">{(featuredIsTmdb ? featured.genres.slice(0, 3) : featured.mood).join('  ·  ')}</p>
           <PreviewToggle title={featured} preview={preview} />
           <div className="hero-actions">
-            <button className="play" onClick={() => navigate(`/title/${featured.id}?play=1`)}><span aria-hidden="true">▶</span> Play</button>
-            <button className={saved ? 'secondary saved' : 'secondary'} aria-pressed={saved} onClick={() => toggleMyList(featured.id)}>
+            {featuredIsTmdb
+              // TMDB titles can't be played here; their page has the trailer and where to watch
+              ? <Link to={featured.path} className="play"><Icon name="info" /> More Info</Link>
+              : <button className="play" onClick={() => navigate(`/title/${featured.id}?play=1`)}><span aria-hidden="true">▶</span> Play</button>}
+            <button className={saved ? 'secondary saved' : 'secondary'} aria-pressed={saved} onClick={toggleFeaturedOnList}>
               <Icon name={saved ? 'check' : 'plus'} /> {saved ? 'Saved' : 'My List'}
             </button>
           </div>
+          {saveError && <p className="form-alert" role="alert">{saveError}</p>}
           {featuredList.length > 1 && (
             <div className="carousel-controls">
               <button type="button" className="carousel-arrow" aria-label="Previous featured title" onClick={() => showSlide(current - 1)}><Icon name="back" /></button>
@@ -167,7 +187,7 @@ export function Home() {
             {top10.map((t, i) => (
               <Link to={t.path ?? `/title/${t.id}`} className={i + 1 >= 10 ? 'rank-card two-digits' : 'rank-card'} key={t.id} aria-label={`#${i + 1}: ${t.title}`}>
                 <span aria-hidden="true">{i + 1}</span>
-                <img src={t.image} alt="" style={{ filter: t.tint }} loading={t.source === 'tmdb' ? 'lazy' : undefined} />
+                <img src={t.image} alt="" style={{ filter: t.tint }} loading={t.source === 'tmdb' && i > 2 ? 'lazy' : undefined} />
                 <b aria-hidden="true">TOP<br /><em>10</em></b>
               </Link>
             ))}
@@ -185,7 +205,7 @@ export function Home() {
             {titles.map((t) => <PosterCard key={t.id} title={t} />)}
           </Row>
         ))}
-        {(tmdbRowsShown.length > 0 || becauseYouSaved.length > 0) && <TmdbCredit />}
+        {(featuredIsTmdb || top10.some((t) => t.source === 'tmdb') || tmdbRowsShown.length > 0 || becauseYouSaved.length > 0) && <TmdbCredit />}
       </div>
     </>
   )

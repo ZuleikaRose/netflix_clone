@@ -8,6 +8,9 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('homepage', () => {
+  // The catalog's own carousel (TMDB's is in tmdb.spec.js)
+  test.use({ tmdb: 'fail' })
+
   test('featured carousel moves with arrows and dots', async ({ page }) => {
     const heroTitle = page.locator('.hero-title')
     await expect(heroTitle).toHaveText(/BEHIND\s*THE GLASS/)
@@ -16,7 +19,7 @@ test.describe('homepage', () => {
     await expect(page.getByRole('button', { name: 'Show After Dark' })).toHaveAttribute('aria-current', 'true')
     await page.getByRole('button', { name: 'Previous featured title' }).click()
     await page.getByRole('button', { name: 'Previous featured title' }).click()
-    await expect(heroTitle).toHaveText(/THE\s*SIGNAL/) // wraps around to the last slide
+    await expect(heroTitle).toHaveText(/THE\s*VEIL/) // wraps around to the last (fifth) slide
   })
 
   test('service banner can be dismissed for the session', async ({ page }) => {
