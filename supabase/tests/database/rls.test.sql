@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(92);
+select plan(95);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
@@ -19,6 +19,7 @@ set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 
 select is((select count(*) from public.titles), 9::bigint, 'anon can browse the catalog');
+select is((select id from public.search_titles('nite shift') limit 1), 'night-shift'::varchar, 'search forgives misspelled titles');
 select ok((select count(*) from public.review where body is not null) > 0, 'anon can read reviews');
 select throws_ok('select 1 from public.netflix_tables', '42501', null, 'anon cannot read accounts');
 select throws_ok('select 1 from public.watch_list_tables', '42501', null, 'anon cannot read watch lists');
@@ -113,6 +114,13 @@ update public.custom_lists set is_public = true where id = :'alex_list';
 -- Watch parties: the host is the first member
 insert into public.watch_parties (title_id) values ('after-dark') returning code as party_code \gset
 select is((select count(*) from public.watch_party_members), 1::bigint, 'the host is the party''s first member');
+
+-- Recent searches: one entry per wording (any case), the newest ten kept
+insert into public.recent_searches (query) values ('Signal');
+select throws_ok($$insert into public.recent_searches (query) values ('signal ')$$, '23505', null,
+  'the same search isn''t listed twice');
+insert into public.recent_searches (query, searched_at) select 'search ' || n, now() + make_interval(secs => n) from generate_series(1, 11) n;
+select is((select count(*) from public.recent_searches), 10::bigint, 'only the newest ten searches are kept');
 
 -- Support: Alex isn't staff
 select is((select count(*) from public.staff), 0::bigint, 'a member who isn''t staff has no staff row');

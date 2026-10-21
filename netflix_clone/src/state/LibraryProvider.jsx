@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { catalog } from '../data/catalog.js'
 import { listNameProblem, newShareSlug } from '../data/lists.js'
 import { memorySharedLists } from '../data/listsApi.js'
+import { RECENT_SEARCHES } from '../data/libraryApi.js'
 import { localDay } from '../data/notifications.js'
 import { useAuth } from './authContext.js'
 import { FINISHED_PERCENT, LibraryContext } from './libraryContext.js'
@@ -51,6 +52,8 @@ export function LibraryProvider({ children }) {
   const [dismissedNotices, setDismissedNotices] = useState(kept.dismissedNotices ?? [])
   // { [titleId]: { percent, episode, seconds } }: where the profile stopped (seconds is null for the samples)
   const [progress, setProgress] = useState(() => (remote ? {} : kept.progress ?? sampleProgress()))
+  // The profile's recent searches, newest first
+  const [recentSearches, setRecentSearches] = useState(kept.recentSearches ?? [])
   // Custom lists: [{ id, name, description, isPublic, slug, titleIds }], oldest first
   const [lists, setLists] = useState(kept.lists ?? [])
   // Viewing history in memory ({ id, titleId, episode, day, at }, newest first); with Supabase it's read when shown
@@ -61,8 +64,8 @@ export function LibraryProvider({ children }) {
   useEffect(() => {
     if (remote) return
     memoryStash.set(accountKey, { ratings, reviews, feedback, issues, doNotSell, affiliate, dismissedNotices })
-    memoryStash.set(profileKey, { myList, favorites, reminders, reminderDates, bestScores, progress, history, lists })
-  }, [remote, accountKey, profileKey, myList, favorites, reminders, reminderDates, history, lists, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+    memoryStash.set(profileKey, { myList, favorites, reminders, reminderDates, bestScores, progress, history, lists, recentSearches })
+  }, [remote, accountKey, profileKey, myList, favorites, reminders, reminderDates, history, lists, recentSearches, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   // In memory, public lists are shared on this page load only (the share link works until a reload)
   useEffect(() => {
@@ -90,6 +93,7 @@ export function LibraryProvider({ children }) {
       setAffiliate(saved.affiliate)
       setProgress(saved.progress)
       setLists(saved.lists)
+      setRecentSearches(saved.recentSearches)
     }).catch(warn)
     return () => { ignore = true }
   }, [remote])
@@ -212,6 +216,18 @@ export function LibraryProvider({ children }) {
         save(remote?.saveScore(game, score))
       },
       // Called by the player as the user watches; finishing a title takes it out of Continue Watching
+      recentSearches,
+      // Searches are history too: nothing is kept while the member has paused it
+      rememberSearch(query) {
+        const words = query.trim()
+        if (!words || !keepHistory) return
+        setRecentSearches((all) => [words, ...all.filter((s) => s.toLowerCase() !== words.toLowerCase())].slice(0, RECENT_SEARCHES))
+        if (remote) save(remote.rememberSearch(words))
+      },
+      clearRecentSearches() {
+        setRecentSearches([])
+        if (remote) save(remote.clearSearches())
+      },
       lists,
       // Custom lists. createList resolves to { list } or { error }; the others to an error message or null
       async createList(name) {
@@ -292,7 +308,7 @@ export function LibraryProvider({ children }) {
         setAffiliate((a) => a && ({ ...a, clicks: a.clicks + 1, signups: a.signups + (kind === 'signup' ? 1 : 0) }))
       },
     }
-  }, [remote, keepHistory, history, lists, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+  }, [remote, keepHistory, history, lists, recentSearches, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
 }

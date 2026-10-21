@@ -1,8 +1,12 @@
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
+import { SearchBox } from '../components/SearchBox.jsx'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
+import { suggestionsFor } from '../data/searchSuggestions.js'
+import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
+import { useSimilarTitles } from '../state/useSimilarTitles.js'
 import { useTmdbLists, useTmdbSearch } from '../state/useTmdb.js'
 
 // Release-date filter (outline: filter by genre, release date or popularity)
@@ -29,7 +33,9 @@ const allListed = (lists) => [...new Map(Object.entries(lists).filter(([name]) =
 export function Search() {
   // Query state lives in the URL so results survive Back/Forward and can be shared
   const [params, setParams] = useSearchParams()
+  const navigate = useNavigate()
   const { titles: catalog, genres, isAllowed } = useCatalog()
+  const { recentSearches, rememberSearch, clearRecentSearches } = useLibrary()
   const q = params.get('q') ?? ''
   const genre = params.get('genre') ?? ''
   const type = params.get('type') ?? ''
@@ -57,13 +63,42 @@ export function Search() {
   // TMDB list and search items have no certification ('NR'), so restricted profiles don't see them
   const tmdbResults = tmdbFound ? refine(tmdbFound.filter(isAllowed)) : []
   const tmdbSearching = Boolean(needle) && tmdb.searching
+  // No exact matches: titles spelled close to the query ("nite shift")
+  const similar = useSimilarTitles(q, catalog, Boolean(needle) && results.length === 0)
+  const similarResults = similar ? refine(similar) : []
+
+  const choose = (option) => {
+    if (option.kind === 'recent') {
+      setQueryParam('q', option.label)
+      rememberSearch(option.label)
+    } else if (option.kind === 'genre') {
+      const next = new URLSearchParams(params)
+      next.delete('q')
+      next.set('genre', option.genre)
+      setParams(next, { replace: true })
+    } else {
+      rememberSearch(q)
+      navigate(option.to)
+    }
+  }
+  // Opening a result keeps the search in the profile's recent searches
+  const rememberOnOpen = (e) => {
+    if (needle && e.target.closest('a')) rememberSearch(q)
+  }
 
   return (
     <>
       <PageHeader title="Search" back />
       <div className="search-panel">
-        <label htmlFor="search-input" className="sr-only">Search titles, people, genres</label>
-        <input id="search-input" type="search" className="search-input" placeholder="Search titles, people, genres" value={q} onChange={(e) => setQueryParam('q', e.target.value)} autoFocus />
+        <SearchBox
+          value={q}
+          onChange={(text) => setQueryParam('q', text)}
+          suggestions={suggestionsFor(catalog, q)}
+          recent={recentSearches}
+          onChoose={choose}
+          onCommit={rememberSearch}
+          onClearRecent={clearRecentSearches}
+        />
 
         <div className="genre-chips" role="group" aria-label="Filter by genre">
           {genres.map((g) => (
@@ -97,9 +132,18 @@ export function Search() {
       </div>
 
       <h2 className="results-heading" aria-live="polite">{needle || genre || type || year ? `${results.length} result${results.length === 1 ? '' : 's'}` : 'Top Searches'}</h2>
-      {results.length > 0
-        ? <div className="poster-grid">{results.map((t) => <PosterCard key={t.id} title={t} />)}</div>
-        : <p className="empty">{needle ? `No matches for “${q}”` : 'Nothing in our catalog matches these filters'}. Try a different title, actor or genre.</p>}
+      {results.length > 0 && (
+        <div className="poster-grid" onClick={rememberOnOpen}>{results.map((t) => <PosterCard key={t.id} title={t} />)}</div>
+      )}
+      {results.length === 0 && similarResults.length > 0 && (
+        <section aria-labelledby="similar-heading">
+          <h2 id="similar-heading" className="results-heading">No exact matches for “{q}”. Did you mean…</h2>
+          <div className="poster-grid" onClick={rememberOnOpen}>{similarResults.map((t) => <PosterCard key={t.id} title={t} />)}</div>
+        </section>
+      )}
+      {results.length === 0 && similarResults.length === 0 && similar !== null && (
+        <p className="empty">{needle ? `No matches for “${q}”` : 'Nothing in our catalog matches these filters'}. Try a different title, actor or genre.</p>
+      )}
 
       {(tmdbSearching || tmdbResults.length > 0) && (
         <section aria-labelledby="tmdb-results-heading" aria-busy={tmdbSearching}>

@@ -20,6 +20,7 @@ const toListRow = (p) => Object.fromEntries(Object.entries({
 
 // Viewing activity shows this many entries, newest first
 const HISTORY_LIMIT = 500
+export const RECENT_SEARCHES = 10
 
 // A reply on a ticket, oldest first in each conversation
 export const toReply = (r) => ({ id: r.id, body: r.body, fromStaff: r.from_staff, author: r.author_name, at: new Date(r.created_at) })
@@ -72,7 +73,7 @@ export function libraryApi(supabase, userId, profileId) {
 
   return {
     async load() {
-      const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate, progress, lists] = await Promise.all([
+      const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate, progress, lists, searches] = await Promise.all([
         profiles('watch_list_tables', 'title_id').order('added_at').then(unwrap),
         profiles('favorites', 'title_id').order('added_at').then(unwrap),
         profiles('reminders', 'title_id, release_date').order('created_at').then(unwrap),
@@ -84,6 +85,7 @@ export function libraryApi(supabase, userId, profileId) {
         loadAffiliate(),
         profiles('watch_progress', 'title_id, episode, position_seconds, progress_percent').order('updated_at', { ascending: false }).then(unwrap),
         profiles('custom_lists', listColumns).order('created_at').then(unwrap),
+        profiles('recent_searches', 'query').order('searched_at', { ascending: false }).limit(RECENT_SEARCHES).then(unwrap),
       ])
       return {
         myList: list.map((r) => r.title_id),
@@ -98,6 +100,7 @@ export function libraryApi(supabase, userId, profileId) {
         affiliate,
         progress: Object.fromEntries(progress.map((r) => [r.title_id, toProgress(r)])),
         lists: lists.map(toList),
+        recentSearches: searches.map((r) => r.query),
       }
     },
 
@@ -154,6 +157,13 @@ export function libraryApi(supabase, userId, profileId) {
       .upsert({ list_id: listId, title_id: titleId, user_id: userId }, { onConflict: 'list_id,title_id', ignoreDuplicates: true }).then(unwrap),
     removeFromList: (listId, titleId) => supabase.from('custom_list_items').delete()
       .eq('user_id', userId).eq('list_id', listId).eq('title_id', titleId).then(unwrap),
+
+    // Recent searches: the same words (any case) move to the top instead of repeating; the database keeps ten
+    rememberSearch: (query) => supabase.from('recent_searches').upsert(
+      { user_id: userId, profile_id: profileId, query, searched_at: new Date().toISOString() },
+      { onConflict: 'profile_id,query_key' },
+    ).then(unwrap),
+    clearSearches: () => supabase.from('recent_searches').delete().eq('user_id', userId).eq('profile_id', profileId).then(unwrap),
 
     clearProgress: (titleId) => supabase.from('watch_progress').delete().eq('user_id', userId).eq('profile_id', profileId).eq('title_id', titleId).then(unwrap),
 
