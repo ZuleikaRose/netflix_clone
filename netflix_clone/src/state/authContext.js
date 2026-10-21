@@ -33,8 +33,12 @@ export function passwordProblem(password) {
 
 export const normalizeEmail = (email) => email.trim().toLowerCase()
 
-// personalized: permission to use viewing activity for recommendations (outline §8)
-export const defaultPreferences = { autoplayNext: true, autoplayPreviews: false, emailUpdates: true, personalized: true, maturity: 'all', showOnLeaderboards: false }
+// personalized: permission to use viewing activity for recommendations (outline §8). The maturity rating is per
+// profile (data/profiles.js).
+export const defaultPreferences = {
+  autoplayNext: true, autoplayPreviews: false, emailUpdates: true, personalized: true, showOnLeaderboards: false, keepHistory: true,
+  historyRetention: null,
+}
 
 // In-memory backend only. No password here: MemoryAuthProvider generates a random one per page load, and the demo
 // button signs in via loginDemo(). With Supabase, each visitor gets their own demo account instead.

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { authErrorMessage, billingColumns, callFunction, loadAccount, saveAccount, savePreference } from '../data/accountApi.js'
 import { libraryApi } from '../data/libraryApi.js'
+import { deleteProfileRow, insertProfile, profileErrorMessage, updateProfileRow } from '../data/profilesApi.js'
 import { getSupabase, hasStoredSession, readStored, writeStored } from '../lib/supabaseConfig.js'
 import { AuthContext, normalizeEmail } from './authContext.js'
 
@@ -36,9 +37,10 @@ export function SupabaseAuthProvider({ children }) {
 
   useEffect(() => writeStored(DEMO_STORAGE_KEY, demo), [demo])
 
-  // Rebuilt only when the signed-in user changes, not on every profile edit
+  // Rebuilt only when the signed-in user changes, not on every profile edit. LibraryProvider asks for the active
+  // profile's library: libraryFor(profileId)
   const userId = user?.id
-  const library = useMemo(() => (client && userId ? libraryApi(client, userId) : null), [client, userId])
+  const libraryFor = useMemo(() => (client && userId ? (profileId) => libraryApi(client, userId, profileId) : null), [client, userId])
 
   const value = useMemo(() => {
     const connect = async () => {
@@ -121,7 +123,7 @@ export function SupabaseAuthProvider({ children }) {
       notice,
       demoEmail: demo?.email ?? null,
       demoPassword: demo?.password ?? null,
-      library,
+      libraryFor,
       login: signIn,
       async loginDemo() {
         // Reuse this visitor's demo account; make a new one the first time (or once it has expired or been deleted)
@@ -270,6 +272,37 @@ export function SupabaseAuthProvider({ children }) {
         { preferences: { ...user.preferences, [key]: val } },
         (sb) => savePreference(sb, user.id, key, val),
       ),
+      // Profiles resolve to an error message or null; the database enforces unique names and one to five profiles
+      async addProfile(profile) {
+        try {
+          const created = await insertProfile(client, user.id, profile)
+          setUser((u) => ({ ...u, profiles: [...u.profiles, created] }))
+          return null
+        } catch (error) {
+          warn(error)
+          return profileErrorMessage(error)
+        }
+      },
+      async editProfile(id, patch) {
+        try {
+          await updateProfileRow(client, user.id, id, patch)
+        } catch (error) {
+          warn(error)
+          return profileErrorMessage(error)
+        }
+        setUser((u) => ({ ...u, profiles: u.profiles.map((p) => (p.id === id ? { ...p, ...patch, name: (patch.name ?? p.name).trim() } : p)) }))
+        return null
+      },
+      async removeProfile(id) {
+        try {
+          await deleteProfileRow(client, user.id, id)
+        } catch (error) {
+          warn(error)
+          return profileErrorMessage(error)
+        }
+        setUser((u) => ({ ...u, profiles: u.profiles.filter((p) => p.id !== id) }))
+        return null
+      },
       async recordReferralClick(code) {
         if (!code || countedReferrals.has(code)) return
         countedReferrals.add(code)
@@ -282,7 +315,7 @@ export function SupabaseAuthProvider({ children }) {
         }
       },
     }
-  }, [client, user, session, notice, demo, library, ready])
+  }, [client, user, session, notice, demo, libraryFor, ready])
 
   const { restoreSession } = value
   useEffect(() => {

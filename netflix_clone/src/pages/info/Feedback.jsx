@@ -53,7 +53,7 @@ export function Feedback() {
           <div className="score-row">
             {scores.map((s) => (
               <label key={s.value} className={form.score === s.value ? 'score on' : 'score'}>
-                <input type="radio" name="score" value={s.value} checked={form.score === s.value} aria-invalid={Boolean(errors.score)} onChange={() => setForm({ ...form, score: s.value })} />
+                <input type="radio" name="score" value={s.value} checked={form.score === s.value} aria-invalid={Boolean(errors.score)} onChange={() => setForm((f) => ({ ...f, score: s.value }))} />
                 <span aria-hidden="true">{s.face}</span><span className="sr-only">{s.label}</span>
               </label>
             ))}
@@ -63,14 +63,14 @@ export function Feedback() {
 
         <label className="select-row">
           <span className="switch-label">What’s it about?</span>
-          <select value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })}>
+          <select value={form.area} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, area: value })) }}>
             {areas.map((a) => <option key={a}>{a}</option>)}
           </select>
         </label>
 
         <div className={errors.message ? 'field has-error' : 'field'}>
           <label htmlFor="feedback-message">Your feedback</label>
-          <textarea id="feedback-message" rows="5" value={form.message} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? 'message-error' : undefined} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="What did you like? What should we improve?" />
+          <textarea id="feedback-message" rows="5" value={form.message} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? 'message-error' : undefined} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, message: value })) }} placeholder="What did you like? What should we improve?" />
           {errors.message && <p id="message-error" className="field-error"><span aria-hidden="true">⚠</span> {errors.message}</p>}
         </div>
 

@@ -1,16 +1,15 @@
-import { useAuth } from './authContext.js'
 import { useCatalogSource } from './catalogContext.js'
+import { useProfile } from './profileContext.js'
 
 const kids = ['TV-Y', 'TV-G', 'TV-PG', 'G', 'PG']
 const allowedRatings = { kids, teen: [...kids, 'TV-14', 'PG-13'] }
 
-// The catalog filtered by the signed-in user's maturity setting.
+// The catalog filtered by the watching profile's maturity rating (signed out: no filter).
 // `all`, findTitle and genres cover every title, whatever the setting. rememberTitle(title) makes a TMDB title
 // findable (once it's on a list) before the next page load.
 export function useCatalog() {
-  const { user } = useAuth()
   const { titles: all, saved, rememberTitle } = useCatalogSource()
-  const allowed = allowedRatings[user?.preferences.maturity]
+  const allowed = allowedRatings[useProfile()?.profile?.maturity]
   const isAllowed = (title) => !allowed || allowed.includes(title.maturity)
   return {
     titles: all.filter(isAllowed),

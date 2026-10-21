@@ -1,6 +1,6 @@
 // Game leaderboards: the top ten of each game among members who chose to show their scores (Account → Privacy, or
-// the switch under each game). With Supabase they come from public.game_leaderboard(), which returns first names
-// only; in memory these sample players stand in for other members.
+// the switch under each game), one entry per profile. With Supabase they come from public.game_leaderboard(), which
+// returns profiles' first names only; in memory these sample players stand in for other members.
 
 export const LEADERBOARD_SIZE = 10
 
@@ -33,5 +33,6 @@ const unwrap = ({ data, error }) => {
   return data
 }
 
-export const fetchLeaderboard = (supabase, game) => supabase.rpc('game_leaderboard', { p_game: game }).then(unwrap)
+// profileId marks the watching profile's own row (is_me)
+export const fetchLeaderboard = (supabase, game, profileId) => supabase.rpc('game_leaderboard', { p_game: game, p_profile: profileId }).then(unwrap)
   .then((rows) => rows.map((r) => ({ place: r.place, player: r.player, score: r.best_score, isMe: r.is_me })))

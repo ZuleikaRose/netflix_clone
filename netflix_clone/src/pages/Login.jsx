@@ -16,11 +16,13 @@ export function Login() {
   const [pending, setPending] = useState(false)
 
   // Return to the page that bounced the user here, if any
-  const destination = location.state?.from?.pathname ?? '/'
+  // Back to the page that asked for sign-in, with its query (search filters, a watch party's invite)
+  const from = location.state?.from
+  const destination = from ? `${from.pathname}${from.search ?? ''}` : '/'
   if (!ready) return <p className="session-restoring" role="status">Signing you in…</p>
   if (user) return <Navigate to={destination} replace />
 
-  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => { const { value } = e.target; setForm((f) => ({ ...f, [key]: value })) }
 
   const finish = async (signIn) => {
     setPending(true)

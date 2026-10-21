@@ -34,26 +34,36 @@ const C = {
 }
 const L = 50, M = 544, R = 1038
 const tables = [
-  ['preferences', 'orange', L, 100, ['id:uuid:p', 'user_id:uuid:fu', 'autoplay_next:boolean', 'autoplay_previews:boolean', 'email_updates:boolean', 'personalized:boolean', 'maturity_rating:varchar', 'player_volume:smallint:n', 'show_on_leaderboards:boolean:n']],
-  ['promo_codes', 'gold', L, 460, ['id:uuid:p', 'user_id:uuid:fu', 'code:varchar', 'percent_off:smallint', 'plan:varchar', 'applied_at:timestamptz']],
-  ['promotions', 'amber', L, 730, ['code:varchar:p', 'percent_off:smallint', 'plan:varchar'], 'NEW · valid codes, read only by apply-promo'],
-  ['reminders', 'green', L, 920, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'release_date:date', 'created_at:timestamptz']],
-  ['game_scores', 'cyan', L, 1160, ['id:uuid:p', 'user_id:uuid:f', 'game:varchar', 'best_score:int', 'created_at:timestamptz', 'updated_at:timestamptz:n']],
-  ['affiliates', 'red', L, 1440, ['id:uuid:p', 'user_id:uuid:fu', 'referral_code:varchar:u', 'website_url:varchar', 'channels:text', 'payout_method:varchar:n', 'audience_size:varchar:n', 'accepted_terms:boolean', 'tier:varchar', 'created_at:timestamptz']],
+  ['preferences', 'orange', L, 100, ['id:uuid:p', 'user_id:uuid:fu', 'autoplay_next:boolean', 'autoplay_previews:boolean', 'email_updates:boolean', 'personalized:boolean', 'maturity_rating:varchar', 'player_volume:smallint:n', 'show_on_leaderboards:boolean:n', 'keep_viewing_history:boolean:n', 'history_retention_days:smallint:n']],
+  ['promo_codes', 'gold', L, 530, ['id:uuid:p', 'user_id:uuid:fu', 'code:varchar', 'percent_off:smallint', 'plan:varchar', 'applied_at:timestamptz']],
+  ['promotions', 'amber', L, 800, ['code:varchar:p', 'percent_off:smallint', 'plan:varchar'], 'NEW · valid codes, read only by apply-promo'],
+  ['reminders', 'green', L, 990, ['id:uuid:p', 'user_id:uuid:f', 'profile_id:uuid:fn', 'title_id:varchar:f', 'release_date:date', 'created_at:timestamptz']],
+  ['game_scores', 'cyan', L, 1270, ['id:uuid:p', 'user_id:uuid:f', 'profile_id:uuid:fn', 'game:varchar', 'best_score:int', 'created_at:timestamptz', 'updated_at:timestamptz:n']],
+  ['affiliates', 'red', L, 1580, ['id:uuid:p', 'user_id:uuid:fu', 'referral_code:varchar:u', 'website_url:varchar', 'channels:text', 'payout_method:varchar:n', 'audience_size:varchar:n', 'accepted_terms:boolean', 'tier:varchar', 'created_at:timestamptz']],
   ['auth.users', 'gray', M, 100, ['id:uuid:p', 'email:varchar', 'encrypted_password:varchar', 'last_sign_in_at:timestamptz'], 'Supabase Auth: passwords live here'],
   ['netflix_tables', 'pink', M, 330, ['id:uuid:pf', 'name:varchar', 'email:varchar:u', 'plan:varchar', 'membership_status:varchar', 'resumes_on:date', 'ends_on:date', 'billing_day:smallint', 'card_brand:varchar', 'card_last4:char(4)', 'card_exp:char(5)', 'data_opt_out:boolean', 'last_sign_in:timestamptz', 'access_removed_at:timestamptz', 'created_at:timestamptz']],
   ['titles', 'brick', M, 880, ['id:varchar:p', 'title:varchar', 'type:varchar', 'release_year:smallint', 'maturity_rating:varchar', 'seasons:smallint', 'runtime:varchar', 'genres:text[]', 'mood:text[]:n', 'synopsis:text', 'cast_members:text[]', 'director:varchar', 'writer:varchar', 'popularity:smallint', 'is_new:boolean', 'top10_rank:smallint:u', 'image_url:varchar', 'tint:varchar:n', 'source:varchar:n']],
   ['tmdb_titles', 'brick', M, 1540, ['title_id:varchar:pfn', 'tmdb_id:integer:n', 'media_type:varchar:n', 'backdrop_url:varchar:n', 'tmdb_rating:numeric(3,1):n', 'tmdb_url:varchar:n', 'trailer_youtube_key:varchar:n', 'fetched_at:timestamptz:n'], 'NEW · saved TMDB titles, written only by the tmdb function'],
   ['referrals', 'slate', M, 1890, ['id:uuid:p', 'affiliate_id:uuid:f', 'kind:varchar', 'created_at:timestamptz']],
-  ['watch_list_tables', 'purple', R, 100, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'added_at:timestamptz']],
-  ['favorites', 'indigo', R, 290, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'added_at:timestamptz']],
-  ['tickets', 'blue', R, 480, ['id:uuid:p', 'user_id:uuid:f', 'ticket_number:varchar:u', 'issue_type:varchar', 'title_id:varchar:f', 'summary:text', 'steps:text', 'device:varchar', 'status:varchar', 'created_at:timestamptz']],
-  ['review', 'teal', R, 850, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'rating:smallint', 'body:text', 'author_name:varchar:n', 'created_at:timestamptz']],
-  ['feedback', 'lav', R, 1130, ['id:uuid:p', 'user_id:uuid:f', 'score:smallint', 'area:varchar', 'message:text', 'created_at:timestamptz']],
-  ['accessibility_settings', 'sea', R, 1395, ['id:uuid:p', 'user_id:uuid:fu', 'text_size:smallint', 'font:varchar', 'line_height:varchar', 'letter_spacing:varchar', 'align_left:boolean', 'contrast:varchar', 'saturation:varchar', 'highlight_links:boolean', 'highlight_headings:boolean', 'strong_focus:boolean', 'big_cursor:boolean', 'reading_guide:boolean', 'hide_images:boolean', 'stop_animations:boolean', 'captions:boolean', 'caption_size:varchar', 'updated_at:timestamptz']],
+  ['watch_list_tables', 'purple', R, 100, ['id:uuid:p', 'user_id:uuid:f', 'profile_id:uuid:fn', 'title_id:varchar:f', 'added_at:timestamptz']],
+  ['favorites', 'indigo', R, 330, ['id:uuid:p', 'user_id:uuid:f', 'profile_id:uuid:fn', 'title_id:varchar:f', 'added_at:timestamptz']],
+  ['tickets', 'blue', R, 560, ['id:uuid:p', 'user_id:uuid:f', 'ticket_number:varchar:u', 'issue_type:varchar', 'title_id:varchar:f', 'summary:text', 'steps:text', 'device:varchar', 'status:varchar', 'created_at:timestamptz']],
+  ['review', 'teal', R, 930, ['id:uuid:p', 'user_id:uuid:f', 'title_id:varchar:f', 'rating:smallint', 'body:text', 'author_name:varchar:n', 'created_at:timestamptz']],
+  ['feedback', 'lav', R, 1210, ['id:uuid:p', 'user_id:uuid:f', 'score:smallint', 'area:varchar', 'message:text', 'created_at:timestamptz']],
+  ['accessibility_settings', 'sea', R, 1475, ['id:uuid:p', 'user_id:uuid:fu', 'text_size:smallint', 'font:varchar', 'line_height:varchar', 'letter_spacing:varchar', 'align_left:boolean', 'contrast:varchar', 'saturation:varchar', 'highlight_links:boolean', 'highlight_headings:boolean', 'strong_focus:boolean', 'big_cursor:boolean', 'reading_guide:boolean', 'hide_images:boolean', 'stop_animations:boolean', 'captions:boolean', 'caption_size:varchar', 'updated_at:timestamptz']],
   ['rate_limit_hits', 'gray', M, 2090, ['id:bigint:p', 'key:varchar', 'hit_at:timestamptz'], 'Edge Function rate limits (demo, referrals, TMDB)'],
   ['tmdb_certifications', 'brick', M, 2330, ['media_type:varchar:pn', 'tmdb_id:integer:pn', 'certification:varchar:n', 'fetched_at:timestamptz:n'], 'NEW · US ratings of listed TMDB titles, used only by the tmdb function'],
-  ['watch_progress', 'purple', R, 2140, ['id:uuid:pn', 'user_id:uuid:fn', 'title_id:varchar:fn', 'episode:smallint:n', 'position_seconds:numeric(8,1):n', 'progress_percent:smallint:n', 'updated_at:timestamptz:n'], 'NEW · Continue Watching, one row per member and title'],
+  ['watch_progress', 'purple', R, 2160, ['id:uuid:pn', 'user_id:uuid:fn', 'profile_id:uuid:fn', 'title_id:varchar:fn', 'episode:smallint:n', 'position_seconds:numeric(8,1):n', 'progress_percent:smallint:n', 'updated_at:timestamptz:n'], 'NEW · Continue Watching, one row per profile and title'],
+  // 2026-10-22: profiles, support, history, custom lists, watch parties, recent searches
+  ['profiles', 'pink', L, 2580, ['id:uuid:pn', 'user_id:uuid:fn', 'name:varchar:n', 'avatar:varchar:n', 'maturity_rating:varchar:n', 'notifications_seen_at:timestamptz:n', 'created_at:timestamptz:n'], 'NEW · who’s watching, 1–5 per account'],
+  ['staff', 'blue', L, 2920, ['user_id:uuid:pfn', 'added_at:timestamptz:n'], 'NEW · support team (support dashboard)'],
+  ['recent_searches', 'amber', L, 3100, ['id:uuid:pn', 'user_id:uuid:fn', 'profile_id:uuid:fn', 'query:varchar:n', 'query_key:varchar:n', 'searched_at:timestamptz:n'], 'NEW · a profile’s last ten searches'],
+  ['ticket_replies', 'blue', M, 2580, ['id:uuid:pn', 'ticket_id:uuid:fn', 'user_id:uuid:fn', 'from_staff:boolean:n', 'author_name:varchar:n', 'body:text:n', 'created_at:timestamptz:n'], 'NEW · member and staff replies'],
+  ['viewing_history', 'purple', M, 2920, ['id:uuid:pn', 'user_id:uuid:fn', 'profile_id:uuid:fn', 'title_id:varchar:fn', 'episode:smallint:n', 'watched_on:date:n', 'watched_at:timestamptz:n'], 'NEW · one row per profile, title, episode and day'],
+  ['watch_parties', 'red', M, 3260, ['id:uuid:pn', 'code:varchar:un', 'host_id:uuid:fn', 'title_id:varchar:fn', 'created_at:timestamptz:n', 'expires_at:timestamptz:n'], 'NEW · private Realtime channel party:&lt;code&gt;'],
+  ['custom_lists', 'teal', R, 2580, ['id:uuid:pn', 'user_id:uuid:fn', 'profile_id:uuid:fn', 'name:varchar:n', 'description:varchar:n', 'is_public:boolean:n', 'share_slug:varchar:un', 'created_at:timestamptz:n', 'updated_at:timestamptz:n'], 'NEW · shareable by link when public'],
+  ['custom_list_items', 'teal', R, 2980, ['list_id:uuid:pfn', 'title_id:varchar:pfn', 'user_id:uuid:fn', 'added_at:timestamptz:n']],
+  ['watch_party_members', 'red', R, 3230, ['party_id:uuid:pfn', 'user_id:uuid:pfn', 'joined_at:timestamptz:n']],
 ]
 // [from table, from column, to table, to column]
 const links = [
@@ -63,10 +73,17 @@ const links = [
   ...['reminders', 'watch_list_tables', 'favorites', 'tickets', 'review', 'watch_progress'].map(t => [t, 'title_id', 'titles', 'id']),
   ['referrals', 'affiliate_id', 'affiliates', 'id'],
   ['tmdb_titles', 'title_id', 'titles', 'id'],
+  ['profiles', 'user_id', 'netflix_tables', 'id'],
+  ['staff', 'user_id', 'netflix_tables', 'id'],
+  ['recent_searches', 'profile_id', 'profiles', 'id'],
+  ['ticket_replies', 'ticket_id', 'tickets', 'id'],
+  ['viewing_history', 'profile_id', 'profiles', 'id'],
+  ['custom_list_items', 'list_id', 'custom_lists', 'id'],
+  ['watch_party_members', 'party_id', 'watch_parties', 'id'],
 ]
 
 const board = document.getElementById('board')
-board.insertAdjacentHTML('beforeend', '<div id="title">Netflix Clone database</div><div id="sub">Supabase Postgres (eagle_platoon / eagle_platoon_dev) · every table has RLS · updated 2026-10-21</div>')
+board.insertAdjacentHTML('beforeend', '<div id="title">Netflix Clone database</div><div id="sub">Supabase Postgres (eagle_platoon / eagle_platoon_dev) · every table has RLS · 28 tables · updated 2026-10-22</div>')
 for (const [name, color, x, y, rows, note] of tables) {
   const [c, bg] = C[color]
   const el = document.createElement('div')
@@ -80,10 +97,12 @@ for (const [name, color, x, y, rows, note] of tables) {
   board.appendChild(el)
 }
 const legend = document.createElement('div')
-legend.id = 'legend'; legend.style.left = L + 'px'; legend.style.top = '1830px'
+legend.id = 'legend'; legend.style.left = L + 'px'; legend.style.top = '1960px'
 legend.innerHTML = '🔑 primary key · ✱ unique · <span style="color:#1e3a8a">blue</span> = foreign key<br>' +
   '<b style="color:#b45309;font-size:11px">NEW</b> = added since the first design<br>' +
-  'Foreign keys cascade on delete (tickets.title_id: set null). password_hash was removed: Supabase Auth stores and checks passwords.'
+  'Foreign keys cascade on delete (tickets.title_id: set null). password_hash was removed: Supabase Auth stores and checks passwords.<br>' +
+  'Not drawn, to keep the lines readable: every new table’s user_id → netflix_tables.id, and profile_id → profiles (id, user_id) ' +
+  'on the watch list, favorites, reminders, game scores, watch progress and custom lists; custom lists, history, parties → titles.'
 board.appendChild(legend)
 
 const height = Math.max(...[...document.querySelectorAll('.t, #legend')].map(e => e.offsetTop + e.offsetHeight)) + 50

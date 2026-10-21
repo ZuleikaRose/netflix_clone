@@ -114,10 +114,59 @@ test('an expired reset link asks for a new one', async ({ page }) => {
   await expect(page).toHaveURL(/\/forgot-password$/)
 })
 
-test('title pages show members’ reviews from the database', async ({ page }) => {
+test('title pages show members’ reviews from the database; a list shared by link opens for visitors', async ({ page, browser }) => {
   await signInAsDemo(page, '/title/after-dark')
   await expect(page.locator('.review-list')).toContainText('Simple premise, genuinely scary execution.')
   await expect(page.locator('.review-list')).toContainText('Priya')
+
+  // A custom list is saved, survives a reload, and once shared opens for someone who isn't signed in
+  await page.getByText('Add to a list').click()
+  const listSaved = saved(page, 'custom_lists')
+  await page.getByLabel('New list name').fill('Scary nights')
+  await page.getByRole('button', { name: 'Create list' }).click()
+  await listSaved
+  await expect(page.getByRole('checkbox', { name: 'Scary nights' })).toBeChecked()
+  await page.waitForResponse((r) => r.url().includes('/rest/v1/custom_list_items') && r.ok())
+  await page.reload()
+  await navigateInApp(page, '/lists')
+  await page.getByRole('link', { name: /Scary nights\s*1 title/ }).click()
+  const shared = saved(page, 'custom_lists')
+  await page.getByRole('switch', { name: /Share with a link/ }).check()
+  await shared
+  const link = await page.getByLabel('Share link').inputValue()
+
+  const visitor = await browser.newContext()
+  const visit = await visitor.newPage()
+  await visit.goto(link)
+  await expect(visit.getByRole('heading', { name: 'Scary nights', level: 1 })).toBeVisible()
+  await expect(visit.getByText(/^A list by .+ · 1 title$/)).toBeVisible()
+  await expect(visit.getByRole('link', { name: 'After Dark' })).toBeVisible()
+  await expect(visit.getByRole('link', { name: 'Join Netflix Clone' })).toBeVisible()
+  await visitor.close()
+})
+
+test('a watch party runs over a private Realtime channel that only its members can join', async ({ page, context }) => {
+  await signInAsDemo(page, '/title/after-dark')
+  await page.getByRole('button', { name: 'Watch party' }).click()
+  await expect(page).toHaveURL(/\/party\/[0-9a-f]{10}$/)
+  await expect(page.getByRole('heading', { name: 'Watching now (1)' })).toBeVisible()
+  const invite = await page.getByLabel('Invite link').inputValue()
+
+  // A second tab shares the saved session, so it joins as the same member over its own connection
+  const guest = await context.newPage()
+  await guest.goto(invite)
+  for (const p of [page, guest]) await expect(p.getByRole('heading', { name: 'Watching now (2)' })).toBeVisible()
+  await expect(page.getByLabel('Seek')).not.toHaveAttribute('max', '0')
+  await page.locator('.player').getByRole('button', { name: 'Play', exact: true }).click()
+  await expect.poll(() => guest.locator('.player video').evaluate((v) => !v.paused)).toBe(true)
+  await guest.getByLabel('Message').fill('Hello from tab two')
+  await guest.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByRole('list', { name: 'Party chat' })).toContainText('Hello from tab two')
+  await guest.close()
+
+  // A made-up code isn't a party
+  await page.goto('/party/0000000000')
+  await expect(page.getByText('This watch party has ended or doesn’t exist.')).toBeVisible()
 })
 
 test('sign up, apply a promo code, review, then delete the account', async ({ page }) => {

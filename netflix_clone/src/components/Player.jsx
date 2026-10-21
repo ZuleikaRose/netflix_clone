@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { captionsCredit, clipFor, clipSources } from '../data/clips.js'
+import { episodeCode, episodeCount, findEpisode } from '../data/episodes.js'
 import { readStored, writeStored } from '../lib/supabaseConfig.js'
 import { useAccessibility } from '../state/accessibilityContext.js'
 import { useAuth } from '../state/authContext.js'
@@ -20,6 +21,8 @@ const VOLUME_STEP = 0.1
 // in counts as having started
 const PROGRESS_SAVE_EVERY_SECONDS = 15
 const MIN_WATCHED_SECONDS = 5
+// Watch parties: positions closer than this count as in step
+const SYNC_TOLERANCE_SECONDS = 1.5
 const UNMUTE_VOLUME = 0.5 // unmuting from 0 has to land somewhere audible
 const VOLUME_SAVE_DELAY_MS = 600 // dragging the slider saves once it stops
 const startVolume = (preferences) => {
@@ -46,16 +49,24 @@ function saveWatched(w) {
 
 const cueText = (cue) => cue.text.replace(/<[^>]+>/g, '')
 
-export function Player({ title, onClose }) {
+// startEpisode (shows): play that episode from the start, unless it's the one the viewer stopped in.
+// Watch parties: `party` turns off starting by itself, resuming and the next-episode countdown (everyone moves
+// together); onUserAction(state) reports the viewer's own play, pause, seek and episode changes, and controlRef gets
+// { apply(state), snapshot() } so other members' changes can be applied. state: { playing, time, episode }.
+export function Player({ title, startEpisode = null, onClose, party = false, onUserAction, controlRef }) {
   const { user, setPreference } = useAuth()
   const { settings, update } = useAccessibility()
   const { progress, saveProgress } = useLibrary()
-  const [resumeFrom] = useState(() => progress[title.id] ?? null)
+  const lastEpisode = episodeCount(title)
+  const [resumeFrom] = useState(() => {
+    const saved = party ? null : progress[title.id] ?? null
+    return startEpisode && saved?.episode !== startEpisode ? null : saved
+  })
   const clip = clipFor(title.id)
   const sources = clipSources(clip)
   const playerRef = useRef(null)
   const videoRef = useRef(null)
-  const [episode, setEpisode] = useState(resumeFrom?.episode ?? 1)
+  const [episode, setEpisode] = useState(() => Math.min(Math.max(1, startEpisode ?? resumeFrom?.episode ?? 1), lastEpisode || 1))
   const [time, setTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [paused, setPaused] = useState(true)
@@ -73,7 +84,12 @@ export function Player({ title, onClose }) {
   const watched = useRef({ titleId: title.id, seconds: 0, duration: 0, episode: 1, savedAt: 0, ended: false, save: saveProgress })
 
   const isShow = title.type === 'show'
-  const countingDown = ended && isShow && user.preferences.autoplayNext && !stayHere
+  const finale = isShow && episode >= lastEpisode
+  const countingDown = ended && isShow && !finale && !party && user.preferences.autoplayNext && !stayHere
+  const describe = (n) => {
+    const found = findEpisode(title, n)
+    return found ? `${episodeCode(found)} ${found.name}` : `Episode ${n}`
+  }
 
   // The browser can refuse to start playback (e.g. autoplay without a user gesture); show Play instead
   const play = () => videoRef.current.play().catch(() => setPaused(true))
@@ -91,11 +107,14 @@ export function Player({ title, onClose }) {
     const w = watched.current
     return () => saveWatched(w)
   }, [])
-  // A movie watched to the end leaves Continue Watching; a show moves on to the start of the next episode
+  // A movie or a show's last episode watched to the end leaves Continue Watching; otherwise a show moves on to the
+  // start of the next episode
   const recordFinished = () => {
     const w = watched.current
     w.ended = true
-    w.save(w.titleId, isShow ? { percent: 0, episode: w.episode + 1, seconds: 0 } : { percent: 100, episode: 1, seconds: w.duration })
+    w.save(w.titleId, isShow && w.episode < lastEpisode
+      ? { percent: 0, episode: w.episode + 1, seconds: 0 }
+      : { percent: 100, episode: w.episode, seconds: w.duration })
   }
 
   // The member's volume is saved a moment after the last change, and right away if the player closes first
@@ -144,6 +163,11 @@ export function Player({ title, onClose }) {
     return () => clearInterval(id)
   }, [countingDown])
 
+  // Opened from an episode further down the page: bring the player into view
+  useEffect(() => {
+    playerRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [])
+
   useEffect(() => {
     const sync = () => setFullscreen(document.fullscreenElement === playerRef.current)
     document.addEventListener('fullscreenchange', sync)
@@ -155,7 +179,7 @@ export function Player({ title, onClose }) {
     setDuration(video.duration)
     // "Continue watching" titles resume where the viewer stopped (the built-in samples only know a percentage)
     if (resumeFrom) video.currentTime = resumeFrom.seconds ?? (video.duration * resumeFrom.percent) / 100
-    play()
+    if (!party) play()
   }
   const syncPosition = () => {
     const video = videoRef.current
@@ -165,29 +189,73 @@ export function Player({ title, onClose }) {
     if (Math.abs(video.currentTime - watched.current.savedAt) >= PROGRESS_SAVE_EVERY_SECONDS) recordProgress()
   }
 
-  const seekTo = (seconds) => {
+  // Tells a watch party what this viewer just did
+  const report = (state) => {
     const video = videoRef.current
-    video.currentTime = Math.max(0, Math.min(duration, seconds))
+    onUserAction?.({ playing: !video.paused && !video.ended, time: video.currentTime, episode, ...state })
+  }
+  const moveTo = (seconds) => {
+    const video = videoRef.current
+    // Before the metadata loads (a party member joining) the length isn't known yet
+    video.currentTime = Math.max(0, Math.min(duration || video.duration || Infinity, seconds))
     setTime(video.currentTime)
     setNextIn(NEXT_EPISODE_DELAY)
     setStayHere(false)
   }
-  const playEpisode = (n) => {
+  const seekTo = (seconds) => {
+    moveTo(seconds)
+    report({ time: videoRef.current.currentTime })
+  }
+  const startEpisodeAt = (n) => {
     setEpisode(n)
-    seekTo(0)
+    moveTo(0)
     setEnded(false)
     play()
   }
+  const playEpisode = (n) => {
+    startEpisodeAt(n)
+    report({ episode: n, time: 0, playing: true })
+  }
   // Episodes are simulated: the sample clip stands in for each one
   const goToPreviousEpisode = () => { if (episode > 1) playEpisode(episode - 1) }
-  const goToNextEpisode = () => playEpisode(episode + 1)
+  const goToNextEpisode = () => { if (!finale) playEpisode(episode + 1) }
   const togglePlay = () => {
     if (ended) playEpisode(episode)
-    else if (paused) play()
-    else videoRef.current.pause()
+    else if (paused) {
+      play()
+      report({ playing: true })
+    } else {
+      videoRef.current.pause()
+      report({ playing: false })
+    }
   }
+
+  // Another party member's change. Small differences in position are left alone, so playback doesn't stutter.
+  useEffect(() => {
+    if (!controlRef) return
+    controlRef.current = {
+      apply({ playing, time: at, episode: ep }) {
+        const video = videoRef.current
+        if (!video) return
+        if (ep && ep !== episode) {
+          setEpisode(ep)
+          setEnded(false)
+        }
+        if (Math.abs(video.currentTime - at) > SYNC_TOLERANCE_SECONDS) moveTo(at)
+        if (playing && video.paused) play()
+        else if (!playing && !video.paused) video.pause()
+      },
+      snapshot: () => {
+        const video = videoRef.current
+        return video ? { playing: !video.paused && !video.ended, time: video.currentTime, episode } : null
+      },
+    }
+  })
   const toggleCaptions = () => update({ captions: !settings.captions })
   // 0 counts as muted, so the slider and the Mute button always agree
+  // From the element, not state: state catches up on 'volumechange', so quick key presses would each start from the
+  // same old level
+  const currentLevel = () => (videoRef.current.muted ? 0 : videoRef.current.volume)
   const changeVolume = (level) => {
     const video = videoRef.current
     const next = Math.round(Math.max(0, Math.min(1, level)) * 100) / 100
@@ -217,7 +285,7 @@ export function Player({ title, onClose }) {
   // Shortcuts work while focus is inside the player (the sliders and speed menu keep their own keys)
   const shortcuts = {
     k: togglePlay, j: () => seekTo(time - SKIP_SECONDS), l: () => seekTo(time + SKIP_SECONDS), c: toggleCaptions, m: toggleMute, f: toggleFullscreen,
-    arrowup: () => changeVolume((muted ? 0 : volume) + VOLUME_STEP), arrowdown: () => changeVolume((muted ? 0 : volume) - VOLUME_STEP),
+    arrowup: () => changeVolume(currentLevel() + VOLUME_STEP), arrowdown: () => changeVolume(currentLevel() - VOLUME_STEP),
     ...(isShow && { 'shift+p': goToPreviousEpisode, 'shift+n': goToNextEpisode }),
   }
   const onKeyDown = (e) => {
@@ -229,7 +297,7 @@ export function Player({ title, onClose }) {
   }
 
   const state = ended ? 'Finished' : paused ? 'Paused' : 'Now playing'
-  const status = `${state} · ${title.title}${isShow ? ` · Episode ${episode}` : ''}`
+  const status = `${state} · ${title.title}${isShow ? ` · ${describe(episode)}` : ''}`
 
   return (
     <>
@@ -263,13 +331,13 @@ export function Player({ title, onClose }) {
           <div className="player-end" role="group" aria-label="Playback finished">
             {countingDown
               ? <>
-                <p>Episode {episode + 1} starts in {nextIn}s</p>
+                <p>{describe(episode + 1)} starts in {nextIn}s</p>
                 <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>Play now</button>
                 <button type="button" className="secondary" onClick={() => setStayHere(true)}>Cancel</button>
               </>
               : <>
-                <p>{isShow ? `Episode ${episode} finished` : 'Finished'}</p>
-                {isShow && <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>Play next episode</button>}
+                <p>{!isShow ? 'Finished' : finale ? `${describe(episode)} finished · that’s the end of the series` : `${describe(episode)} finished`}</p>
+                {isShow && !finale && <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>Play next episode</button>}
                 <button type="button" className="secondary" onClick={() => playEpisode(episode)}>Replay</button>
               </>}
           </div>
@@ -281,8 +349,8 @@ export function Player({ title, onClose }) {
               <button type="button" className="episode-button" aria-disabled={episode === 1} aria-keyshortcuts="Shift+P" onClick={goToPreviousEpisode}>
                 <Icon name="previousEpisode" /> Previous episode
               </button>
-              <span className="episode-number">Episode {episode}</span>
-              <button type="button" className="episode-button" aria-keyshortcuts="Shift+N" onClick={goToNextEpisode}>
+              <span className="episode-number">{findEpisode(title, episode) ? episodeCode(findEpisode(title, episode)) : `Episode ${episode}`}</span>
+              <button type="button" className="episode-button" aria-disabled={finale} aria-keyshortcuts="Shift+N" onClick={goToNextEpisode}>
                 Next episode <Icon name="nextEpisode" />
               </button>
             </div>

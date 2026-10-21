@@ -118,6 +118,7 @@ test('Cast Call: picking the title the actor stars in scores, a wrong pick doesn
 test('Higher or Lower: right guesses build a streak that’s saved when a guess is wrong', async ({ page }) => {
   await navigateInApp(page, '/games/higher-lower')
   const pair = async () => {
+    await expect(page.locator('.hl-card b')).toHaveCount(2)
     const [current, next] = await page.locator('.hl-card b').allTextContents()
     return byTitle.get(next).popularity > byTitle.get(current).popularity
   }
@@ -126,6 +127,8 @@ test('Higher or Lower: right guesses build a streak that’s saved when a guess 
     await expect(page.locator('.answer-feedback')).toHaveText(/^✓ Right!/)
     await expect(page.getByText(`Streak: ${streak}`)).toBeVisible()
     await page.getByRole('button', { name: 'Next title' }).click()
+    // The next pair is on screen once the button goes (reading the cards sooner can catch the old ones)
+    await expect(page.getByRole('button', { name: 'Next title' })).toHaveCount(0)
   }
   await page.getByRole('button', { name: (await pair()) ? '▼ Lower' : '▲ Higher' }).click()
   await expect(page.locator('.answer-feedback')).toHaveText(/^✗ Wrong\./)

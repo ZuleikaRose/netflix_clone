@@ -45,6 +45,16 @@ New passwords need 13+ characters with lowercase, uppercase, a digit and a symbo
 | Autoplay previews | Off by default: Home shows a **Preview** button. Turn on Account → Autoplay previews and previews start by themselves (never under reduced motion or *Stop animations*) |
 | Delete account | Account → Danger zone. Cancel the membership in Billing first, then type the account's email and the password shown in Change password. With Supabase this removes access (the `delete-account` function); the demo button makes a new demo account |
 | Episodes and volume | Play *Night Shift*: **Previous episode** / **Next episode** (or Shift+P / Shift+N) move between episodes. Set the volume with the slider or ↑/↓; signed in with Supabase, it follows you to other devices |
+| Profiles | My Netflix → Profiles → Manage profiles → Add profile; choose maturity *Kids* and the Kids profile sees only *Lantern Island* from the catalog, with its own lists |
+| Support dashboard | In memory the demo account is support staff: file a report in Issue Reporting, then Account → Support dashboard to reply and change its status; the reply shows under Your reports and the bell counts it. With Supabase, staff are rows in `staff` (the dev seed makes Dana staff) |
+| People | On any title page, click a cast or crew name |
+| Episodes | *Night Shift* → Episodes: pick Season 2 and play an episode; the last episode of *The Veil* ends the series |
+| Reminders and the bell | With Supabase configured: New & Hot → Coming Soon → Remind Me; the bell lists it under Coming up and announces it on release day |
+| Viewing activity | Watch a little of anything, then Account → Viewing activity: hide entries, download a CSV, pause history or set it to delete after 90 days |
+| Custom lists | On a title page, **Add to a list** → New list; then My Netflix → My lists → the list → Share with a link, and open the link signed out (in memory, in the same tab until a reload) |
+| Watch party | On a catalog title, **Watch party**; open the invite link in a second tab and press play in either |
+| Search | Try `nite shift` (a typo), `mara` (a person) or `thril` (a genre); press Enter to keep a search in recent searches |
+| Install | Account → App (Chrome and Edge offer **Install Netflix Clone**; iPhone: Share → Add to Home Screen); production builds only |
 | Seed data (dev project) | Six `@example.com` members (Alex, Jordan, Sam, Priya, Chris, Dana) with lists, reviews, tickets and affiliates, from `../supabase/seeds/` |
 
 ### Troubleshooting
@@ -91,6 +101,9 @@ Tests serve the built app with `e2e/serve.js`, a tiny static server with SPA fal
 | Auth | `/login`, `/signup`, `/logout`, `/forgot-password`, `/reset-password` | Supabase Auth (or in-memory accounts); sign-in guard that returns you to the page you wanted; plan picker; strict password rules; password reset by email; accessible inline validation |
 | Browse | `/`, `/title/:id`, `/search`, `/new` | Featured carousel with previews, maintenance banner, TV/Movie filters, Continue Watching (saved per member), Top 10, "Because You Liked…" recommendations, mock player with captions and full controls, ratings & members' reviews, share, URL-driven search filters |
 | TMDB | `/tmdb/:type/:tmdbId` | Trending and popular movie and TV rows on Home, TMDB results in Search, and a page per TMDB title (poster, overview, rating, maturity, length, cast, crew, link to TMDB, trailer, where to watch, My List and Favorite, ratings and reviews, More Like This), all through the `tmdb` Edge Function |
+| Profiles & people | `/profiles`, `/people/:name`, `/tmdb/person/:personId` | Who's watching (1–5 profiles, Kids), actor and director pages |
+| Together | `/lists`, `/lists/:listId`, `/shared/:slug`, `/party/:code` | Custom lists shareable by link (public page for anyone), watch parties over Supabase Realtime with presence and chat |
+| Activity | `/notifications`, `/history`, `/support-dashboard` | Notifications bell (released reminders, support replies), viewing activity with privacy controls, the support team's ticket queue |
 | Library | `/my-netflix`, `/watchlist`, `/favorites`, `/account` | Watch list & Favorites pages; profile, password, plan, billing (payment method, billing date, pause, cancel), autoplay, maturity, accessibility and privacy settings, danger zone (delete account) |
 | Games | `/games`, `/games/:gameId` | Poster Match (`memory`), Plot Twist (`trivia`), Timeline (`timeline`), Cast Call (`cast`), Higher or Lower (`higher-lower`) and Title Scramble (`scramble`), with best scores (saved with Supabase) and opt-in leaderboards (first names only) |
 | Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Affiliate Program (join, referral dashboard, tiered commissions, marketing materials), Legal & Privacy hub, Terms, Privacy, Do Not Sell, Accessibility Policy |

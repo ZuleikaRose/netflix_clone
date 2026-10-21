@@ -16,6 +16,7 @@ const contentTypes = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
   '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
   '.webm': 'video/webm',
   '.mp4': 'video/mp4',
   '.vtt': 'text/vtt; charset=utf-8',

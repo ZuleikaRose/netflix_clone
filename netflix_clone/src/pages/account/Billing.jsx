@@ -16,7 +16,7 @@ function PaymentMethod({ card, onSave }) {
   const [form, setForm] = useState(blankCard)
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('')
-  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => { const { value } = e.target; setForm((f) => ({ ...f, [key]: value })) }
 
   const submit = (e) => {
     e.preventDefault()

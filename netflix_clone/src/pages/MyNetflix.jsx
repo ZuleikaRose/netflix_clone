@@ -2,7 +2,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
-import { useAuth } from '../state/authContext.js'
+import { ProfileAvatar } from '../components/ProfileAvatar.jsx'
+import { useProfile } from '../state/profileContext.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 
@@ -13,7 +14,7 @@ const tabs = [
 
 export function MyNetflix() {
   const library = useLibrary()
-  const { user } = useAuth()
+  const { profile, profiles } = useProfile()
   const { findTitle } = useCatalog()
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -27,12 +28,16 @@ export function MyNetflix() {
     <>
       <PageHeader title="My Netflix" />
       <section className="profile-card">
-        <span className="avatar large" aria-hidden="true"><span /><span /><i /></span>
+        <ProfileAvatar profile={profile} large />
         <div>
-          <h2>{user.name}</h2>
+          <h2>{profile.name}</h2>
           <p className="muted">{library.myList.length} saved · {library.favorites.length} favorites · {Object.keys(library.ratings).length} rated</p>
         </div>
-        <Link to="/account" className="account-link">Account</Link>
+        <div className="profile-links">
+          <Link to="/profiles" className="account-link">{profiles.length > 1 ? 'Switch profile' : 'Profiles'}</Link>
+          <Link to="/lists" className="account-link">My lists</Link>
+          <Link to="/account" className="account-link">Account</Link>
+        </div>
       </section>
 
       <div className="tabs" role="tablist" aria-label="Your titles">

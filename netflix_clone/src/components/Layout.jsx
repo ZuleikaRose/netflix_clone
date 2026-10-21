@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { AppNotices } from './AppNotices.jsx'
 import { Icon } from './Icon.jsx'
 import { infoPages } from '../data/infoPages.js'
 
@@ -25,6 +26,7 @@ export function Layout() {
   return (
     <main className="app-shell">
       <div className="phone" ref={phoneRef}>
+        <AppNotices />
         <div className="page" key={pathname}>
           <Outlet />
         </div>

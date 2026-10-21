@@ -76,6 +76,24 @@ together.
   full screen, CC), captions drawn on a dark box in three sizes, credits under the video.
 * **Leaderboards:** a settings card under each game: a numbered list (44px rows, place in muted grey, the member's own
   row in gold `#f5c518` with "(you)"), then the "Show me on leaderboards" switch. First names only; off by default.
+* **Profiles:** "Who's watching?" shows a 2-column grid of square avatars (blue, red, yellow, green, purple tiles with
+  the initial in white) with names under them; Manage profiles puts a pencil on each. The current profile's avatar
+  sits in Home's header.
+* **Notifications bell:** in every page header after Search; a red count badge (accent, 18px pill, "9+" past nine)
+  sits on the bell's corner inside its 44px target. Notifications list new items in bold with a red icon.
+* **Episodes:** under a show's details: "Episodes" with a season select (44px), then one row per episode: code and
+  name ("S1:E3 Undertow"), muted length, a 44px round Play button, and a 3px red progress bar on the episode in
+  progress. TMDB episodes add a 16:9 still, air date and overview, and have no Play button.
+* **Credits and people:** cast and crew names on title pages are underlined links (`#e5e5e5`, `#666` underline).
+  Person pages show a 104px portrait beside a facts list, a biography folded with Read more, and a three-column
+  poster grid with each role under its poster.
+* **Search box:** a combobox; suggestions and recent searches drop down in a `#181818` panel with 44px options (icon,
+  name, muted kind), the active one on `#2a2a2a`, and "Clear recent searches" at the bottom.
+* **Add to a list:** a bordered disclosure under the actions, with a 44px checkbox row per list and a New list field.
+* **Watch party:** the shared player on top, then cards: the title with a live activity line ("Sam paused at 1:05"),
+  Watching now with names, the invite link with Copy, and the chat.
+* **App notices:** offline and "new version ready" notices sit above the page on `#262626` with white text and a
+  white Reload button; they're informational, so they don't use the accent or the error orange.
 * **Icon buttons:** at least 44×44px; pressed toggles invert to white.
 
 ## Touch targets and focus

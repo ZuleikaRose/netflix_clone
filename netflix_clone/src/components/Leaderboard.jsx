@@ -3,32 +3,34 @@ import { fetchLeaderboard, sampleLeaderboard } from '../data/leaderboards.js'
 import { getSupabase } from '../lib/supabaseConfig.js'
 import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
+import { useProfile } from '../state/profileContext.js'
 
-// A game's top ten, shown under the game. Members appear only after turning on "Show me on leaderboards" (here or in
-// Account), and only by first name.
+// A game's top ten, shown under the game, one entry per profile. Members appear only after turning on "Show me on
+// leaderboards" (here or in Account), and only by their profile's first name.
 export function Leaderboard({ game, better, scoreLabel }) {
   const { backend, user, setPreference } = useAuth()
   const { bestScores } = useLibrary()
+  const { profile } = useProfile()
   const optedIn = user.preferences.showOnLeaderboards
   const myBest = bestScores[game]
   const [saved, setSaved] = useState({ key: null, rows: null, failed: false })
-  const key = `${game}:${myBest}:${optedIn}`
+  const key = `${game}:${profile.id}:${myBest}:${optedIn}`
 
   // With Supabase, ask again whenever the user's best score or choice changes
   useEffect(() => {
     if (backend !== 'supabase') return undefined
     let ignore = false
     getSupabase()
-      .then((supabase) => fetchLeaderboard(supabase, game))
+      .then((supabase) => fetchLeaderboard(supabase, game, profile.id))
       .then((rows) => { if (!ignore) setSaved({ key, rows, failed: false }) })
       .catch((error) => {
         if (import.meta.env.DEV) console.warn('Supabase:', error)
         if (!ignore) setSaved({ key, rows: null, failed: true })
       })
     return () => { ignore = true }
-  }, [backend, game, key])
+  }, [backend, game, profile.id, key])
 
-  const me = optedIn && myBest !== undefined ? { player: user.name.trim().split(' ')[0] || 'Member', score: myBest } : null
+  const me = optedIn && myBest !== undefined ? { player: profile.name.trim().split(' ')[0] || 'Member', score: myBest } : null
   const current = backend === 'supabase' ? (saved.key === key ? saved : null) : { rows: sampleLeaderboard(game, better, me) }
 
   return (
@@ -52,7 +54,7 @@ export function Leaderboard({ game, better, scoreLabel }) {
       <label className="switch-row">
         <span>
           <span className="switch-label">Show me on leaderboards</span>
-          <span className="muted">Your first name and best scores appear here for other members. Off by default.</span>
+          <span className="muted">Your profiles’ first names and best scores appear here for other members. Off by default.</span>
         </span>
         <input type="checkbox" role="switch" checked={optedIn} onChange={(e) => setPreference('showOnLeaderboards', e.target.checked)} />
       </label>

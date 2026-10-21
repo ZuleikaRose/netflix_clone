@@ -15,6 +15,19 @@
 -- gains trailer_youtube_key; new table tmdb_certifications (US ratings of listed TMDB titles, used only by the tmdb
 -- function); preferences gains show_on_leaderboards (opt-in); game_scores gains updated_at. Leaderboards are read
 -- through the function game_leaderboard(game), which returns first names only.
+-- 2026-10-22 (ten more features):
+-- - ..._profiles: new table profiles (up to five per account, each with its own maturity rating); watch lists,
+--   favorites, reminders, watch progress and game scores belong to a profile (profile_id, unique per profile);
+--   preferences.maturity_rating is superseded by profiles.maturity_rating.
+-- - ..._support_dashboard: new tables staff and ticket_replies; tickets.status is checked. Staff read the queue
+--   through staff_tickets() and staff_set_ticket_status().
+-- - ..._notifications: profiles gains notifications_seen_at; reminders keep their release_date.
+-- - ..._viewing_history: new table viewing_history; preferences gains keep_viewing_history and
+--   history_retention_days (old history is deleted nightly).
+-- - ..._custom_lists: new tables custom_lists and custom_list_items; shared_list(slug) shows a public list.
+-- - ..._watch_parties: new tables watch_parties and watch_party_members; join_watch_party(code); party channels are
+--   private Realtime channels limited to members.
+-- - ..._better_search: search_titles(query) (pg_trgm); new table recent_searches.
 
 CREATE SEQUENCE ticket_number_seq START 48400;
 
@@ -34,6 +47,21 @@ CREATE TABLE netflix_tables (
   last_sign_in timestamptz, -- copied from Supabase Auth by a trigger
   access_removed_at timestamptz, -- set by Delete account (only once membership_status is 'cancelled'); data stays until a data removal ticket is handled
   created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Who's watching: one to five per account (a trigger enforces the limits). Lists, reminders, Continue Watching,
+-- game scores, history, custom lists and recent searches belong to a profile; (id, user_id) is unique so those rows
+-- can reference both and a row's profile always belongs to its account.
+CREATE TABLE profiles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE, -- defaults to auth.uid()
+  name varchar NOT NULL CHECK (char_length(btrim(name)) BETWEEN 1 AND 30),
+  avatar varchar NOT NULL DEFAULT 'blue' CHECK (avatar IN ('blue', 'red', 'yellow', 'green', 'purple')),
+  maturity_rating varchar NOT NULL DEFAULT 'all' CHECK (maturity_rating IN ('all', 'teen', 'kids')),
+  notifications_seen_at timestamptz NOT NULL DEFAULT now(), -- when the profile last opened its notifications
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (id, user_id),
+  UNIQUE (user_id, name)
 );
 
 CREATE TABLE titles (
@@ -87,7 +115,9 @@ CREATE TABLE watch_list_tables (
   user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE, -- defaults to auth.uid()
   title_id varchar NOT NULL REFERENCES titles (id) ON DELETE CASCADE,
   added_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, title_id)
+  profile_id uuid NOT NULL, -- the account's first profile when not given
+  UNIQUE (profile_id, title_id),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE favorites (
@@ -95,7 +125,9 @@ CREATE TABLE favorites (
   user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
   title_id varchar NOT NULL REFERENCES titles (id) ON DELETE CASCADE,
   added_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, title_id)
+  profile_id uuid NOT NULL, -- the account's first profile when not given
+  UNIQUE (profile_id, title_id),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE tickets (
@@ -107,7 +139,7 @@ CREATE TABLE tickets (
   summary text NOT NULL,
   steps text,
   device varchar,
-  status varchar NOT NULL DEFAULT 'Open', -- members can't edit a ticket after submitting it
+  status varchar NOT NULL DEFAULT 'Open' CHECK (status IN ('Open', 'In progress', 'Resolved')), -- set by support staff only
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -137,9 +169,11 @@ CREATE TABLE preferences (
   autoplay_previews boolean,
   email_updates boolean,
   personalized boolean,
-  maturity_rating varchar,
+  maturity_rating varchar, -- superseded by profiles.maturity_rating (copied there); no longer read
   player_volume smallint CHECK (player_volume BETWEEN 0 AND 100), -- video player volume; null = full volume
-  show_on_leaderboards boolean NOT NULL DEFAULT false -- opt-in: first name and best scores on game leaderboards
+  show_on_leaderboards boolean NOT NULL DEFAULT false, -- opt-in: first name and best scores on game leaderboards
+  keep_viewing_history boolean NOT NULL DEFAULT true, -- off: nothing new goes into viewing history or recent searches
+  history_retention_days smallint CHECK (history_retention_days IN (90, 365)) -- older history is deleted nightly; null = kept
 );
 
 -- The valid promo codes (WELCOME50, STUDENT20, FAMILY15). Only the apply-promo Edge Function can read it.
@@ -163,9 +197,11 @@ CREATE TABLE reminders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
   title_id varchar NOT NULL REFERENCES titles (id) ON DELETE CASCADE,
-  release_date date,
+  release_date date, -- when a TMDB title (or a show's next episode) comes out; the bell announces it that day
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, title_id)
+  profile_id uuid NOT NULL, -- the account's first profile when not given
+  UNIQUE (profile_id, title_id),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE game_scores (
@@ -175,7 +211,9 @@ CREATE TABLE game_scores (
   best_score int,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(), -- when the best score was set; leaderboard ties go to the earlier one
-  UNIQUE (user_id, game)
+  profile_id uuid NOT NULL, -- the account's first profile when not given
+  UNIQUE (profile_id, game),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE
 );
 
 -- Where each member stopped in each title (Continue Watching on any device). A finished movie's row is removed; a
@@ -188,7 +226,9 @@ CREATE TABLE watch_progress (
   position_seconds numeric(8, 1) NOT NULL DEFAULT 0 CHECK (position_seconds >= 0),
   progress_percent smallint NOT NULL CHECK (progress_percent BETWEEN 0 AND 100),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, title_id)
+  profile_id uuid NOT NULL, -- the account's first profile when not given
+  UNIQUE (profile_id, title_id),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE affiliates (
@@ -239,4 +279,87 @@ CREATE TABLE rate_limit_hits (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   key varchar NOT NULL,
   hit_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Support staff (added by the project owner in the SQL editor). A member can read only their own row.
+CREATE TABLE staff (
+  user_id uuid PRIMARY KEY REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  added_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- The conversation on a ticket: the member and support staff reply; from_staff and author_name are set by a trigger
+CREATE TABLE ticket_replies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id uuid NOT NULL REFERENCES tickets (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  from_staff boolean NOT NULL DEFAULT false,
+  author_name varchar NOT NULL DEFAULT '', -- 'Support team' for staff
+  body text NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 2000),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Viewing activity: one row per profile, title and episode (0 for movies) per day watched
+CREATE TABLE viewing_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  profile_id uuid NOT NULL,
+  title_id varchar NOT NULL REFERENCES titles (id) ON DELETE CASCADE,
+  episode smallint NOT NULL DEFAULT 0 CHECK (episode >= 0),
+  watched_on date NOT NULL DEFAULT current_date, -- the viewer's own day
+  watched_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE,
+  UNIQUE (profile_id, title_id, episode, watched_on)
+);
+
+-- A profile's own named lists; public ones can be opened by anyone with the link (shared_list(share_slug))
+CREATE TABLE custom_lists (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  profile_id uuid NOT NULL,
+  name varchar NOT NULL CHECK (char_length(btrim(name)) BETWEEN 1 AND 60),
+  description varchar CHECK (char_length(description) <= 280),
+  is_public boolean NOT NULL DEFAULT false,
+  share_slug varchar NOT NULL UNIQUE, -- 16 random hex characters
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE,
+  UNIQUE (profile_id, name)
+);
+
+CREATE TABLE custom_list_items (
+  list_id uuid NOT NULL REFERENCES custom_lists (id) ON DELETE CASCADE,
+  title_id varchar NOT NULL REFERENCES titles (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  added_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (list_id, title_id)
+);
+
+-- Watch parties: six hours long; play, pause, presence and chat travel over the private Realtime channel
+-- party:<code>, which only members can join
+CREATE TABLE watch_parties (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code varchar NOT NULL UNIQUE, -- 10 random hex characters, the invite link's code
+  host_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  title_id varchar NOT NULL REFERENCES titles (id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL DEFAULT now() + interval '6 hours'
+);
+
+CREATE TABLE watch_party_members (
+  party_id uuid NOT NULL REFERENCES watch_parties (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  joined_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (party_id, user_id)
+);
+
+-- A profile's last ten searches; the same words in any case count once
+CREATE TABLE recent_searches (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  profile_id uuid NOT NULL,
+  query varchar NOT NULL CHECK (char_length(btrim(query)) BETWEEN 1 AND 100),
+  query_key varchar GENERATED ALWAYS AS (lower(btrim(query))) STORED,
+  searched_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE,
+  UNIQUE (profile_id, query_key)
 );

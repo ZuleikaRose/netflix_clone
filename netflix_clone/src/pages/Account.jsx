@@ -6,6 +6,10 @@ import { PlanPicker } from '../components/PlanPicker.jsx'
 import { useAccessibility } from '../state/accessibilityContext.js'
 import { billingSummary } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
+import { maturityChoices } from '../data/profiles.js'
+import { useProfile } from '../state/profileContext.js'
+import { usePwa } from '../state/usePwa.js'
+import { promptInstall } from '../lib/pwa.js'
 import { discountedPrice, findPromotion } from '../data/promotions.js'
 import { EMAIL_PATTERN, PASSWORD_HINT, passwordProblem, useAuth } from '../state/authContext.js'
 import { Billing } from './account/Billing.jsx'
@@ -23,6 +27,30 @@ const privacyToggles = [
   { key: 'personalized', label: 'Personalized recommendations', hint: 'Use what you save, favorite and rate to suggest titles on Home.' },
   { key: 'showOnLeaderboards', label: 'Show me on game leaderboards', hint: 'Your first name and best scores appear on each game’s leaderboard for other members.' },
 ]
+
+// Install as an app: the browser's own prompt where there is one, else how to do it by hand
+function InstallCard() {
+  const { canInstall, installed } = usePwa()
+  const [declined, setDeclined] = useState(false)
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent)
+  const install = async () => setDeclined(!(await promptInstall()))
+  return (
+    <section className="settings-card" aria-labelledby="app-heading">
+      <h2 id="app-heading">App</h2>
+      {installed
+        ? <p className="muted"><span aria-hidden="true">✓</span> Netflix Clone is installed on this device. It opens from your home screen or app list, and pages you’ve visited work offline.</p>
+        : canInstall
+          ? (
+            <>
+              <p className="muted">Add Netflix Clone to your home screen or desktop: it opens in its own window and works offline.</p>
+              <button type="button" className="cta" onClick={install}>Install Netflix Clone</button>
+              {declined && <p className="muted" role="status">Not installed. You can install it any time from here.</p>}
+            </>
+          )
+          : <p className="muted">{ios ? 'To install: tap Share, then Add to Home Screen.' : 'To install, use your browser’s menu: Install app, or Add to Home Screen.'}</p>}
+    </section>
+  )
+}
 
 function Status({ message }) {
   return <p className="save-status" role="status">{message && <><span aria-hidden="true">✓</span> {message}</>}</p>
@@ -51,8 +79,8 @@ function ProfileForm({ user, updateProfile }) {
   return (
     <form className="settings-card" onSubmit={submit} noValidate aria-labelledby="profile-heading">
       <h2 id="profile-heading">Profile</h2>
-      <Field label="Name" autoComplete="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={errors.name} />
-      <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={errors.email} />
+      <Field label="Name" autoComplete="name" value={form.name} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, name: value })) }} error={errors.name} />
+      <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, email: value })) }} error={errors.email} />
       <button type="submit" className="cta">Save profile</button>
       <Status message={status} />
     </form>
@@ -64,7 +92,7 @@ function PasswordForm({ email, changePassword, demoPassword }) {
   const [form, setForm] = useState(blank)
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('')
-  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => { const { value } = e.target; setForm((f) => ({ ...f, [key]: value })) }
 
   const submit = async (e) => {
     e.preventDefault()
@@ -104,10 +132,17 @@ function PasswordForm({ email, changePassword, demoPassword }) {
 }
 
 export function Account() {
-  const { user, demoEmail, demoPassword, updateProfile, changePassword, changePlan, removePromo, setPreference } = useAuth()
+  const { user, demoEmail, demoPassword, updateProfile, changePassword, changePlan, removePromo, setPreference, editProfile } = useAuth()
+  const { profile } = useProfile()
   const { openMenu } = useAccessibility()
   const [planStatus, setPlanStatus] = useState('')
+  const [maturityError, setMaturityError] = useState(null)
   const plan = findPlan(user.plan)
+
+  // The rating stays as it was if saving fails, so say so
+  const changeMaturity = async (maturity) => {
+    setMaturityError(await editProfile(profile.id, { maturity }))
+  }
   const promo = findPromotion(user.promo)
 
   const switchPlan = (id) => {
@@ -130,6 +165,12 @@ export function Account() {
           <p className="muted">Member since 2026 · {user.email}</p>
         </section>
 
+        {user.isStaff && (
+          <nav className="settings-card link-list" aria-label="Staff">
+            <Link to="/support-dashboard">Support dashboard</Link>
+          </nav>
+        )}
+
         <ProfileForm user={user} updateProfile={updateProfile} />
         <PasswordForm email={user.email} changePassword={changePassword} demoPassword={user.email === demoEmail ? demoPassword : null} />
 
@@ -151,13 +192,15 @@ export function Account() {
           ))}
           <label className="select-row">
             <span className="switch-label">Maturity rating</span>
-            <select value={user.preferences.maturity} onChange={(e) => setPreference('maturity', e.target.value)}>
-              <option value="all">All maturity ratings</option>
-              <option value="teen">Teens (TV-14, PG-13 and below)</option>
-              <option value="kids">Kids (TV-PG, PG and below)</option>
+            <span className="muted">For {profile.name}. Each profile has its own; <Link to="/profiles" className="inline-link">manage profiles</Link>.</span>
+            <select value={profile.maturity} onChange={(e) => changeMaturity(e.target.value)}>
+              {maturityChoices.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
           </label>
+          {maturityError && <p className="form-alert" role="alert">{maturityError}</p>}
         </section>
+
+        <InstallCard />
 
         <section className="settings-card" aria-labelledby="a11y-settings-heading">
           <h2 id="a11y-settings-heading">Accessibility</h2>
@@ -174,6 +217,7 @@ export function Account() {
               <input type="checkbox" role="switch" checked={user.preferences[key]} onChange={(e) => setPreference(key, e.target.checked)} />
             </label>
           ))}
+          <Link to="/history" className="ghost-cta">Viewing activity and history settings</Link>
           <p className="muted">More choices: <Link to="/info/do-not-sell" className="inline-link">Do Not Sell My Information</Link> · <Link to="/info/privacy" className="inline-link">Privacy Policy</Link></p>
         </section>
 

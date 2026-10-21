@@ -69,6 +69,15 @@ values
   ('a1e00000-0000-4000-8000-000000000002', 130, 'readable', 'relaxed', 'default', 'high', 'default', true, true, false, true, 'large'),
   ('a1e00000-0000-4000-8000-000000000004', 115, 'dyslexia', 'loose', 'wide', 'default', 'low', false, false, true, true, 'xlarge');
 
+-- Every account got its first profile from the sign-up trigger; Alex also has a Kids profile with its own watch list
+-- (rows below without a profile_id go to the account's first profile). It's made a minute later: within one
+-- transaction now() doesn't move, and a tie on created_at would make the first profile depend on the random ids.
+insert into public.profiles (id, user_id, name, avatar, maturity_rating, created_at) values
+  ('b0f00000-0000-4000-8000-000000000001', 'a1e00000-0000-4000-8000-000000000001', 'Kids', 'green', 'kids', now() + interval '1 minute');
+
+insert into public.watch_list_tables (user_id, profile_id, title_id) values
+  ('a1e00000-0000-4000-8000-000000000001', 'b0f00000-0000-4000-8000-000000000001', 'lantern-island');
+
 insert into public.watch_list_tables (user_id, title_id, added_at) values
   ('a1e00000-0000-4000-8000-000000000001', 'behind-the-glass', now() - interval '3 days'),
   ('a1e00000-0000-4000-8000-000000000001', 'the-signal', now() - interval '1 day'),
@@ -132,6 +141,12 @@ insert into public.tickets (user_id, ticket_number, issue_type, title_id, summar
     null, 'Android TV', 'In progress', now() - interval '6 days'),
   ('a1e00000-0000-4000-8000-000000000005', 'NF-48302', 'Data removal request', null, 'Please delete all data for my cancelled account.',
     null, null, 'Open', now() - interval '1 day');
+
+-- Dana is on the support team; she has answered Jordan's captions ticket
+insert into public.staff (user_id) values ('a1e00000-0000-4000-8000-000000000006');
+insert into public.ticket_replies (ticket_id, user_id, body)
+  select id, 'a1e00000-0000-4000-8000-000000000006', 'Thanks for the report. We have reproduced the drift and a fix is on the way.'
+  from public.tickets where ticket_number = 'NF-48233';
 
 -- The code applied to each account (valid codes live in private.promotions); Dana and Jordan have one
 insert into public.promo_codes (user_id, code, percent_off, plan, applied_at) values

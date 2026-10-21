@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { AddToList } from '../components/AddToList.jsx'
+import { CreditLinks } from '../components/CreditLinks.jsx'
+import { Episodes } from '../components/Episodes.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
@@ -8,10 +11,12 @@ import { Row } from '../components/Row.jsx'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { describeLength } from '../data/catalog.js'
+import { formatReleaseDay, localDay } from '../data/notifications.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
+import { useReminder } from '../state/useReminder.js'
 import { useStoreTitle } from '../state/useStoreTitle.js'
-import { useTmdbRecommendations, useTmdbTitle } from '../state/useTmdb.js'
+import { useTmdbRecommendations, useTmdbSeason, useTmdbTitle } from '../state/useTmdb.js'
 import { NotFound } from './NotFound.jsx'
 
 // A movie or TV show from TMDB (/tmdb/movie/:tmdbId, /tmdb/show/:tmdbId): TMDB's details and trailer, where to
@@ -60,6 +65,68 @@ function Trailer({ title, onClose }) {
     </div>
   )
 }
+const seasonStatus = { loading: 'Loading episodes…', unavailable: 'Episodes couldn’t be loaded from TMDB. Please try again later.', missing: 'TMDB has no episodes for this season.' }
+const formatAirDate = (day) => new Date(`${day}T00:00:00`).toLocaleDateString('en-US', { dateStyle: 'medium' })
+
+// A TMDB show's episodes, loaded a season at a time (there's no player: TMDB titles can't be watched here)
+function TmdbEpisodes({ title }) {
+  const [number, setNumber] = useState(title.seasonList[0].number)
+  const { status, season } = useTmdbSeason(title.tmdbId, number)
+  return (
+    <Episodes
+      title={title.title}
+      seasons={title.seasonList.map((s) => ({ number: s.number, label: s.name }))}
+      season={number}
+      onSeason={setNumber}
+      status={status === 'ready' ? null : seasonStatus[status]}
+      episodes={season?.episodes.map((e) => ({
+        key: e.number,
+        code: `E${e.number}`,
+        name: e.name,
+        meta: [e.airDate && formatAirDate(e.airDate), e.runtime].filter(Boolean).join(' · '),
+        synopsis: e.overview,
+        still: e.still,
+      })) ?? null}
+    />
+  )
+}
+
+// A movie that isn't out yet, or a show's next episode: { day, label } for Remind Me, else null
+function upcomingRelease(title) {
+  const today = localDay()
+  if (title.type === 'movie' && title.releaseDate > today) return { day: title.releaseDate, label: `In theaters ${formatReleaseDay(title.releaseDate)}` }
+  const next = title.nextEpisode
+  if (next?.airDate >= today) {
+    return { day: next.airDate, label: `S${next.season}:E${next.number}${next.name ? ` ${next.name}` : ''} airs ${formatReleaseDay(next.airDate)}` }
+  }
+  return null
+}
+
+const tmdbPerson = (p) => ({ key: p.id, name: p.name, to: `/tmdb/person/${p.id}` })
+const directs = (p) => p.job === 'Director' || p.job === 'Creator'
+
+// Cast and crew, each name linking to their TMDB person page (plain names if the answer has no ids)
+function Credits({ title }) {
+  const directing = title.type === 'show' ? 'Created by' : 'Director'
+  if (!title.people) {
+    return (
+      <>
+        {title.cast.length > 0 && <p className="credits"><span>Starring:</span> {title.cast.join(', ')}</p>}
+        {title.crew.director && <p className="credits"><span>{directing}:</span> {title.crew.director}</p>}
+        {title.crew.writer && <p className="credits"><span>Writer:</span> {title.crew.writer}</p>}
+      </>
+    )
+  }
+  const { cast, crew } = title.people
+  return (
+    <>
+      <CreditLinks label="Starring" people={cast.map(tmdbPerson)} />
+      <CreditLinks label={directing} people={crew.filter(directs).map(tmdbPerson)} />
+      <CreditLinks label="Writer" people={crew.filter((p) => !directs(p)).map(tmdbPerson)} />
+    </>
+  )
+}
+
 export function TmdbTitle() {
   const { type, tmdbId } = useParams()
   const validId = (type === 'movie' || type === 'show') && /^\d+$/.test(tmdbId)
@@ -70,6 +137,7 @@ export function TmdbTitle() {
   const store = useStoreTitle()
   const { myList, favorites, toggleMyList, toggleFavorite } = useLibrary()
   const [saveError, setSaveError] = useState(null)
+  const reminder = useReminder()
   useDocumentTitle(title?.title)
 
   if (!validId || status === 'missing') return <NotFound />
@@ -97,6 +165,7 @@ export function TmdbTitle() {
   }
 
   const length = describeLength(title)
+  const upcoming = upcomingRelease(title)
   const saved = myList.includes(title.id)
   const favorite = favorites.includes(title.id)
   // Lists, ratings and reviews point at `titles` rows: with Supabase, the tmdb function stores the title first
@@ -145,15 +214,25 @@ export function TmdbTitle() {
               <Icon name="heart" filled={favorite} /><span>Favorite</span>
             </button>
           </div>
-          {saveError && <p className="form-alert" role="alert">{saveError}</p>}
+          {upcoming && (
+            <div className="release-reminder">
+              <p className="muted">{upcoming.label}</p>
+              <button className={reminder.isSet(title) ? 'ghost-action on' : 'ghost-action'} aria-pressed={reminder.isSet(title)}
+                onClick={() => reminder.toggle(title, upcoming.day)}>
+                <Icon name={reminder.isSet(title) ? 'check' : 'bell'} /><span>{reminder.isSet(title) ? 'Reminder set' : 'Remind Me'}</span>
+              </button>
+            </div>
+          )}
+          {(saveError || reminder.error) && <p className="form-alert" role="alert">{saveError || reminder.error}</p>}
         </div>
 
+        <AddToList title={title} beforeAdd={storeTitle} />
+
         <p className="synopsis">{title.synopsis}</p>
-        {title.cast.length > 0 && <p className="credits"><span>Starring:</span> {title.cast.join(', ')}</p>}
-        {title.crew.director && <p className="credits"><span>{title.type === 'show' ? 'Created by' : 'Director'}:</span> {title.crew.director}</p>}
-        {title.crew.writer && <p className="credits"><span>Writer:</span> {title.crew.writer}</p>}
+        <Credits title={title} />
         {title.genres.length > 0 && <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>}
 
+        {title.seasonList?.length > 0 && <TmdbEpisodes key={title.id} title={title} />}
         <WhereToWatch title={title} />
         <Reviews title={title} beforeSave={storeTitle} />
         <TmdbCredit />

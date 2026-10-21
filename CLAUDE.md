@@ -22,10 +22,12 @@ netflix_clone/        The Vite app — run all npm commands here
   src/pages/          One file per route; info/, games/ and account/ hold sub-pages
   src/components/     Layout (phone frame, tab bar, footer), PageHeader, Field, Player, Preview, AccessibilityPanel, hooks
   e2e/                Playwright specs, serve.js (static server), ports.js (ports + dev project config)
+  public/             manifest.webmanifest, sw.js (service worker), icons/ (drawn by scripts/pwa-icons.mjs), media/
   .env.example        Copy to .env.development.local (dev project) and .env.production.local (production); git-ignored
 supabase/             Supabase CLI project (config.toml); MCP config in supabase/.mcp.json (not committed)
   migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits,
-                      saved TMDB titles, watch progress and leaderboards
+                      saved TMDB titles, watch progress and leaderboards, profiles, support dashboard, notifications,
+                      viewing history, custom lists, watch parties (Realtime RLS), better search (pg_trgm)
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
                       (Index Advisor is installed on both projects: dashboard → Query Performance suggests missing ones)
   functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb (+ _shared/: clients,
@@ -34,7 +36,7 @@ supabase/             Supabase CLI project (config.toml); MCP config in supabase
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
   diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
-schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 19 public tables)
+schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 28 public tables)
 user_stories.md       What the database stores, one story per thing the app remembers
 prompt.md             The original build prompt and the Supabase-phase prompts
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
@@ -43,8 +45,10 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Both run the same 8 migrations, 4 non_transactional files and 7 functions (updated 2026-10-21). `apply_migration` stamps the
-current time as the version: afterwards set it to the file's version in `supabase_migrations.schema_migrations`.
+Both run all 15 migrations (through `20261022060000_better_search`), non_transactional 001–007 and the same 7
+functions (production caught up 2026-10-21). `apply_migration` stamps the current time as the version: afterwards set
+it to the file's version in `supabase_migrations.schema_migrations`, and apply one migration per second or less often,
+or two get the same stamp and the second fails on the duplicate version.
 Each project needs the `TMDB_API_FREE` Edge Function secret for `tmdb` (the dashboard can't show it back; the value
 comes from themoviedb.org → Settings → API). The DROP INDEX steps at the end of `002_query_indexes.sql` haven't run on
 either project yet (they only remove indexes the new composite ones make redundant).
@@ -86,6 +90,13 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | Error | any unknown route | `pages/NotFound.jsx` |
 | (extra) Games, New & Hot | `/games`, `/games/:gameId` (`memory`, `trivia`, `timeline`, `cast`, `higher-lower`, `scramble`), `/new` | `pages/Games.jsx` (the list: name, art, blurb, `canPlay`, score label), `pages/games/*`, `pages/NewHot.jsx` |
 | (extra) TMDB movie / TV show | `/tmdb/:type/:tmdbId` (`movie` or `show`) | `pages/TmdbTitle.jsx`, `data/tmdbApi.js`, `state/useTmdb.js` |
+| (extra) Who's watching | `/profiles` | `pages/Profiles.jsx`, `state/ProfileProvider.jsx`, `components/RequireProfile.jsx`, `data/profiles*.js` |
+| (extra) Actor / director | `/tmdb/person/:personId`, `/people/:name` (catalog) | `pages/TmdbPerson.jsx`, `pages/Person.jsx`, `data/people.js`, `components/CreditLinks.jsx` |
+| (extra) Notifications | `/notifications` (bell in every header) | `pages/Notifications.jsx`, `components/NotificationBell.jsx`, `data/notifications.js` |
+| (extra) Viewing activity | `/history` | `pages/ViewingActivity.jsx` |
+| (extra) Custom lists | `/lists`, `/lists/:listId`, `/shared/:slug` (public) | `pages/MyLists.jsx`, `ListDetail.jsx`, `SharedList.jsx`, `components/AddToList.jsx` |
+| (extra) Watch party | `/party/:code` | `pages/WatchParty.jsx`, `state/usePartyChannel.js`, `data/partyApi.js` |
+| (extra) Support dashboard (staff) | `/support-dashboard` | `pages/SupportDashboard.jsx`, `state/useSupportQueue.js`, `data/supportApi.js` |
 
 When the outline changes: diff `app_outline/user_journey.md` (`git diff --word-diff`), map each change to this
 table, add or extend the page, add `/info/<slug>` pages to `data/infoPages.js` (that also adds the footer link)
@@ -192,6 +203,34 @@ after editing.
   access only (Supabase: `delete-account` bans the user and sets `access_removed_at`; memory: drops the account). Data
   removal is a support ticket, `/info/report-issue?type=data-removal`. The sign-in notice comes from `notice` in the
   auth provider, because signing out redirects before a navigation state could arrive.
+- **Profiles**: an account has 1–5 profiles (a trigger enforces it); watch list, favorites, reminders, watch progress,
+  game scores, history, custom lists and recent searches belong to the watching profile through a composite FK
+  `(profile_id, user_id) → profiles(id, user_id)`; `private.default_profile()` fills a missing profile_id with the
+  account's first profile. The chosen profile is remembered per device (`netflix-clone-profile`); `RequireProfile`
+  keys `LibraryProvider` by `${session}:${profile.id}`, and `useCatalog()` filters by the profile's maturity.
+- **Support dashboard**: staff are rows in `public.staff` (add them in the SQL editor); they read the queue through
+  `staff_tickets()` / `staff_set_ticket_status()`. `ticket_replies` gets `from_staff`/`author_name` from a trigger.
+  In memory the demo account is staff and answers its own reports.
+- **Notifications**: worked out in the browser (`data/notifications.js`): released reminders (`reminders.release_date`)
+  and staff replies newer than `profiles.notifications_seen_at`, which opening `/notifications` updates.
+- **Viewing history and privacy**: the player records a viewing as it saves progress (`recordViewing`, one row per
+  profile, title, episode, day). `preferences.keep_viewing_history = false` makes the database drop new history and
+  recent searches (`private.skip_paused_history`); `history_retention_days` (90/365) is enforced by a nightly cron.
+- **Custom lists**: owner-only; `shared_list(slug)` (anon) returns a public list's name, description, profile name
+  and title ids. In memory, share links work until a reload (`memorySharedLists`).
+- **Watch party**: `/party/:code` over the private Realtime channel `party:<code>` (RLS on `realtime.messages`:
+  members of a live party only; call `supabase.realtime.setAuth()` first). Events: `sync`, `hello`/`state` (catching
+  up), `chat`; presence lists who's there. In memory it's a `BroadcastChannel` between tabs and the invite link
+  carries the title (`?t=`). The Player's `party`, `onUserAction` and `controlRef` props do the syncing.
+- **Search**: `search_titles(query)` (pg_trgm word similarity, threshold 0.4) ranks close spellings; `data/fuzzy.js`
+  does the same in memory. `components/SearchBox.jsx` is the combobox (suggestions from `data/searchSuggestions.js`,
+  recent searches per profile in `recent_searches`, last ten).
+- **Installable app**: `public/sw.js` (shell + hashed assets cached; network-first pages; leaves /media, other origins
+  and non-GET alone) is registered in production builds (`lib/pwa.js`); the install prompt is in Account → App.
+  Bump `VERSION` in sw.js when its caching rules change. Playwright blocks service workers except in `pwa.spec.js`.
+- **Form state**: update with functional setters and read `e.target.value` before them
+  (`(e) => { const { value } = e.target; setForm((f) => ({ ...f, key: value })) }`): with transitions pending, a
+  spread of the render's `form` can restore an older value.
 - **Copy to clipboard**: use `useCopyToClipboard` — it handles a missing/blocked clipboard by showing the text.
 - **Non-component exports** go in `.js` files, not next to components (React Fast Refresh lint rule).
 - **Names**: hooks only for real hooks (`use*`); handlers are verbs (`applyCode`, `goToNextRound`).
@@ -219,6 +258,11 @@ after editing.
   Specs import `test` from `e2e/test.js`, which mocks the `tmdb` function on every page (`e2e/tmdbMock.js`; call
   `mockTmdb(page, { fail: true })` to override), and YouTube's embed answered with an empty page, so the suite never uses TMDB or its per-IP limit — real calls from
   test runs once locked the developer's own browser out for an hour.
+- Navigations are transitions: after a click that changes page, wait for something on the new page (its heading),
+  not just the URL, before navigating again, or the old page can stay mounted.
+- Specs for the ten features: `profiles.spec.js`, `support.spec.js`, `lists.spec.js`, `party.spec.js` (two tabs),
+  `search.spec.js`, `pwa.spec.js`; people, episodes and history are in `features.spec.js`, TMDB people, seasons and
+  release reminders in `tmdb.spec.js`; `supabase-auth.spec.js` checks lists and watch parties against the dev project.
 - Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility
   menu" also contains it.
 

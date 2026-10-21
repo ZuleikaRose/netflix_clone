@@ -1,4 +1,8 @@
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { AddToList } from '../components/AddToList.jsx'
+import { CreditLinks } from '../components/CreditLinks.jsx'
+import { Episodes } from '../components/Episodes.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { Player } from '../components/Player.jsx'
@@ -12,6 +16,54 @@ import { describeLength } from '../data/catalog.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { NotFound } from './NotFound.jsx'
+import { episodeCode, findEpisode, seasonsFor } from '../data/episodes.js'
+import { invitePath, startParty } from '../data/partyApi.js'
+import { personPath, splitNames } from '../data/people.js'
+
+// The show's seasons; the list opens on the season the viewer is in
+function CatalogEpisodes({ title, progress, onPlay }) {
+  const seasons = seasonsFor(title)
+  const current = progress ? findEpisode(title, progress.episode) : null
+  const [season, setSeason] = useState(current?.season ?? 1)
+  const episodes = seasons.find((s) => s.season === season)?.episodes ?? []
+  return (
+    <Episodes
+      title={title.title}
+      seasons={seasons.map((s) => ({ number: s.season, label: `Season ${s.season}` }))}
+      season={season}
+      onSeason={setSeason}
+      episodes={episodes.map((e) => ({
+        key: e.number,
+        number: e.number,
+        code: episodeCode(e),
+        name: e.name,
+        meta: `${e.minutes}m${current?.number === e.number ? ' · Continue watching' : ''}`,
+        percent: current?.number === e.number ? progress.percent : 0,
+      }))}
+      onPlay={(e) => onPlay(e.number)}
+    />
+  )
+}
+
+// Starts a watch party for this title and opens it
+function PartyButton({ title }) {
+  const navigate = useNavigate()
+  const [error, setError] = useState(null)
+  const start = async () => {
+    setError(null)
+    try {
+      navigate(invitePath(await startParty(title.id)))
+    } catch {
+      setError('The watch party couldn’t be started. Please try again.')
+    }
+  }
+  return (
+    <>
+      <button type="button" className="ghost-action" onClick={start}><Icon name="party" /><span>Watch party</span></button>
+      {error && <p className="form-alert" role="alert">{error}</p>}
+    </>
+  )
+}
 
 export function TitleDetail() {
   const { id } = useParams()
@@ -45,7 +97,7 @@ export function TitleDetail() {
       <PageHeader title={title.type === 'show' ? 'TV Show' : 'Movie'} back />
 
       {playing
-        ? <Player title={title} onClose={() => setParams({}, { replace: true })} />
+        ? <Player key={params.get('episode')} title={title} startEpisode={Number(params.get('episode')) || null} onClose={() => setParams({}, { replace: true })} />
         : (
           <div className="detail-art">
             <Preview title={title} />
@@ -70,14 +122,21 @@ export function TitleDetail() {
               <Icon name="heart" filled={favorite} /><span>Favorite</span>
             </button>
             <ShareButton title={title} />
+            <PartyButton title={title} />
           </div>
         </div>
 
+        <AddToList title={title} />
+
         <p className="synopsis">{title.synopsis}</p>
-        <p className="credits"><span>Starring:</span> {title.cast.join(', ')}</p>
-        <p className="credits"><span>Director:</span> {title.crew.director} · <span>Writer:</span> {title.crew.writer}</p>
+        <CreditLinks label="Starring" people={title.cast.map((name) => ({ name, to: personPath(name) }))} />
+        <CreditLinks label="Director" people={splitNames(title.crew.director).map((name) => ({ name, to: personPath(name) }))} />
+        <CreditLinks label="Writer" people={splitNames(title.crew.writer).map((name) => ({ name, to: personPath(name) }))} />
         <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>
 
+        {title.type === 'show' && (
+          <CatalogEpisodes title={title} progress={progress[id]} onPlay={(n) => setParams({ play: '1', episode: String(n) }, { replace: true })} />
+        )}
         <Reviews title={title} />
       </div>
 

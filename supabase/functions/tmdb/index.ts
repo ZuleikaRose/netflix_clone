@@ -1,11 +1,13 @@
 // POST /functions/v1/tmdb { action, … } → movies and TV shows from The Movie Database (TMDB), in the app's title shape
 //   { action: 'lists' }                              → { newMovies, newShows, trendingMovies, trendingShows,
-//                                                         popularMovies, popularShows }
+//                                                         popularMovies, popularShows, upcomingMovies }
 //   { action: 'search', query }                      → { results }
 //   { action: 'title', type: 'movie' | 'show', id }  → { title } with cast, crew, certification, length, trailer
 //                                                         and where to watch it in the U.S.
 //   { action: 'recommendations', type, id }          → { results }: titles TMDB recommends to fans of this one
 //   { action: 'save', type, id } (signed in)         → { title } after storing it, so it can go on My List or Favorites
+//   { action: 'person', id }                         → { person }: an actor's or director's details and best-known titles
+//   { action: 'season', id, season }                 → { season }: a TV show's season and its episodes
 // Public like the catalog itself (except `save`); the TMDB key stays in the TMDB_API_FREE secret and never reaches
 // the browser. List, search and recommendation results carry real US certifications (looked up once per title and
 // kept in public.tmdb_certifications), so restricted profiles see the titles within their maturity setting.
@@ -27,6 +29,14 @@ const CAST_SIZE = 8
 const CERTIFICATION_TTL_MS = 30 * 24 * 60 * 60 * 1000 // certifications rarely change
 const CERTIFICATION_LOOKUPS_AT_ONCE = 8 // keeps a cold start well inside TMDB's request rate
 const PROVIDER_LOGO_SIZE = 'w92'
+const PERSON_CREDITS = 24
+const PHOTO_SIZE = 'w185'
+// Talk and news shows list everyone who ever appeared as a guest, which buries a person's real work
+const GUEST_GENRES = new Set([10767, 10763])
+// The crew jobs a person page lists, in the order it names them
+const CREW_JOBS = ['Director', 'Creator', 'Screenplay', 'Writer']
+// Appearances as themselves, and uncredited parts
+const GUEST_ROLE = /^(self|himself|herself|themselves)\b|\(uncredited\)/i
 
 type Type = 'movie' | 'show'
 type Item = Record<string, any>
@@ -82,6 +92,8 @@ function toTitle(item: Item, type: Type, genres: string[]) {
     title: item.title ?? item.name,
     type,
     year: Number((item.release_date ?? item.first_air_date ?? '').slice(0, 4)) || null,
+    // 'YYYY-MM-DD' (a show's first air date), for reminders
+    releaseDate: item.release_date || item.first_air_date || null,
     maturity: 'NR',
     genres,
     mood: [],
@@ -164,15 +176,20 @@ const list = (path: string, type: Type) =>
 
 // New: movies in theaters now and TV shows with an episode airing this week
 const lists = () => cached('lists', LIST_TTL_MS, async () => {
-  const [newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows] = await Promise.all([
+  const [newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows, upcoming] = await Promise.all([
     list('/movie/now_playing', 'movie'),
     list('/tv/on_the_air', 'show'),
     list('/trending/movie/week', 'movie'),
     list('/trending/tv/week', 'show'),
     list('/movie/popular', 'movie'),
     list('/tv/popular', 'show'),
+    list('/movie/upcoming?region=US', 'movie'),
   ])
-  return { newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows }
+  // Coming soon: TMDB's upcoming list also has films already out, so keep the future ones, soonest first
+  const today = new Date().toISOString().slice(0, 10)
+  const upcomingMovies = upcoming.filter((t) => t.releaseDate && t.releaseDate > today)
+    .sort((a, b) => a.releaseDate.localeCompare(b.releaseDate))
+  return { newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows, upcomingMovies }
 })
 
 const search = (query: string) => cached(`search:${query.toLowerCase()}`, SEARCH_TTL_MS, async () => {
@@ -181,6 +198,8 @@ const search = (query: string) => cached(`search:${query.toLowerCase()}`, SEARCH
 })
 
 const names = (people: Item[] = []) => [...new Set(people.map((p) => p.name))].join(', ') || null
+// Crew as { id, name, job }, each person once (the first job listed)
+const people = (crew: Item[]) => [...new Map(crew.map((p) => [p.id, { id: p.id, name: p.name, job: p.job }])).values()]
 
 // The official YouTube trailer when there is one, else any YouTube trailer or teaser
 function trailer(item: Item) {
@@ -208,8 +227,31 @@ const title = (type: Type, id: number) => cached(`title:${type}:${id}`, LIST_TTL
   return {
     ...toTitle(item, type, (item.genres ?? []).map((g: Item) => g.name)),
     maturity: certification(item, type),
-    ...(type === 'show' ? { seasons: item.number_of_seasons ?? 1 } : { runtime: formatRuntime(item.runtime) }),
+    ...(type === 'show'
+      ? {
+        seasons: item.number_of_seasons ?? 1,
+        nextEpisode: item.next_episode_to_air?.air_date
+          ? {
+            airDate: item.next_episode_to_air.air_date, season: item.next_episode_to_air.season_number,
+            number: item.next_episode_to_air.episode_number, name: item.next_episode_to_air.name || null,
+          }
+          : null,
+        // Numbered seasons (TMDB's season 0 holds specials)
+        seasonList: (item.seasons ?? []).filter((x: Item) => x.season_number > 0 && x.episode_count > 0).map((x: Item) => ({
+          number: x.season_number, name: x.name || `Season ${x.season_number}`, episodes: x.episode_count,
+          year: Number((x.air_date ?? '').slice(0, 4)) || null,
+        })),
+      }
+      : { runtime: formatRuntime(item.runtime) }),
     cast: (item.credits?.cast ?? []).slice(0, CAST_SIZE).map((p: Item) => p.name),
+    // The same people with their TMDB ids, so the page can link to each person
+    people: {
+      cast: (item.credits?.cast ?? []).slice(0, CAST_SIZE)
+        .map((p: Item) => ({ id: p.id, name: p.name, role: p.character || null, photo: image(p.profile_path, PHOTO_SIZE) })),
+      crew: people(type === 'show' ? (item.created_by ?? []).map((p: Item) => ({ ...p, job: 'Creator' }))
+        : crew.filter((p) => p.job === 'Director'))
+        .concat(people(crew.filter((p) => ['Screenplay', 'Writer', 'Story'].includes(p.job)).slice(0, 3))),
+    },
     crew: {
       director: type === 'show' ? names(item.created_by) : names(crew.filter((p) => p.job === 'Director')),
       writer: names(crew.filter((p) => ['Screenplay', 'Writer', 'Story'].includes(p.job)).slice(0, 3)),
@@ -241,6 +283,65 @@ const save = (type: Type, id: number) => cached(`saved:${type}:${id}`, LIST_TTL_
   return t
 })
 
+// An actor's or director's page: TMDB's details and their best-known movies and shows (acting, directing, writing
+// or creating), most voted first, each with the role they had
+const person = (id: number) => cached(`person:${id}`, LIST_TTL_MS, async () => {
+  const item = await tmdb(`/person/${id}`, { append_to_response: 'combined_credits' })
+  const credits: Item[] = [
+    ...(item.combined_credits?.cast ?? []),
+    ...(item.combined_credits?.crew ?? []).filter((c: Item) => CREW_JOBS.includes(c.job)),
+  ].filter((c) => (c.media_type === 'movie' || c.media_type === 'tv') && !(c.genre_ids ?? []).some((g: number) => GUEST_GENRES.has(g)) &&
+    !GUEST_ROLE.test(c.character ?? ''))
+    // Vote counts track how widely a title is known; TMDB's popularity is this week's trend
+    .sort((a, b) => (b.vote_count ?? 0) - (a.vote_count ?? 0))
+  // Every part a person had on a title: the character first, then their jobs (directing before writing)
+  const roles = new Map<string, string[]>()
+  for (const c of credits) {
+    const key = `${c.media_type === 'tv' ? 'show' : 'movie'}:${c.id}`
+    const part = c.character || c.job
+    if (part && !roles.get(key)?.includes(part)) roles.set(key, [...(roles.get(key) ?? []), part])
+  }
+  const order = (part: string) => (CREW_JOBS.includes(part) ? CREW_JOBS.indexOf(part) + 1 : 0)
+  const roleOf = (key: string) => roles.get(key)?.sort((a, b) => order(a) - order(b)).join(', ') || null
+  const seen = new Set<string>()
+  const best = credits.filter((c) => {
+    const key = `${c.media_type}:${c.id}`
+    return seen.has(key) ? false : (seen.add(key), true)
+  }).slice(0, PERSON_CREDITS)
+  const titles = await toTitles(best)
+  return {
+    id,
+    name: item.name,
+    photo: image(item.profile_path, 'h632'),
+    knownFor: item.known_for_department || null,
+    born: item.birthday || null,
+    died: item.deathday || null,
+    birthplace: item.place_of_birth || null,
+    biography: item.biography || null,
+    tmdbUrl: `https://www.themoviedb.org/person/${id}`,
+    credits: titles.map((t) => ({ ...t, role: roleOf(`${t.type}:${t.tmdbId}`) })),
+  }
+})
+
+// One season of a TV show, with its episodes in order
+const season = (id: number, number: number) => cached(`season:${id}:${number}`, LIST_TTL_MS, async () => {
+  const item = await tmdb(`/tv/${id}/season/${number}`)
+  return {
+    number,
+    name: item.name || `Season ${number}`,
+    overview: item.overview || null,
+    episodes: (item.episodes ?? []).map((e: Item) => ({
+      number: e.episode_number,
+      name: e.name || `Episode ${e.episode_number}`,
+      overview: e.overview || null,
+      airDate: e.air_date || null,
+      runtime: formatRuntime(e.runtime),
+      still: image(e.still_path, 'w300'),
+      rating: e.vote_count ? Math.round(e.vote_average * 10) / 10 : null,
+    })),
+  }
+})
+
 const asType = (value: unknown): Type | null => (value === 'movie' || value === 'show' ? value : null)
 
 // The request as [cache key, answer], or an error response for a bad request
@@ -265,8 +366,21 @@ function route(body: Record<string, unknown>): [string, () => Promise<unknown>] 
       }
       return [`title:${type}:${id}`, async () => ({ title: await title(type, id) })]
     }
+    case 'season': {
+      const id = Number(body.id)
+      const number = Number(body.season)
+      if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(number) || number < 0 || number > 500) {
+        return json({ error: 'Send a TMDB TV show id and a season number.' }, 400)
+      }
+      return [`season:${id}:${number}`, async () => ({ season: await season(id, number) })]
+    }
+    case 'person': {
+      const id = Number(body.id)
+      if (!Number.isInteger(id) || id <= 0) return json({ error: 'Send a TMDB person id.' }, 400)
+      return [`person:${id}`, async () => ({ person: await person(id) })]
+    }
     default:
-      return json({ error: 'Unknown action. Use lists, search, title, recommendations or save.' }, 400)
+      return json({ error: 'Unknown action. Use lists, search, title, recommendations, save, person or season.' }, 400)
   }
 }
 
@@ -284,7 +398,9 @@ serve(async (req, body) => {
   try {
     return json(await answer())
   } catch (error) {
-    if (error instanceof NotFound) return json({ error: 'Title not found.' }, 404)
+    if (error instanceof NotFound) {
+      return json({ error: { person: 'Person not found.', season: 'Season not found.' }[body.action as string] ?? 'Title not found.' }, 404)
+    }
     throw error
   }
 })

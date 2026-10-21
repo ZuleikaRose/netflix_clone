@@ -66,9 +66,22 @@ test.describe('homepage', () => {
   })
 })
 
-test('title pages list cast and crew', async ({ page }) => {
+test('title pages list cast and crew, and each name opens that person’s page', async ({ page }) => {
   await navigateInApp(page, '/title/the-signal')
-  await expect(page.getByText('Director: Dara Whitfield · Writer: Ben Osei')).toBeVisible()
+  await expect(page.getByText('Director: Dara Whitfield')).toBeVisible()
+  await expect(page.getByText('Writer: Ben Osei')).toBeVisible()
+  await page.getByRole('link', { name: 'Dara Whitfield' }).click()
+  await expect(page).toHaveURL(/\/people\/Dara%20Whitfield$/)
+  await expect(page.getByRole('heading', { name: 'Dara Whitfield', level: 1 })).toBeVisible()
+  await expect(page.getByText('Director · 1 title on Netflix Clone')).toBeVisible()
+  const titles = page.locator('.credit-grid li')
+  await expect(titles).toHaveCount(1)
+  await expect(titles.first()).toContainText('Director')
+  await titles.first().getByRole('link').click()
+  await expect(page).toHaveURL(/\/title\/the-signal$/)
+
+  await navigateInApp(page, '/people/Nobody%20Here')
+  await expect(page.getByRole('heading', { name: /not found|lost/i }).first()).toBeVisible()
 })
 
 test('search filters by release year', async ({ page }) => {
@@ -235,5 +248,90 @@ test.describe('continue watching', () => {
     await navigateInApp(page, '/')
     const card = continueRow(page).locator('.poster', { has: page.getByRole('link', { name: 'Resume Behind the Glass' }) })
     await expect(card.locator('.episode-badge')).toHaveText('E2')
+  })
+})
+
+test.describe('seasons and episodes', () => {
+  test('a show lists its episodes by season, and playing one starts that episode', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/title/night-shift')
+    const season1 = page.getByRole('list', { name: 'Night Shift, Season 1' })
+    await expect(season1.locator('li')).toHaveCount(8)
+    await expect(season1.locator('li').first()).toContainText('S1:E1 Pilot')
+
+    await page.getByRole('combobox', { name: 'Season', exact: true }).selectOption('2')
+    const season2 = page.getByRole('list', { name: 'Night Shift, Season 2' })
+    await expect(season2.locator('li')).toHaveCount(6)
+    const first = (await season2.locator('.episode-name').first().innerText()).trim()
+    await season2.getByRole('button', { name: `Play ${first}` }).click()
+    await expect(page).toHaveURL(/play=1&episode=9/)
+    await expect(page.getByRole('status').filter({ hasText: 'Night Shift' })).toContainText(first)
+  })
+
+  test('the last episode ends the series instead of offering a next one', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/title/the-veil')
+    const finale = page.getByRole('list', { name: 'The Veil, Season 1' }).locator('li').last()
+    await finale.getByRole('button', { name: /^Play S1:E8/ }).click()
+    await expect(page.getByRole('button', { name: 'Next episode' })).toHaveAttribute('aria-disabled', 'true')
+    const seek = page.getByLabel('Seek')
+    await expect(seek).not.toHaveAttribute('max', '0')
+    await seek.fill(await seek.getAttribute('max'))
+    await expect(page.getByText(/that’s the end of the series/)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Play next episode' })).toHaveCount(0)
+    await expect(page.getByText(/starts in/)).toHaveCount(0)
+  })
+})
+
+test.describe('viewing history and privacy', () => {
+  const watchFirstEpisode = async (page) => {
+    await navigateInApp(page, '/title/behind-the-glass')
+    await page.getByRole('button', { name: /^\s*(Play|Resume)$/ }).click()
+    const seek = page.getByLabel('Seek')
+    await expect(seek).not.toHaveAttribute('max', '0')
+    await seek.fill(await seek.getAttribute('max'))
+    await expect(page.getByRole('group', { name: 'Playback finished' })).toBeVisible()
+    await page.getByRole('button', { name: 'Close player' }).click()
+  }
+
+  test('what a profile watches is listed by day, and entries can be hidden or all cleared', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/history')
+    await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible()
+
+    await watchFirstEpisode(page)
+    await navigateInApp(page, '/account')
+    await page.getByRole('link', { name: 'Viewing activity and history settings' }).click()
+    await expect(page).toHaveURL(/\/history$/)
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    const day = page.locator('.history-day', { has: page.getByRole('heading', { name: today }) })
+    await expect(day.getByRole('link', { name: 'Behind the Glass: S1:E1 Pilot' })).toBeVisible()
+
+    const download = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Download all (CSV)' }).click()
+    expect((await download).suggestedFilename()).toBe('viewing-activity.csv')
+
+    await page.getByRole('button', { name: 'Hide Behind the Glass: S1:E1 Pilot from history' }).click()
+    await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible()
+
+    await watchFirstEpisode(page)
+    await navigateInApp(page, '/history')
+    await page.getByRole('button', { name: 'Hide all…' }).click()
+    await page.getByRole('group', { name: 'Hide all history' }).getByRole('button', { name: 'Hide all' }).click()
+    await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible()
+  })
+
+  test('with history turned off nothing is recorded, and old history can be set to delete itself', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/history')
+    await page.getByRole('switch', { name: /Keep viewing history/ }).uncheck()
+    const retention = page.getByLabel('Delete old history automatically')
+    await retention.selectOption('90')
+    await expect(retention).toHaveValue('90')
+
+    await watchFirstEpisode(page)
+    await navigateInApp(page, '/history')
+    await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible()
+    await expect(page.getByLabel('Delete old history automatically')).toHaveValue('90')
   })
 })

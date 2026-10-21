@@ -43,7 +43,7 @@ export function Signup() {
     )
   }
 
-  const updateField = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const updateField = (key) => (e) => { const { value } = e.target; setForm((f) => ({ ...f, [key]: value })) }
 
   const submit = async (e) => {
     e.preventDefault()
@@ -68,7 +68,7 @@ export function Signup() {
         <Field label="Email" type="email" autoComplete="email" value={form.email} onChange={updateField('email')} error={errors.email} />
         <Field label="Password" type="password" autoComplete="new-password" value={form.password} onChange={updateField('password')} error={errors.password} hint={PASSWORD_HINT} />
         <Field label="Confirm password" type="password" autoComplete="new-password" value={form.confirm} onChange={updateField('confirm')} error={errors.confirm} />
-        <PlanPicker value={form.plan} onChange={(plan) => setForm({ ...form, plan })} />
+        <PlanPicker value={form.plan} onChange={(plan) => setForm((f) => ({ ...f, plan }))} />
         <button type="submit" className="cta" disabled={pending}>Start Watching</button>
       </form>
       <p className="auth-switch">Already have an account? <Link to="/login">Sign in.</Link></p>
