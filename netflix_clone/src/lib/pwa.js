@@ -31,8 +31,13 @@ window.addEventListener('appinstalled', () => {
 export async function promptInstall() {
   const prompt = state.installPrompt
   if (!prompt) return false
-  await prompt.prompt()
-  const { outcome } = await prompt.userChoice
+  let outcome = 'dismissed'
+  try {
+    await prompt.prompt()
+    outcome = (await prompt.userChoice).outcome
+  } catch {
+    // The browser refused to show it again (each prompt event can be used once)
+  }
   state.installPrompt = null
   if (outcome === 'accepted') state.installed = true
   notify()

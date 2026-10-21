@@ -69,11 +69,15 @@ export function usePartyChannel(code, me, onMessage) {
         })
         channel.subscribe(async (state) => {
           if (state === 'SUBSCRIBED') {
-            await channel.track(me)
+            // Not being listed under "Watching now" is no reason to stop the party
+            await channel.track(me).catch(() => {})
             setStatus('live')
           } else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT') setStatus('failed')
         })
+        // A message that can't be sent shows as a lost connection
         sender.current = (event, body) => channel.send({ type: 'broadcast', event, payload: { body, from: me.id } })
+          .then((result) => { if (result !== 'ok') setStatus('failed') })
+          .catch(() => setStatus('failed'))
         cleanup = () => supabase.removeChannel(channel)
         if (closed) cleanup()
       }).catch(() => setStatus('failed'))
