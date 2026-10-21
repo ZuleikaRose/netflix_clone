@@ -69,6 +69,14 @@ values
   ('a1e00000-0000-4000-8000-000000000002', 130, 'readable', 'relaxed', 'default', 'high', 'default', true, true, false, true, 'large'),
   ('a1e00000-0000-4000-8000-000000000004', 115, 'dyslexia', 'loose', 'wide', 'default', 'low', false, false, true, true, 'xlarge');
 
+-- Every account got its first profile from the sign-up trigger; Alex also has a Kids profile with its own watch list
+-- (rows below without a profile_id go to the account's first profile)
+insert into public.profiles (id, user_id, name, avatar, maturity_rating) values
+  ('b0f00000-0000-4000-8000-000000000001', 'a1e00000-0000-4000-8000-000000000001', 'Kids', 'green', 'kids');
+
+insert into public.watch_list_tables (user_id, profile_id, title_id) values
+  ('a1e00000-0000-4000-8000-000000000001', 'b0f00000-0000-4000-8000-000000000001', 'lantern-island');
+
 insert into public.watch_list_tables (user_id, title_id, added_at) values
   ('a1e00000-0000-4000-8000-000000000001', 'behind-the-glass', now() - interval '3 days'),
   ('a1e00000-0000-4000-8000-000000000001', 'the-signal', now() - interval '1 day'),

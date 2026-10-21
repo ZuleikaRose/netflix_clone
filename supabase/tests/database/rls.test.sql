@@ -3,11 +3,14 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(52);
+select plan(62);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
 \set jordan '''a1e00000-0000-4000-8000-000000000002'''
+-- Each account's first profile (made by the sign-up trigger)
+select id as alex_profile from public.profiles where user_id = :alex and name = 'Alex' \gset
+select id as jordan_profile from public.profiles where user_id = :jordan \gset
 
 -- Signed-out visitors ----------------------------------------------------------------------------------------------
 set local role anon;
@@ -26,6 +29,7 @@ select lives_ok('select 1 from public.tmdb_titles', 'anon can read saved TMDB ti
 select throws_ok($$insert into public.tmdb_titles (title_id, tmdb_id, media_type, tmdb_url) values ('after-dark', 1, 'movie', 'x')$$,
   '42501', null, 'anon cannot add saved TMDB titles');
 select throws_ok('select 1 from public.watch_progress', '42501', null, 'anon cannot read watch progress');
+select throws_ok('select 1 from public.profiles', '42501', null, 'anon cannot read profiles');
 select throws_ok('select 1 from public.tmdb_certifications', '42501', null, 'only the tmdb function reads TMDB certifications');
 select results_eq($$select player, best_score from public.game_leaderboard('memory')$$,
   $$values ('Jordan'::varchar, 11), ('Dana'::varchar, 19)$$, 'leaderboards list only members who opted in, fewest moves first');
@@ -36,7 +40,18 @@ set local role authenticated;
 select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated"}', to_json(:alex::text)), true);
 
 select is((select count(*) from public.netflix_tables), 1::bigint, 'a user sees only their own account');
-select is((select count(*) from public.watch_list_tables), 3::bigint, 'a user sees only their own watch list');
+select is((select count(*) from public.watch_list_tables), 4::bigint, 'a user sees only their own watch lists (all profiles)');
+select is((select count(*) from public.profiles), 2::bigint, 'a user sees only their own profiles');
+select is((select count(*) from public.watch_list_tables where profile_id = :'alex_profile'), 3::bigint,
+  'each profile has its own watch list');
+select lives_ok($$insert into public.watch_list_tables (profile_id, title_id) values ('b0f00000-0000-4000-8000-000000000001', 'the-signal')$$,
+  'two profiles can save the same title');
+select throws_ok(format($$insert into public.watch_list_tables (profile_id, title_id) values (%L, 'the-veil')$$, :'jordan_profile'),
+  '23503', null, 'a row cannot point at another account''s profile');
+select throws_ok($$insert into public.profiles (name) values ('Kids')$$, '23505', null, 'profile names are unique per account');
+select lives_ok($$insert into public.profiles (name) values ('Guest 1'), ('Guest 2'), ('Guest 3')$$, 'an account can have five profiles');
+select throws_ok($$insert into public.profiles (name) values ('Guest 4')$$, 'P0001', 'An account can have at most 5 profiles.',
+  'but no more than five');
 select is((select count(*) from public.tickets), 1::bigint, 'a user sees only their own tickets');
 select is((select count(*) from public.referrals), 0::bigint, 'a non-affiliate sees no referrals');
 select lives_ok($$insert into public.favorites (title_id) values ('the-veil')$$, 'user_id defaults to the signed-in user');
@@ -54,9 +69,9 @@ select is((select count(*) from public.watch_progress), 2::bigint, 'a user sees 
 select lives_ok($$insert into public.watch_progress (title_id, position_seconds, progress_percent) values ('the-veil', 9, 20)$$,
   'a user can save where they stopped');
 select throws_ok($$update public.watch_progress set progress_percent = 120$$, '23514', null, 'progress stays between 0 and 100');
-select is((select count(*) from public.game_leaderboard('memory') where is_me), 0::bigint, 'leaderboards are opt-in');
+select is((select count(*) from public.game_leaderboard('memory', :'alex_profile') where is_me), 0::bigint, 'leaderboards are opt-in');
 update public.preferences set show_on_leaderboards = true;
-select results_eq($$select place, player from public.game_leaderboard('memory') where is_me$$,
+select results_eq(format($$select place, player from public.game_leaderboard('memory', %L) where is_me$$, :'alex_profile'),
   $$values (2, 'Alex'::varchar)$$, 'after opting in, a member shows by first name in their place');
 select results_eq(
   format($$with u as (update public.netflix_tables set plan = 'premium' where id = %L returning 1) select count(*) from u$$, :alex::text),
@@ -75,6 +90,8 @@ select matches((select ticket_number from public.tickets where summary = 'pgTAP 
 -- Jordan, an affiliate ---------------------------------------------------------------------------------------------
 select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated"}', to_json(:jordan::text)), true);
 select ok((select count(*) from public.referrals) > 0, 'an affiliate sees their own referrals');
+select throws_ok(format('delete from public.profiles where id = %L', :'jordan_profile'), 'P0001',
+  'An account needs at least one profile.', 'an account keeps at least one profile');
 select is((select count(*) from public.referrals where affiliate_id = 'afa00000-0000-4000-8000-000000000002'), 0::bigint,
   'an affiliate cannot see another affiliate''s referrals');
 
@@ -92,6 +109,8 @@ select is((select email || ' ' || name || ' ' || plan || ' ' || card_last4 from 
   'robin.test@example.com Robin basic 4242', 'sign-up creates the account with lower-cased email and defaults');
 select is((select count(*) from public.preferences where user_id = 'b0000000-0000-4000-8000-000000000001'), 1::bigint,
   'sign-up creates the preferences row');
+select is((select name from public.profiles where user_id = 'b0000000-0000-4000-8000-000000000001'), 'Robin'::varchar,
+  'sign-up creates a first profile named after the member');
 select is((select count(*) from public.referrals r join public.affiliates a on a.id = r.affiliate_id where a.referral_code = 'JORDAN7Q2K' and r.kind = 'signup'),
   13::bigint, 'a referral code at sign-up counts for the affiliate');
 update auth.users set email = 'robin.new@example.com', last_sign_in_at = now() where id = 'b0000000-0000-4000-8000-000000000001';

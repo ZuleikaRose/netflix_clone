@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { defaultBilling } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
+import { MAX_PROFILES, newProfileId, profileNameProblem } from '../data/profiles.js'
 import { findPromotion } from '../data/promotions.js'
 import { AuthContext, defaultPreferences, demoAccount, normalizeEmail } from './authContext.js'
 
@@ -14,7 +15,9 @@ import { AuthContext, defaultPreferences, demoAccount, normalizeEmail } from './
 const READABLE = 'abcdefghjkmnpqrstuvwxyz23456789'
 const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(10)), (b) => READABLE[b % READABLE.length]).join('')
 
-const newDemoAccount = () => ({ ...demoAccount, password: randomSecret(), preferences: defaultPreferences, billing: defaultBilling })
+// Every account starts with one profile named after the member
+const firstProfile = (name) => ({ id: newProfileId(), name: name.trim().slice(0, 30) || 'Me', avatar: 'blue', maturity: 'all' })
+const newDemoAccount = () => ({ ...demoAccount, password: randomSecret(), preferences: defaultPreferences, billing: defaultBilling, profiles: [firstProfile(demoAccount.name)] })
 
 export function MemoryAuthProvider({ children }) {
   const [accounts, setAccounts] = useState(() => [newDemoAccount()])
@@ -46,7 +49,7 @@ export function MemoryAuthProvider({ children }) {
       demoEmail: demoAccount.email,
       demoPassword: accounts.find((a) => a.email === demoAccount.email)?.password ?? null,
       // The library lives in LibraryProvider's state only
-      library: null,
+      libraryFor: null,
       async login(email, password) {
         const account = accounts.find((a) => a.email === normalizeEmail(email))
         if (!account || account.password !== password) return 'Incorrect email or password.'
@@ -62,7 +65,7 @@ export function MemoryAuthProvider({ children }) {
       async signup({ name, email, password, plan }) {
         const key = normalizeEmail(email)
         if (accounts.some((a) => a.email === key)) return { error: 'An account with this email already exists.' }
-        setAccounts((all) => [...all, { name: name.trim(), email: key, password, plan, preferences: defaultPreferences, billing: defaultBilling }])
+        setAccounts((all) => [...all, { name: name.trim(), email: key, password, plan, preferences: defaultPreferences, billing: defaultBilling, profiles: [firstProfile(name)] }])
         startSession(key)
         return { error: null }
       },
@@ -133,6 +136,27 @@ export function MemoryAuthProvider({ children }) {
       },
       async setPreference(key, val) {
         patchUser({ preferences: { ...user.preferences, [key]: val } })
+      },
+      // Profiles: same rules as the database (unique names, at most five, at least one)
+      async addProfile(profile) {
+        if (user.profiles.length >= MAX_PROFILES) return `An account can have at most ${MAX_PROFILES} profiles.`
+        const problem = profileNameProblem(profile.name, user.profiles)
+        if (problem) return problem
+        patchUser({ profiles: [...user.profiles, { ...profile, id: newProfileId(), name: profile.name.trim() }] })
+        return null
+      },
+      async editProfile(id, patch) {
+        if (patch.name !== undefined) {
+          const problem = profileNameProblem(patch.name, user.profiles.filter((p) => p.id !== id))
+          if (problem) return problem
+        }
+        patchUser({ profiles: user.profiles.map((p) => (p.id === id ? { ...p, ...patch, name: (patch.name ?? p.name).trim() } : p)) })
+        return null
+      },
+      async removeProfile(id) {
+        if (user.profiles.length <= 1) return 'An account needs at least one profile.'
+        patchUser({ profiles: user.profiles.filter((p) => p.id !== id) })
+        return null
       },
       // Referral clicks are only simulated (Affiliate → Demo tools) without Supabase
       recordReferralClick() {},

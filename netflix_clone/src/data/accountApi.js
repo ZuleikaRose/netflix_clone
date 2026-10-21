@@ -1,4 +1,5 @@
 import { defaultBilling } from './billing.js'
+import { loadProfiles } from './profilesApi.js'
 
 // Accounts in Supabase: netflix_tables + preferences + promo_codes ↔ the `user` object the pages use.
 // Every call takes the client so this module doesn't pull supabase-js into the first page load.
@@ -10,7 +11,6 @@ const preferenceColumns = {
   autoplayPreviews: 'autoplay_previews',
   emailUpdates: 'email_updates',
   personalized: 'personalized',
-  maturity: 'maturity_rating',
   playerVolume: 'player_volume', // 0-100, null = never set (the player then uses this browser's level)
   showOnLeaderboards: 'show_on_leaderboards', // opt-in: first name and best scores on game leaderboards
 }
@@ -23,7 +23,7 @@ function toDateColumn(iso) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function toUser(authUser, account, prefs, promo) {
+function toUser(authUser, account, prefs, promo, profiles) {
   const p = { ...defaultPreferences, ...prefs }
   return {
     id: account.id,
@@ -32,6 +32,7 @@ function toUser(authUser, account, prefs, promo) {
     plan: account.plan,
     promo: promo?.code ?? null,
     isDemo: authUser.app_metadata?.demo === true,
+    profiles,
     preferences: Object.fromEntries(Object.entries(preferenceColumns).map(([key, column]) => [key, p[column]])),
     billing: {
       day: account.billing_day ?? defaultBilling.day,
@@ -50,12 +51,13 @@ const unwrap = ({ data, error }) => {
 
 export async function loadAccount(supabase, authUser) {
   const id = authUser.id
-  const [account, prefs, promo] = await Promise.all([
+  const [account, prefs, promo, profiles] = await Promise.all([
     supabase.from('netflix_tables').select('*').eq('id', id).single().then(unwrap),
     supabase.from('preferences').select('*').eq('user_id', id).maybeSingle().then(unwrap),
     supabase.from('promo_codes').select('code').eq('user_id', id).maybeSingle().then(unwrap),
+    loadProfiles(supabase, id),
   ])
-  return toUser(authUser, account, prefs, promo)
+  return toUser(authUser, account, prefs, promo, profiles)
 }
 
 // A Billing patch ({ day }, { card }, { status, resumesOn, endsOn }…) as netflix_tables columns

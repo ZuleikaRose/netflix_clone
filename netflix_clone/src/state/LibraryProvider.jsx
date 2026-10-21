@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { catalog } from '../data/catalog.js'
 import { useAuth } from './authContext.js'
 import { FINISHED_PERCENT, LibraryContext } from './libraryContext.js'
+import { useProfile } from './profileContext.js'
 
 // The signed-in user's lists, ratings, scores and reports. Changes show at once; with Supabase (`library` from the
 // auth context) they are also saved and loaded back at sign-in, including the automatic sign-in after a reload. Without
 // it everything stays in memory and a refresh resets it. Keyed by the auth session, so each sign-in starts from that
-// user's data.
+// user's data. Lists, reminders, Continue Watching and game scores belong to the watching profile (RequireProfile
+// remounts this provider when it changes); ratings, reviews, reports and the rest are the account's.
 
 const warn = (error) => {
   if (import.meta.env.DEV) console.warn('Supabase:', error)
@@ -15,25 +17,40 @@ const warn = (error) => {
 // In memory, Continue Watching starts from the built-in catalog's sample progress; members start from their own rows
 const sampleProgress = () => Object.fromEntries(catalog.filter((t) => t.progress).map((t) => [t.id, { percent: t.progress, episode: 1, seconds: null }]))
 
+// In memory a profile switch remounts this provider, so each profile's library (and the account's) is kept here for
+// the rest of the session
+const memoryStash = new Map()
+
 const toggleIn = (setter) => (id) => setter((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
 
 export function LibraryProvider({ children }) {
-  const { library: remote } = useAuth()
-  const [myList, setMyList] = useState([])
-  const [favorites, setFavorites] = useState([])
-  const [reminders, setReminders] = useState([])
-  const [ratings, setRatings] = useState({})
+  const { libraryFor, session } = useAuth()
+  const { profile } = useProfile()
+  const remote = useMemo(() => libraryFor?.(profile.id) ?? null, [libraryFor, profile.id])
+  const accountKey = String(session)
+  const profileKey = `${session}:${profile.id}`
+  const [kept] = useState(() => (remote ? {} : { ...memoryStash.get(accountKey), ...memoryStash.get(profileKey) }))
+  const [myList, setMyList] = useState(kept.myList ?? [])
+  const [favorites, setFavorites] = useState(kept.favorites ?? [])
+  const [reminders, setReminders] = useState(kept.reminders ?? [])
+  const [ratings, setRatings] = useState(kept.ratings ?? {})
   // Reviews posted this session (in-memory backend only; with Supabase, useReviews reads them from the database)
-  const [reviews, setReviews] = useState({})
-  const [feedback, setFeedback] = useState([])
-  const [issues, setIssues] = useState([])
-  const [doNotSell, setDoNotSell] = useState(false)
-  const [bestScores, setBestScores] = useState({})
+  const [reviews, setReviews] = useState(kept.reviews ?? {})
+  const [feedback, setFeedback] = useState(kept.feedback ?? [])
+  const [issues, setIssues] = useState(kept.issues ?? [])
+  const [doNotSell, setDoNotSell] = useState(kept.doNotSell ?? false)
+  const [bestScores, setBestScores] = useState(kept.bestScores ?? {})
   // Affiliate account: null until the user applies
-  const [affiliate, setAffiliate] = useState(null)
-  const [dismissedNotices, setDismissedNotices] = useState([])
-  // { [titleId]: { percent, episode, seconds } }: where the user stopped (seconds is null for the samples)
-  const [progress, setProgress] = useState(() => (remote ? {} : sampleProgress()))
+  const [affiliate, setAffiliate] = useState(kept.affiliate ?? null)
+  const [dismissedNotices, setDismissedNotices] = useState(kept.dismissedNotices ?? [])
+  // { [titleId]: { percent, episode, seconds } }: where the profile stopped (seconds is null for the samples)
+  const [progress, setProgress] = useState(() => (remote ? {} : kept.progress ?? sampleProgress()))
+
+  useEffect(() => {
+    if (remote) return
+    memoryStash.set(accountKey, { ratings, reviews, feedback, issues, doNotSell, affiliate, dismissedNotices })
+    memoryStash.set(profileKey, { myList, favorites, reminders, bestScores, progress })
+  }, [remote, accountKey, profileKey, myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   useEffect(() => {
     if (!remote) return

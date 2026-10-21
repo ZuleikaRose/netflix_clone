@@ -1,5 +1,7 @@
 // A signed-in user's library in Supabase, in the shapes LibraryProvider keeps in state. RLS limits every query to the
-// user's own rows; user_id is still sent because PostgREST needs a filter on UPDATE and DELETE.
+// user's own rows; user_id is still sent because PostgREST needs a filter on UPDATE and DELETE. Watch list, favorites,
+// reminders, watch progress and game scores belong to one profile (`profileId`); ratings, reports and the rest are
+// the account's.
 
 const unwrap = ({ data, error }) => {
   if (error) throw error
@@ -14,8 +16,9 @@ const toFeedback = (f) => ({ score: f.score, area: f.area, message: f.message, a
 const READABLE = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 const randomSuffix = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => READABLE[b % READABLE.length]).join('')
 
-export function libraryApi(supabase, userId) {
+export function libraryApi(supabase, userId, profileId) {
   const mine = (table, columns) => supabase.from(table).select(columns).eq('user_id', userId)
+  const profiles = (table, columns) => mine(table, columns).eq('profile_id', profileId)
 
   const countReferrals = (affiliateId, kind) => supabase.from('referrals')
     .select('id', { count: 'exact', head: true }).eq('affiliate_id', affiliateId).eq('kind', kind)
@@ -42,23 +45,23 @@ export function libraryApi(supabase, userId) {
   // Watch list, favorites and reminders are sets of title ids
   const titleSet = (table) => ({
     add: (titleId) => supabase.from(table)
-      .upsert({ user_id: userId, title_id: titleId }, { onConflict: 'user_id,title_id', ignoreDuplicates: true }).then(unwrap),
-    remove: (titleId) => supabase.from(table).delete().eq('user_id', userId).eq('title_id', titleId).then(unwrap),
+      .upsert({ user_id: userId, profile_id: profileId, title_id: titleId }, { onConflict: 'profile_id,title_id', ignoreDuplicates: true }).then(unwrap),
+    remove: (titleId) => supabase.from(table).delete().eq('user_id', userId).eq('profile_id', profileId).eq('title_id', titleId).then(unwrap),
   })
 
   return {
     async load() {
       const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate, progress] = await Promise.all([
-        mine('watch_list_tables', 'title_id').order('added_at').then(unwrap),
-        mine('favorites', 'title_id').order('added_at').then(unwrap),
-        mine('reminders', 'title_id').order('created_at').then(unwrap),
+        profiles('watch_list_tables', 'title_id').order('added_at').then(unwrap),
+        profiles('favorites', 'title_id').order('added_at').then(unwrap),
+        profiles('reminders', 'title_id').order('created_at').then(unwrap),
         mine('review', 'title_id, rating').is('body', null).not('rating', 'is', null).order('created_at').then(unwrap),
         mine('feedback', 'score, area, message, created_at').order('created_at', { ascending: false }).then(unwrap),
         mine('tickets', 'ticket_number, issue_type, title_id, summary, steps, device, status').order('created_at', { ascending: false }).then(unwrap),
-        mine('game_scores', 'game, best_score').then(unwrap),
+        profiles('game_scores', 'game, best_score').then(unwrap),
         supabase.from('netflix_tables').select('data_opt_out').eq('id', userId).single().then(unwrap),
         loadAffiliate(),
-        mine('watch_progress', 'title_id, episode, position_seconds, progress_percent').order('updated_at', { ascending: false }).then(unwrap),
+        profiles('watch_progress', 'title_id, episode, position_seconds, progress_percent').order('updated_at', { ascending: false }).then(unwrap),
       ])
       return {
         myList: list.map((r) => r.title_id),
@@ -96,14 +99,14 @@ export function libraryApi(supabase, userId) {
     setDoNotSell: (value) => supabase.from('netflix_tables').update({ data_opt_out: value }).eq('id', userId).then(unwrap),
 
     saveScore: (game, value) => supabase.from('game_scores')
-      .upsert({ user_id: userId, game, best_score: value, updated_at: new Date().toISOString() }, { onConflict: 'user_id,game' }).then(unwrap),
+      .upsert({ user_id: userId, profile_id: profileId, game, best_score: value, updated_at: new Date().toISOString() }, { onConflict: 'profile_id,game' }).then(unwrap),
 
     // Where the member stopped in a title ({ percent, episode, seconds }); one row per title
     saveProgress: (titleId, p) => supabase.from('watch_progress').upsert({
-      user_id: userId, title_id: titleId, episode: p.episode, position_seconds: Math.round(p.seconds * 10) / 10,
+      user_id: userId, profile_id: profileId, title_id: titleId, episode: p.episode, position_seconds: Math.round(p.seconds * 10) / 10,
       progress_percent: p.percent, updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,title_id' }).then(unwrap),
-    clearProgress: (titleId) => supabase.from('watch_progress').delete().eq('user_id', userId).eq('title_id', titleId).then(unwrap),
+    }, { onConflict: 'profile_id,title_id' }).then(unwrap),
+    clearProgress: (titleId) => supabase.from('watch_progress').delete().eq('user_id', userId).eq('profile_id', profileId).eq('title_id', titleId).then(unwrap),
 
     // Codes are unique across all accounts (many demo users are called Alex), so add a random suffix
     async joinAffiliate(application) {

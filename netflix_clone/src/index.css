@@ -199,6 +199,28 @@ textarea { resize: vertical; }
 .feed-copy .detail-meta { margin: 0 0 6px; }
 
 /* My Netflix */
+.profiles { padding: 18px 17px 0; text-align: center; }
+.profiles h2 { margin: 6px 0 22px; font-size: 24px; font-weight: 600; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; max-width: 320px; margin: 0 auto; padding: 0; list-style: none; }
+.profile-tile { display: grid; justify-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 8px 4px; border: 0; border-radius: 8px; color: inherit; background: transparent; cursor: pointer; }
+.profile-tile .avatar.large { width: 96px; height: 96px; border-radius: 10px; }
+.profile-tile .avatar.large span { top: 34px; width: 12px; height: 12px; }
+.profile-tile .avatar.large span:first-child { left: 24px; }.profile-tile .avatar.large span:nth-child(2) { right: 24px; }
+.profile-tile .avatar.large i { left: 27px; bottom: 20px; width: 42px; height: 20px; }
+.profile-tile:hover .avatar { outline: 2px solid #fff; outline-offset: 2px; }
+.profile-name { color: #d2d2d2; font-size: 15px; overflow-wrap: anywhere; }
+.profile-badge { padding: 1px 8px; border-radius: 10px; background: #2f2f2f; color: #fff; font-size: 11px; font-weight: 700; }
+.profile-add { display: grid; place-items: center; width: 96px; height: 96px; border: 2px solid #6b6b6b; border-radius: 10px; color: #bcbcbc; font-size: 48px; line-height: 1; }
+.profiles-manage { max-width: 320px; margin: 26px auto 0; }
+.avatar-choices { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; border: 0; }
+.avatar-choices legend { margin-bottom: 8px; color: #bcbcbc; font-size: 13px; }
+.avatar-choice { position: relative; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 4px 10px 4px 6px; border: 1px solid #3a3a3a; border-radius: 8px; cursor: pointer; }
+.avatar-choice input { position: absolute; opacity: 0; }
+.avatar-choice:has(input:checked) { border-color: #fff; background: #2a2a2a; }
+.avatar-choice:has(input:focus-visible) { outline: 2px solid #fff; outline-offset: 2px; }
+.profile-delete p { margin: 14px 0 0; color: #bcbcbc; font-size: 14px; }
+.profile-links { display: grid; gap: 6px; margin-left: auto; }
+.profile-links .account-link { margin-left: 0; justify-content: center; }
 .profile-card { display: flex; align-items: center; gap: 14px; padding: 10px 17px 18px; }
 .profile-card h2 { margin: 0 0 2px; font-size: 20px; }
 .profile-card p { margin: 0; }

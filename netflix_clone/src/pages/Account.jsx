@@ -6,6 +6,8 @@ import { PlanPicker } from '../components/PlanPicker.jsx'
 import { useAccessibility } from '../state/accessibilityContext.js'
 import { billingSummary } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
+import { maturityChoices } from '../data/profiles.js'
+import { useProfile } from '../state/profileContext.js'
 import { discountedPrice, findPromotion } from '../data/promotions.js'
 import { EMAIL_PATTERN, PASSWORD_HINT, passwordProblem, useAuth } from '../state/authContext.js'
 import { Billing } from './account/Billing.jsx'
@@ -104,10 +106,17 @@ function PasswordForm({ email, changePassword, demoPassword }) {
 }
 
 export function Account() {
-  const { user, demoEmail, demoPassword, updateProfile, changePassword, changePlan, removePromo, setPreference } = useAuth()
+  const { user, demoEmail, demoPassword, updateProfile, changePassword, changePlan, removePromo, setPreference, editProfile } = useAuth()
+  const { profile } = useProfile()
   const { openMenu } = useAccessibility()
   const [planStatus, setPlanStatus] = useState('')
+  const [maturityError, setMaturityError] = useState(null)
   const plan = findPlan(user.plan)
+
+  // The rating stays as it was if saving fails, so say so
+  const changeMaturity = async (maturity) => {
+    setMaturityError(await editProfile(profile.id, { maturity }))
+  }
   const promo = findPromotion(user.promo)
 
   const switchPlan = (id) => {
@@ -151,12 +160,12 @@ export function Account() {
           ))}
           <label className="select-row">
             <span className="switch-label">Maturity rating</span>
-            <select value={user.preferences.maturity} onChange={(e) => setPreference('maturity', e.target.value)}>
-              <option value="all">All maturity ratings</option>
-              <option value="teen">Teens (TV-14, PG-13 and below)</option>
-              <option value="kids">Kids (TV-PG, PG and below)</option>
+            <span className="muted">For {profile.name}. Each profile has its own; <Link to="/profiles" className="inline-link">manage profiles</Link>.</span>
+            <select value={profile.maturity} onChange={(e) => changeMaturity(e.target.value)}>
+              {maturityChoices.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
           </label>
+          {maturityError && <p className="form-alert" role="alert">{maturityError}</p>}
         </section>
 
         <section className="settings-card" aria-labelledby="a11y-settings-heading">

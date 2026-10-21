@@ -12,6 +12,8 @@ import { serviceStatus } from '../data/serviceStatus.js'
 import { useAuth } from '../state/authContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
+import { useProfile } from '../state/profileContext.js'
+import { ProfileAvatar } from '../components/ProfileAvatar.jsx'
 import { useStoreTitle } from '../state/useStoreTitle.js'
 import { useTmdbLists, useTmdbRecommendations } from '../state/useTmdb.js'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
@@ -37,6 +39,7 @@ const interleave = (lists) => Array.from({ length: Math.max(0, ...lists.map((l) 
 export function Home() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { profile } = useProfile()
   const { myList, favorites, ratings, progress, toggleMyList, dismissedNotices, dismissNotice } = useLibrary()
   const [type, setType] = useState(null)
   const [slide, setSlide] = useState(0)
@@ -105,7 +108,7 @@ export function Home() {
         <div className="top-actions">
           <AccessibilityButton />
           <Link to="/search" className="icon-button" aria-label="Search"><Icon name="search" /></Link>
-          <Link to="/my-netflix" className="avatar-hit" aria-label="My Netflix profile"><span className="avatar" aria-hidden="true"><span /><span /><i /></span></Link>
+          <Link to="/my-netflix" className="avatar-hit" aria-label="My Netflix profile"><ProfileAvatar profile={profile} /></Link>
         </div>
       </header>
 
@@ -165,7 +168,7 @@ export function Home() {
 
       <div className="content">
         {continueWatching.length > 0 && (
-          <Row title={`Continue Watching for ${user.name}`}>
+          <Row title={`Continue Watching for ${profile.name}`}>
             {continueWatching.map((t) => (
               <PosterCard key={t.id} title={t}>
                 <Link to={`/title/${t.id}?play=1`} aria-label={`Resume ${t.title}`} className="resume"><span aria-hidden="true">▶</span></Link>
