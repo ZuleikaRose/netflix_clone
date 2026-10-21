@@ -63,6 +63,8 @@ export function SearchBox({ value, onChange, suggestions, recent, onChoose, onCo
           setActive(-1)
         }}
         onFocus={() => setOpen(true)}
+        // A tap on the field when it already has focus (after Enter or Escape) opens the list again
+        onClick={() => setOpen(true)}
         onBlur={close}
         onKeyDown={onKeyDown}
         autoFocus

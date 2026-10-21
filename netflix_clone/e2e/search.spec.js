@@ -48,8 +48,9 @@ test('recent searches come back in an empty search box until cleared', async ({ 
   await searchBox(page).fill('signal')
   await searchBox(page).press('Enter')
   await navigateInApp(page, '/')
+  await expect(page.getByRole('heading', { name: 'Top 10 in the U.S. Today' })).toBeVisible()
   await navigateInApp(page, '/search')
-  await searchBox(page).focus()
+  await searchBox(page).click()
   const recent = page.getByRole('listbox', { name: 'Recent searches' })
   await expect(recent.getByRole('option', { name: /signal/ })).toBeVisible()
   await recent.getByRole('option', { name: /signal/ }).click()
@@ -57,6 +58,6 @@ test('recent searches come back in an empty search box until cleared', async ({ 
 
   await searchBox(page).fill('')
   await page.getByRole('button', { name: 'Clear recent searches' }).click()
-  await searchBox(page).focus()
+  await searchBox(page).click()
   await expect(page.getByRole('listbox')).toHaveCount(0)
 })
