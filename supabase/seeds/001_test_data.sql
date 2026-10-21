@@ -141,6 +141,12 @@ insert into public.tickets (user_id, ticket_number, issue_type, title_id, summar
   ('a1e00000-0000-4000-8000-000000000005', 'NF-48302', 'Data removal request', null, 'Please delete all data for my cancelled account.',
     null, null, 'Open', now() - interval '1 day');
 
+-- Dana is on the support team; she has answered Jordan's captions ticket
+insert into public.staff (user_id) values ('a1e00000-0000-4000-8000-000000000006');
+insert into public.ticket_replies (ticket_id, user_id, body)
+  select id, 'a1e00000-0000-4000-8000-000000000006', 'Thanks for the report. We have reproduced the drift and a fix is on the way.'
+  from public.tickets where ticket_number = 'NF-48233';
+
 -- The code applied to each account (valid codes live in private.promotions); Dana and Jordan have one
 insert into public.promo_codes (user_id, code, percent_off, plan, applied_at) values
   ('a1e00000-0000-4000-8000-000000000006', 'WELCOME50', 50, null, now() - interval '20 days'),

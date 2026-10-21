@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { TicketConversation } from '../../components/TicketConversation.jsx'
+import { useAuth } from '../../state/authContext.js'
 import { useLibrary } from '../../state/libraryContext.js'
 import { useCatalog } from '../../state/useCatalog.js'
 import { focusFirstError } from '../formUtils.js'
@@ -14,7 +16,8 @@ const deviceSummary = () => `${navigator.userAgentData?.platform || navigator.pl
 const blank = { type: types[0], titleId: '', summary: '', steps: '' }
 
 export function ReportIssue() {
-  const { issues, addIssue } = useLibrary()
+  const { issues, addIssue, replyToIssue } = useLibrary()
+  const { user } = useAuth()
   const { all: catalog, findTitle } = useCatalog()
   const [params] = useSearchParams()
   const [form, setForm] = useState(() => ({ ...blank, type: typeParams[params.get('type')] ?? blank.type }))
@@ -82,6 +85,8 @@ export function ReportIssue() {
                 <p><b>{t.id}</b> <span className="ticket-status">{t.status}</span></p>
                 <p>{t.summary}</p>
                 <p className="muted">{t.type}{t.titleId && ` · ${findTitle(t.titleId)?.title}`}</p>
+                <TicketConversation ticketNumber={t.id} replies={t.replies ?? []} label={`Add to ${t.id}`}
+                  send={(body) => replyToIssue(t.ticketId, body, { author: user.name })} />
               </li>
             ))}
           </ul>

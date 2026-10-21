@@ -108,10 +108,27 @@ export function LibraryProvider({ children }) {
       },
       // Resolves to the filed issue, with its ticket number
       async addIssue(issue) {
-        const filed = remote ? await remote.addIssue(issue) : { ...issue, id: `NF-${48210 + issues.length}` }
+        const number = `NF-${48210 + issues.length}`
+        const filed = remote ? await remote.addIssue(issue) : { ...issue, id: number, ticketId: number, at: new Date(), replies: [] }
         setIssues((all) => [filed, ...all])
         return filed
       },
+      // A reply on one of the user's tickets; resolves to an error message or null. `asStaff` (in memory only, where the
+      // demo account is also the support team) answers from the support dashboard instead.
+      async replyToIssue(ticketId, body, { asStaff = false, author = '' } = {}) {
+        let reply
+        try {
+          reply = remote ? await remote.replyToIssue(ticketId, body)
+            : { id: `${ticketId}-${Date.now()}`, body, fromStaff: asStaff, author: asStaff ? 'Support team' : author, at: new Date() }
+        } catch (error) {
+          warn(error)
+          return 'Your reply couldn’t be sent. Please try again.'
+        }
+        setIssues((all) => all.map((t) => (t.ticketId === ticketId ? { ...t, replies: [...(t.replies ?? []), reply] } : t)))
+        return null
+      },
+      // In memory, the support dashboard changes the status here; with Supabase, staff_set_ticket_status() does
+      setIssueStatus: (ticketId, status) => setIssues((all) => all.map((t) => (t.ticketId === ticketId ? { ...t, status } : t))),
       setDoNotSell: (on) => {
         setDoNotSell(on)
         save(remote?.setDoNotSell(on))

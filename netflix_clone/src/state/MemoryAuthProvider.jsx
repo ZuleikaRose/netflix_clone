@@ -17,7 +17,8 @@ const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(10))
 
 // Every account starts with one profile named after the member
 const firstProfile = (name) => ({ id: newProfileId(), name: name.trim().slice(0, 30) || 'Me', avatar: 'blue', maturity: 'all' })
-const newDemoAccount = () => ({ ...demoAccount, password: randomSecret(), preferences: defaultPreferences, billing: defaultBilling, profiles: [firstProfile(demoAccount.name)] })
+// The in-memory demo account is also the support team, so the support dashboard can be tried without a backend
+const newDemoAccount = () => ({ ...demoAccount, isStaff: true, password: randomSecret(), preferences: defaultPreferences, billing: defaultBilling, profiles: [firstProfile(demoAccount.name)] })
 
 export function MemoryAuthProvider({ children }) {
   const [accounts, setAccounts] = useState(() => [newDemoAccount()])

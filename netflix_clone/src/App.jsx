@@ -16,6 +16,7 @@ import { ResetPassword } from './pages/ResetPassword.jsx'
 import { Games } from './pages/Games.jsx'
 import { Search } from './pages/Search.jsx'
 import { Signup } from './pages/Signup.jsx'
+import { SupportDashboard } from './pages/SupportDashboard.jsx'
 import { TitleDetail } from './pages/TitleDetail.jsx'
 import { TmdbTitle } from './pages/TmdbTitle.jsx'
 import { useAuth } from './state/authContext.js'
@@ -48,6 +49,7 @@ function App() {
           <Route path="watchlist" element={<MyNetflix />} />
           <Route path="favorites" element={<MyNetflix />} />
           <Route path="account" element={<Account />} />
+          <Route path="support-dashboard" element={<SupportDashboard />} />
           <Route path="games" element={<Games />} />
           <Route path="games/:gameId" element={<Games />} />
           <Route path="info/:slug" element={<InfoPage />} />

@@ -8,7 +8,15 @@ const unwrap = ({ data, error }) => {
   return data
 }
 
-const toIssue = (t) => ({ id: t.ticket_number, type: t.issue_type, titleId: t.title_id ?? '', summary: t.summary, steps: t.steps ?? '', device: t.device, status: t.status })
+// A reply on a ticket, oldest first in each conversation
+export const toReply = (r) => ({ id: r.id, body: r.body, fromStaff: r.from_staff, author: r.author_name, at: new Date(r.created_at) })
+const replyColumns = 'id, body, from_staff, author_name, created_at'
+const ticketColumns = `id, ticket_number, issue_type, title_id, summary, steps, device, status, created_at, ticket_replies(${replyColumns})`
+const toIssue = (t) => ({
+  id: t.ticket_number, ticketId: t.id, type: t.issue_type, titleId: t.title_id ?? '', summary: t.summary, steps: t.steps ?? '',
+  device: t.device, status: t.status, at: new Date(t.created_at),
+  replies: (t.ticket_replies ?? []).map(toReply).sort((a, b) => a.at - b.at),
+})
 const toProgress = (r) => ({ percent: r.progress_percent, episode: r.episode, seconds: Number(r.position_seconds) })
 const toFeedback = (f) => ({ score: f.score, area: f.area, message: f.message, at: new Date(f.created_at) })
 
@@ -57,7 +65,7 @@ export function libraryApi(supabase, userId, profileId) {
         profiles('reminders', 'title_id').order('created_at').then(unwrap),
         mine('review', 'title_id, rating').is('body', null).not('rating', 'is', null).order('created_at').then(unwrap),
         mine('feedback', 'score, area, message, created_at').order('created_at', { ascending: false }).then(unwrap),
-        mine('tickets', 'ticket_number, issue_type, title_id, summary, steps, device, status').order('created_at', { ascending: false }).then(unwrap),
+        mine('tickets', ticketColumns).order('created_at', { ascending: false }).then(unwrap),
         profiles('game_scores', 'game, best_score').then(unwrap),
         supabase.from('netflix_tables').select('data_opt_out').eq('id', userId).single().then(unwrap),
         loadAffiliate(),
@@ -94,7 +102,11 @@ export function libraryApi(supabase, userId, profileId) {
     // The database numbers the ticket (NF-48400, NF-48401…), so two users never get the same one
     addIssue: (issue) => supabase.from('tickets')
       .insert({ user_id: userId, issue_type: issue.type, title_id: issue.titleId || null, summary: issue.summary, steps: issue.steps || null, device: issue.device, status: issue.status })
-      .select('ticket_number, issue_type, title_id, summary, steps, device, status').single().then(unwrap).then(toIssue),
+      .select(ticketColumns).single().then(unwrap).then(toIssue),
+
+    // The member's own reply on their ticket (staff replies come from the support dashboard)
+    replyToIssue: (ticketId, body) => supabase.from('ticket_replies').insert({ ticket_id: ticketId, user_id: userId, body })
+      .select(replyColumns).single().then(unwrap).then(toReply),
 
     setDoNotSell: (value) => supabase.from('netflix_tables').update({ data_opt_out: value }).eq('id', userId).then(unwrap),
 

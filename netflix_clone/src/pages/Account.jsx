@@ -139,6 +139,12 @@ export function Account() {
           <p className="muted">Member since 2026 · {user.email}</p>
         </section>
 
+        {user.isStaff && (
+          <nav className="settings-card link-list" aria-label="Staff">
+            <Link to="/support-dashboard">Support dashboard</Link>
+          </nav>
+        )}
+
         <ProfileForm user={user} updateProfile={updateProfile} />
         <PasswordForm email={user.email} changePassword={changePassword} demoPassword={user.email === demoEmail ? demoPassword : null} />
 

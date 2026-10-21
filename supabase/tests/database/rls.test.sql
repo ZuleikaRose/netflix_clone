@@ -3,14 +3,16 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(62);
+select plan(75);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
 \set jordan '''a1e00000-0000-4000-8000-000000000002'''
+\set dana '''a1e00000-0000-4000-8000-000000000006'''
 -- Each account's first profile (made by the sign-up trigger)
 select id as alex_profile from public.profiles where user_id = :alex and name = 'Alex' \gset
 select id as jordan_profile from public.profiles where user_id = :jordan \gset
+select id as jordan_ticket from public.tickets where ticket_number = 'NF-48233' \gset
 
 -- Signed-out visitors ----------------------------------------------------------------------------------------------
 set local role anon;
@@ -87,6 +89,20 @@ select is((select author_name from public.review where body = 'pgTAP review'), '
 insert into public.tickets (issue_type, summary) values ('App bug', 'pgTAP ticket');
 select matches((select ticket_number from public.tickets where summary = 'pgTAP ticket'), '^NF-[0-9]+$', 'the database numbers tickets');
 
+-- Support: Alex isn't staff
+select is((select count(*) from public.staff), 0::bigint, 'a member who isn''t staff has no staff row');
+select throws_ok('select * from public.staff_tickets()', '42501', null, 'members who aren''t staff can''t read the ticket queue');
+select throws_ok($$select public.staff_set_ticket_status((select id from public.tickets where ticket_number = 'NF-48210'), 'Resolved')$$,
+  '42501', null, 'members who aren''t staff can''t change a ticket''s status');
+insert into public.ticket_replies (ticket_id, body, from_staff, author_name)
+  select id, 'pgTAP member reply', true, 'Support team' from public.tickets where ticket_number = 'NF-48210';
+select is((select (from_staff, author_name)::text from public.ticket_replies where body = 'pgTAP member reply'), '(f,Alex)',
+  'a member''s reply can''t pass as staff');
+select throws_ok(format('insert into public.ticket_replies (ticket_id, body) values (%L, %L)', :'jordan_ticket', 'pgTAP stray reply'),
+  '42501', null,
+  'members can''t reply on tickets that aren''t theirs');
+select is((select count(*) from public.ticket_replies), 1::bigint, 'members see replies only on their own tickets');
+
 -- Jordan, an affiliate ---------------------------------------------------------------------------------------------
 select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated"}', to_json(:jordan::text)), true);
 select ok((select count(*) from public.referrals) > 0, 'an affiliate sees their own referrals');
@@ -94,6 +110,24 @@ select throws_ok(format('delete from public.profiles where id = %L', :'jordan_pr
   'An account needs at least one profile.', 'an account keeps at least one profile');
 select is((select count(*) from public.referrals where affiliate_id = 'afa00000-0000-4000-8000-000000000002'), 0::bigint,
   'an affiliate cannot see another affiliate''s referrals');
+
+-- Dana, on the support team ------------------------------------------------------------------------------------------
+select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated"}', to_json(:dana::text)), true);
+select ok((select count(*) from public.staff_tickets()) >= 4, 'staff see every member''s tickets');
+select ok((select bool_and(status = 'Open') from public.staff_tickets('Open')), 'the queue filters by status');
+select is((select member_name from public.staff_tickets() where ticket_number = 'NF-48233'), 'Jordan'::varchar,
+  'the queue names the member');
+select lives_ok($$select public.staff_set_ticket_status((select id from public.staff_tickets() where ticket_number = 'NF-48210'), 'In progress')$$,
+  'staff change a ticket''s status');
+select throws_ok($$select public.staff_set_ticket_status((select id from public.staff_tickets() where ticket_number = 'NF-48210'), 'Closed')$$,
+  '23514', null, 'a ticket''s status must be Open, In progress or Resolved');
+insert into public.ticket_replies (ticket_id, body)
+  select id, 'pgTAP staff reply' from public.staff_tickets() where ticket_number = 'NF-48210';
+select is((select (from_staff, author_name)::text from public.ticket_replies where body = 'pgTAP staff reply'), '(t,"Support team")',
+  'staff replies are marked as the support team');
+select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated"}', to_json(:alex::text)), true);
+select is((select status from public.tickets where ticket_number = 'NF-48210'), 'In progress'::varchar,
+  'the member sees the new status');
 
 -- Sign-up trigger and cleanup job (as the auth service and cron would run them) ------------------------------------
 reset role;

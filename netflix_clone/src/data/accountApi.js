@@ -51,13 +51,15 @@ const unwrap = ({ data, error }) => {
 
 export async function loadAccount(supabase, authUser) {
   const id = authUser.id
-  const [account, prefs, promo, profiles] = await Promise.all([
+  const [account, prefs, promo, profiles, staff] = await Promise.all([
     supabase.from('netflix_tables').select('*').eq('id', id).single().then(unwrap),
     supabase.from('preferences').select('*').eq('user_id', id).maybeSingle().then(unwrap),
     supabase.from('promo_codes').select('code').eq('user_id', id).maybeSingle().then(unwrap),
     loadProfiles(supabase, id),
+    // Support staff see the support dashboard (RLS: a member can read only their own staff row)
+    supabase.from('staff').select('user_id').eq('user_id', id).maybeSingle().then(unwrap),
   ])
-  return toUser(authUser, account, prefs, promo, profiles)
+  return { ...toUser(authUser, account, prefs, promo, profiles), isStaff: Boolean(staff) }
 }
 
 // A Billing patch ({ day }, { card }, { status, resumesOn, endsOn }…) as netflix_tables columns

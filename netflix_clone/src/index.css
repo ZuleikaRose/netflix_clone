@@ -199,6 +199,21 @@ textarea { resize: vertical; }
 .feed-copy .detail-meta { margin: 0 0 6px; }
 
 /* My Netflix */
+.ticket-conversation { margin-top: 10px; }
+.reply-list { display: grid; gap: 8px; margin: 0 0 10px; padding: 0; list-style: none; }
+.reply-list li { padding: 8px 10px; border-left: 3px solid #555; border-radius: 4px; background: #1a1a1a; }
+.reply-list li.staff { border-left-color: #46d369; }
+.reply-list p { margin: 0 0 4px; }
+.reply-form { display: grid; gap: 6px; }
+.reply-form label { color: #bcbcbc; font-size: 13px; }
+.reply-form textarea { min-height: 64px; padding: 10px; border: 1px solid #3a3a3a; border-radius: 6px; color: #fff; background: #1a1a1a; font: inherit; }
+.status-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.status-filters .chip { min-width: 44px; min-height: 44px; }
+.staff-queue { display: grid; gap: 12px; padding: 0; list-style: none; }
+.staff-queue .ghost-cta { margin-top: 8px; }
+.ticket-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 12px 0; font-size: 14px; }
+.ticket-facts dt { color: #a3a3a3; }
+.ticket-facts dd { margin: 0; overflow-wrap: anywhere; }
 .profiles { padding: 18px 17px 0; text-align: center; }
 .profiles h2 { margin: 6px 0 22px; font-size: 24px; font-weight: 600; }
 .profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; max-width: 320px; margin: 0 auto; padding: 0; list-style: none; }
