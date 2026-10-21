@@ -8,10 +8,20 @@ const unwrap = ({ data, error }) => {
   return data
 }
 
-// A reply on a ticket, oldest first in each conversation
+// Custom lists with their titles, oldest first
+const listColumns = 'id, name, description, is_public, share_slug, custom_list_items(title_id, added_at)'
+const toList = (r) => ({
+  id: r.id, name: r.name, description: r.description ?? '', isPublic: r.is_public, slug: r.share_slug,
+  titleIds: [...r.custom_list_items].sort((a, b) => a.added_at.localeCompare(b.added_at)).map((i) => i.title_id),
+})
+const toListRow = (p) => Object.fromEntries(Object.entries({
+  name: p.name?.trim(), description: p.description === undefined ? undefined : p.description.trim() || null, is_public: p.isPublic,
+}).filter(([, value]) => value !== undefined))
+
 // Viewing activity shows this many entries, newest first
 const HISTORY_LIMIT = 500
 
+// A reply on a ticket, oldest first in each conversation
 export const toReply = (r) => ({ id: r.id, body: r.body, fromStaff: r.from_staff, author: r.author_name, at: new Date(r.created_at) })
 const replyColumns = 'id, body, from_staff, author_name, created_at'
 const ticketColumns = `id, ticket_number, issue_type, title_id, summary, steps, device, status, created_at, ticket_replies(${replyColumns})`
@@ -62,7 +72,7 @@ export function libraryApi(supabase, userId, profileId) {
 
   return {
     async load() {
-      const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate, progress] = await Promise.all([
+      const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate, progress, lists] = await Promise.all([
         profiles('watch_list_tables', 'title_id').order('added_at').then(unwrap),
         profiles('favorites', 'title_id').order('added_at').then(unwrap),
         profiles('reminders', 'title_id, release_date').order('created_at').then(unwrap),
@@ -73,6 +83,7 @@ export function libraryApi(supabase, userId, profileId) {
         supabase.from('netflix_tables').select('data_opt_out').eq('id', userId).single().then(unwrap),
         loadAffiliate(),
         profiles('watch_progress', 'title_id, episode, position_seconds, progress_percent').order('updated_at', { ascending: false }).then(unwrap),
+        profiles('custom_lists', listColumns).order('created_at').then(unwrap),
       ])
       return {
         myList: list.map((r) => r.title_id),
@@ -86,6 +97,7 @@ export function libraryApi(supabase, userId, profileId) {
         doNotSell: account.data_opt_out,
         affiliate,
         progress: Object.fromEntries(progress.map((r) => [r.title_id, toProgress(r)])),
+        lists: lists.map(toList),
       }
     },
 
@@ -132,6 +144,16 @@ export function libraryApi(supabase, userId, profileId) {
       .then((rows) => rows.map((r) => ({ id: r.id, titleId: r.title_id, episode: r.episode, day: r.watched_on, at: new Date(r.watched_at) }))),
     hideFromHistory: (id) => supabase.from('viewing_history').delete().eq('user_id', userId).eq('id', id).then(unwrap),
     clearHistory: () => supabase.from('viewing_history').delete().eq('user_id', userId).eq('profile_id', profileId).then(unwrap),
+
+    // Custom lists (the profile's own; the database makes the share slug)
+    createList: (name) => supabase.from('custom_lists').insert({ user_id: userId, profile_id: profileId, name: name.trim() })
+      .select(listColumns).single().then(unwrap).then(toList),
+    updateList: (id, patch) => supabase.from('custom_lists').update(toListRow(patch)).eq('user_id', userId).eq('id', id).then(unwrap),
+    deleteList: (id) => supabase.from('custom_lists').delete().eq('user_id', userId).eq('id', id).then(unwrap),
+    addToList: (listId, titleId) => supabase.from('custom_list_items')
+      .upsert({ list_id: listId, title_id: titleId, user_id: userId }, { onConflict: 'list_id,title_id', ignoreDuplicates: true }).then(unwrap),
+    removeFromList: (listId, titleId) => supabase.from('custom_list_items').delete()
+      .eq('user_id', userId).eq('list_id', listId).eq('title_id', titleId).then(unwrap),
 
     clearProgress: (titleId) => supabase.from('watch_progress').delete().eq('user_id', userId).eq('profile_id', profileId).eq('title_id', titleId).then(unwrap),
 

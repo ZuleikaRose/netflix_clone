@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { AddToList } from '../components/AddToList.jsx'
 import { CreditLinks } from '../components/CreditLinks.jsx'
 import { Episodes } from '../components/Episodes.jsx'
 import { Icon } from '../components/Icon.jsx'
@@ -224,6 +225,8 @@ export function TmdbTitle() {
           )}
           {(saveError || reminder.error) && <p className="form-alert" role="alert">{saveError || reminder.error}</p>}
         </div>
+
+        <AddToList title={title} beforeAdd={storeTitle} />
 
         <p className="synopsis">{title.synopsis}</p>
         <Credits title={title} />

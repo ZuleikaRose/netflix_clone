@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { AddToList } from '../components/AddToList.jsx'
 import { CreditLinks } from '../components/CreditLinks.jsx'
 import { Episodes } from '../components/Episodes.jsx'
 import { Icon } from '../components/Icon.jsx'
@@ -102,6 +103,8 @@ export function TitleDetail() {
             <ShareButton title={title} />
           </div>
         </div>
+
+        <AddToList title={title} />
 
         <p className="synopsis">{title.synopsis}</p>
         <CreditLinks label="Starring" people={title.cast.map((name) => ({ name, to: personPath(name) }))} />

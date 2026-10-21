@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(82);
+select plan(86);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
@@ -104,6 +104,12 @@ select is((select count(*) from public.viewing_history where title_id = 'the-sig
   'a paused history records nothing');
 update public.preferences set keep_viewing_history = true, history_retention_days = 90 where user_id = :alex;
 
+-- Custom lists: private until shared
+insert into public.custom_lists (name) values ('pgTAP list') returning id as alex_list, share_slug as alex_slug \gset
+insert into public.custom_list_items (list_id, title_id) values (:'alex_list', 'after-dark');
+select is(public.shared_list(:'alex_slug'), null, 'a private list isn''t shared');
+update public.custom_lists set is_public = true where id = :'alex_list';
+
 -- Support: Alex isn't staff
 select is((select count(*) from public.staff), 0::bigint, 'a member who isn''t staff has no staff row');
 select throws_ok('select * from public.staff_tickets()', '42501', null, 'members who aren''t staff can''t read the ticket queue');
@@ -126,6 +132,15 @@ select throws_ok(format('delete from public.profiles where id = %L', :'jordan_pr
 select is((select count(*) from public.referrals where affiliate_id = 'afa00000-0000-4000-8000-000000000002'), 0::bigint,
   'an affiliate cannot see another affiliate''s referrals');
 select is((select count(*) from public.viewing_history), 0::bigint, 'members can''t see each other''s viewing history');
+select is((select count(*) from public.custom_lists), 0::bigint, 'members can''t see each other''s lists');
+select throws_ok(format('insert into public.custom_list_items (list_id, title_id) values (%L, %L)', :'alex_list', 'the-signal'),
+  '42501', null, 'members can''t add to someone else''s list');
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select is(public.shared_list(:'alex_slug') - 'updatedAt',
+  '{"name": "pgTAP list", "owner": "Alex", "titleIds": ["after-dark"], "description": null}'::jsonb,
+  'anyone with the link sees a shared list''s name, owner and titles');
+set local role authenticated;
 
 -- Dana, on the support team ------------------------------------------------------------------------------------------
 select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated"}', to_json(:dana::text)), true);

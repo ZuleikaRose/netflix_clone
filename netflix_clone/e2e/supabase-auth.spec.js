@@ -114,10 +114,35 @@ test('an expired reset link asks for a new one', async ({ page }) => {
   await expect(page).toHaveURL(/\/forgot-password$/)
 })
 
-test('title pages show members’ reviews from the database', async ({ page }) => {
+test('title pages show members’ reviews from the database; a list shared by link opens for visitors', async ({ page, browser }) => {
   await signInAsDemo(page, '/title/after-dark')
   await expect(page.locator('.review-list')).toContainText('Simple premise, genuinely scary execution.')
   await expect(page.locator('.review-list')).toContainText('Priya')
+
+  // A custom list is saved, survives a reload, and once shared opens for someone who isn't signed in
+  await page.getByText('Add to a list').click()
+  const listSaved = saved(page, 'custom_lists')
+  await page.getByLabel('New list name').fill('Scary nights')
+  await page.getByRole('button', { name: 'Create list' }).click()
+  await listSaved
+  await expect(page.getByRole('checkbox', { name: 'Scary nights' })).toBeChecked()
+  await page.waitForResponse((r) => r.url().includes('/rest/v1/custom_list_items') && r.ok())
+  await page.reload()
+  await navigateInApp(page, '/lists')
+  await page.getByRole('link', { name: /Scary nights\s*1 title/ }).click()
+  const shared = saved(page, 'custom_lists')
+  await page.getByRole('switch', { name: /Share with a link/ }).check()
+  await shared
+  const link = await page.getByLabel('Share link').inputValue()
+
+  const visitor = await browser.newContext()
+  const visit = await visitor.newPage()
+  await visit.goto(link)
+  await expect(visit.getByRole('heading', { name: 'Scary nights', level: 1 })).toBeVisible()
+  await expect(visit.getByText(/^A list by .+ · 1 title$/)).toBeVisible()
+  await expect(visit.getByRole('link', { name: 'After Dark' })).toBeVisible()
+  await expect(visit.getByRole('link', { name: 'Join Netflix Clone' })).toBeVisible()
+  await visitor.close()
 })
 
 test('sign up, apply a promo code, review, then delete the account', async ({ page }) => {

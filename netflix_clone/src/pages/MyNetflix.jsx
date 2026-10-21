@@ -35,6 +35,7 @@ export function MyNetflix() {
         </div>
         <div className="profile-links">
           <Link to="/profiles" className="account-link">{profiles.length > 1 ? 'Switch profile' : 'Profiles'}</Link>
+          <Link to="/lists" className="account-link">My lists</Link>
           <Link to="/account" className="account-link">Account</Link>
         </div>
       </section>

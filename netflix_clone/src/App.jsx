@@ -23,6 +23,9 @@ import { TmdbPerson } from './pages/TmdbPerson.jsx'
 import { Person } from './pages/Person.jsx'
 import { Notifications } from './pages/Notifications.jsx'
 import { ViewingActivity } from './pages/ViewingActivity.jsx'
+import { MyLists } from './pages/MyLists.jsx'
+import { ListDetail } from './pages/ListDetail.jsx'
+import { SharedList } from './pages/SharedList.jsx'
 import { useAuth } from './state/authContext.js'
 import { ProfileProvider } from './state/ProfileProvider.jsx'
 
@@ -36,6 +39,7 @@ function App() {
       <Route path="logout" element={<Logout />} />
       <Route path="forgot-password" element={<ForgotPassword />} />
       <Route path="reset-password" element={<ResetPassword />} />
+      <Route path="shared/:slug" element={<SharedList />} />
       <Route element={<RequireAuth />}>
         {/* Keyed by session so each sign-in asks again who's watching (unless this device remembers) */}
         <Route element={<ProfileProvider key={session}><Outlet /></ProfileProvider>}>
@@ -53,6 +57,8 @@ function App() {
           <Route path="new" element={<NewHot />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="history" element={<ViewingActivity />} />
+          <Route path="lists" element={<MyLists />} />
+          <Route path="lists/:listId" element={<ListDetail />} />
           <Route path="my-netflix" element={<MyNetflix />} />
           <Route path="watchlist" element={<MyNetflix />} />
           <Route path="favorites" element={<MyNetflix />} />

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { catalog } from '../data/catalog.js'
+import { listNameProblem, newShareSlug } from '../data/lists.js'
+import { memorySharedLists } from '../data/listsApi.js'
 import { localDay } from '../data/notifications.js'
 import { useAuth } from './authContext.js'
 import { FINISHED_PERCENT, LibraryContext } from './libraryContext.js'
@@ -49,6 +51,8 @@ export function LibraryProvider({ children }) {
   const [dismissedNotices, setDismissedNotices] = useState(kept.dismissedNotices ?? [])
   // { [titleId]: { percent, episode, seconds } }: where the profile stopped (seconds is null for the samples)
   const [progress, setProgress] = useState(() => (remote ? {} : kept.progress ?? sampleProgress()))
+  // Custom lists: [{ id, name, description, isPublic, slug, titleIds }], oldest first
+  const [lists, setLists] = useState(kept.lists ?? [])
   // Viewing history in memory ({ id, titleId, episode, day, at }, newest first); with Supabase it's read when shown
   const [history, setHistory] = useState(kept.history ?? [])
   // With Supabase, each title/episode/day is written once per page load (the player saves every few seconds)
@@ -57,8 +61,17 @@ export function LibraryProvider({ children }) {
   useEffect(() => {
     if (remote) return
     memoryStash.set(accountKey, { ratings, reviews, feedback, issues, doNotSell, affiliate, dismissedNotices })
-    memoryStash.set(profileKey, { myList, favorites, reminders, reminderDates, bestScores, progress, history })
-  }, [remote, accountKey, profileKey, myList, favorites, reminders, reminderDates, history, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+    memoryStash.set(profileKey, { myList, favorites, reminders, reminderDates, bestScores, progress, history, lists })
+  }, [remote, accountKey, profileKey, myList, favorites, reminders, reminderDates, history, lists, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+
+  // In memory, public lists are shared on this page load only (the share link works until a reload)
+  useEffect(() => {
+    if (remote) return
+    for (const l of lists) {
+      if (l.isPublic) memorySharedLists.set(l.slug, { name: l.name, description: l.description, owner: profile.name, updatedAt: new Date(), titleIds: l.titleIds })
+      else memorySharedLists.delete(l.slug)
+    }
+  }, [remote, lists, profile.name])
 
   useEffect(() => {
     if (!remote) return
@@ -76,6 +89,7 @@ export function LibraryProvider({ children }) {
       setBestScores(saved.bestScores)
       setAffiliate(saved.affiliate)
       setProgress(saved.progress)
+      setLists(saved.lists)
     }).catch(warn)
     return () => { ignore = true }
   }, [remote])
@@ -112,6 +126,13 @@ export function LibraryProvider({ children }) {
         return 'Your viewing history couldn’t be changed. Please try again.'
       }
     }
+
+    // A database error as a message: names are unique per profile
+    const listError = (error, name) => {
+      warn(error)
+      return error?.code === '23505' ? `You already have a list called ${name.trim()}.` : 'Your list couldn’t be saved. Please try again.'
+    }
+    const patchList = (id, patch) => setLists((all) => all.map((l) => (l.id === id ? { ...l, ...patch } : l)))
 
     const toggleSaved = (ids, setter, table) => (id) => {
       toggleIn(setter)(id)
@@ -191,6 +212,57 @@ export function LibraryProvider({ children }) {
         save(remote?.saveScore(game, score))
       },
       // Called by the player as the user watches; finishing a title takes it out of Continue Watching
+      lists,
+      // Custom lists. createList resolves to { list } or { error }; the others to an error message or null
+      async createList(name) {
+        const problem = listNameProblem(name, lists)
+        if (problem) return { error: problem }
+        try {
+          const list = remote
+            ? await remote.createList(name)
+            : { id: crypto.randomUUID(), name: name.trim(), description: '', isPublic: false, slug: newShareSlug(), titleIds: [] }
+          setLists((all) => [...all, list])
+          return { list }
+        } catch (error) {
+          return { error: listError(error, name) }
+        }
+      },
+      async updateList(id, patch) {
+        if (patch.name !== undefined) {
+          const problem = listNameProblem(patch.name, lists.filter((l) => l.id !== id))
+          if (problem) return problem
+        }
+        try {
+          if (remote) await remote.updateList(id, patch)
+        } catch (error) {
+          return listError(error, patch.name ?? '')
+        }
+        patchList(id, { ...patch, ...(patch.name !== undefined && { name: patch.name.trim() }), ...(patch.description !== undefined && { description: patch.description.trim() }) })
+        return null
+      },
+      async deleteList(id) {
+        try {
+          if (remote) await remote.deleteList(id)
+        } catch (error) {
+          return listError(error, '')
+        }
+        const gone = lists.find((l) => l.id === id)
+        if (gone) memorySharedLists.delete(gone.slug)
+        setLists((all) => all.filter((l) => l.id !== id))
+        return null
+      },
+      // Also right after createList, before this provider has re-rendered with the new list
+      addToList(listId, titleId) {
+        setLists((all) => all.map((l) => (l.id === listId && !l.titleIds.includes(titleId) ? { ...l, titleIds: [...l.titleIds, titleId] } : l)))
+        if (remote) save(remote.addToList(listId, titleId))
+      },
+      toggleInList(listId, titleId) {
+        const list = lists.find((l) => l.id === listId)
+        if (!list) return
+        const has = list.titleIds.includes(titleId)
+        patchList(listId, { titleIds: has ? list.titleIds.filter((t) => t !== titleId) : [...list.titleIds, titleId] })
+        if (remote) save(has ? remote.removeFromList(listId, titleId) : remote.addToList(listId, titleId))
+      },
       // Viewing activity: the profile's history, newest first (resolves to the entries; throws if it can't be read)
       loadHistory: async () => (remote ? remote.loadHistory() : history),
       hideFromHistory: (id) => changeHistory((all) => all.filter((e) => e.id !== id), () => remote.hideFromHistory(id)),
@@ -220,7 +292,7 @@ export function LibraryProvider({ children }) {
         setAffiliate((a) => a && ({ ...a, clicks: a.clicks + 1, signups: a.signups + (kind === 'signup' ? 1 : 0) }))
       },
     }
-  }, [remote, keepHistory, history, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+  }, [remote, keepHistory, history, lists, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
 }

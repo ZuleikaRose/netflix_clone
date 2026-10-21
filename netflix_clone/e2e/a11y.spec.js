@@ -8,7 +8,7 @@ test.use({ reducedMotion: 'reduce' })
 const WCAG_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
 const signedInRoutes = [
-  '/', '/title/after-dark', '/title/after-dark?play=1', '/tmdb/movie/603', '/tmdb/person/6384', '/people/Mara%20Quinn', '/search', '/search?q=zzz', '/new', '/my-netflix', '/favorites', '/account', '/profiles', '/support-dashboard', '/notifications', '/history',
+  '/', '/title/after-dark', '/title/after-dark?play=1', '/tmdb/movie/603', '/tmdb/person/6384', '/people/Mara%20Quinn', '/search', '/search?q=zzz', '/new', '/my-netflix', '/favorites', '/account', '/profiles', '/support-dashboard', '/notifications', '/history', '/lists', '/shared/0000000000000000',
   '/games', '/games/memory', '/games/trivia', '/games/timeline', '/games/cast', '/games/higher-lower', '/games/scramble', '/does/not/exist',
   ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell', 'accessibility'].map((s) => `/info/${s}`),
 ]
@@ -51,16 +51,22 @@ test('signed-out pages meet WCAG 2.2 AA', async ({ page }) => {
   await audit(page, '/signup with errors')
 })
 
-test('every signed-in page meets WCAG 2.2 AA', async ({ page }) => {
-  // Audits ~20 pages twice each (content + tab bar), so it needs more than the default 30s
-  test.setTimeout(120_000)
-  await signInAsDemo(page)
-  for (const route of signedInRoutes) {
-    await navigateInApp(page, route)
-    await expect(page.locator('.page h1, .page-header h1').first()).toBeVisible()
-    await audit(page, route)
-  }
-})
+// In groups, so each test stays well inside its time limit as pages are added (each is audited twice: content + tab bar)
+const ROUTES_PER_TEST = 12
+const routeGroups = Array.from({ length: Math.ceil(signedInRoutes.length / ROUTES_PER_TEST) },
+  (_, i) => signedInRoutes.slice(i * ROUTES_PER_TEST, (i + 1) * ROUTES_PER_TEST))
+
+for (const [i, routes] of routeGroups.entries()) {
+  test(`every signed-in page meets WCAG 2.2 AA (${i + 1} of ${routeGroups.length})`, async ({ page }) => {
+    test.setTimeout(90_000)
+    await signInAsDemo(page)
+    for (const route of routes) {
+      await navigateInApp(page, route)
+      await expect(page.locator('.page h1, .page-header h1').first()).toBeVisible()
+      await audit(page, route)
+    }
+  })
+}
 
 test('interactive states meet WCAG 2.2 AA', async ({ page }) => {
   test.setTimeout(90_000)
