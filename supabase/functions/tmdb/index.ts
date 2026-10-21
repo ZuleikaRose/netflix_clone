@@ -73,7 +73,7 @@ const formatRuntime = (minutes?: number) =>
   minutes ? [Math.floor(minutes / 60) && `${Math.floor(minutes / 60)}h`, minutes % 60 && `${minutes % 60}m`].filter(Boolean).join(' ') : null
 
 // The shape of data/catalog.js titles, plus `source`, `tmdbId`, `rating`, `backdrop` and `tmdbUrl`.
-// List and search results have no certification, so `maturity` is 'NR' until the title is opened.
+// TMDB's list and search results have no certification: `maturity` starts as 'NR' and toTitles fills it in.
 function toTitle(item: Item, type: Type, genres: string[]) {
   return {
     id: `tmdb-${type}-${item.id}`,
