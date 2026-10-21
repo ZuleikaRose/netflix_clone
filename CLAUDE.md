@@ -45,10 +45,10 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Production runs 8 migrations, 4 non_transactional files and 7 functions (2026-10-21). Dev also has the ten-features
-migrations (`20261022000000_profiles` … `20261022060000_better_search`, 15 in all), non_transactional 005–007 and the
-updated `tmdb` function: apply them to production, in order, before the app that needs them is deployed there. `apply_migration` stamps the
-current time as the version: afterwards set it to the file's version in `supabase_migrations.schema_migrations`.
+Both run all 15 migrations (through `20261022060000_better_search`), non_transactional 001–007 and the same 7
+functions (production caught up 2026-10-21). `apply_migration` stamps the current time as the version: afterwards set
+it to the file's version in `supabase_migrations.schema_migrations`, and apply one migration per second or less often,
+or two get the same stamp and the second fails on the duplicate version.
 Each project needs the `TMDB_API_FREE` Edge Function secret for `tmdb` (the dashboard can't show it back; the value
 comes from themoviedb.org → Settings → API). The DROP INDEX steps at the end of `002_query_indexes.sql` haven't run on
 either project yet (they only remove indexes the new composite ones make redundant).
