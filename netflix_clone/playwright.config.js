@@ -12,7 +12,8 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: `http://localhost:${E2E_PORT}`,
-    trace: 'on-first-retry',
+    // In CI every failed attempt keeps its trace, so a test that fails once and passes on retry can still be studied
+    trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry',
     // The app's service worker would answer requests before page.route() mocks see them; pwa.spec.js allows it
     serviceWorkers: 'block',
     screenshot: 'only-on-failure',
