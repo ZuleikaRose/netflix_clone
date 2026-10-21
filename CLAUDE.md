@@ -46,8 +46,8 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Dev runs all 19 migrations (through `20261023030000_two_step_sign_in`), non_transactional 001–008 and 8 functions
-(with `assistant`); production runs the first 15 (through `20261022060000_better_search`), 001–007 and 7 functions.
+Both run all 19 migrations (through `20261023030000_two_step_sign_in`), non_transactional 001–008 and the same 8
+functions, with `assistant` (production caught up 2026-10-21).
 The `assistant` function needs the `ANTHROPIC_API_KEY` secret on each project (without it the app matches words). `apply_migration` stamps the current time as the version: afterwards set
 it to the file's version in `supabase_migrations.schema_migrations`, and apply one migration per second or less often,
 or two get the same stamp and the second fails on the duplicate version.
