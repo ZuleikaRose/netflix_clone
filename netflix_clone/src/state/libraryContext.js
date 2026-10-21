@@ -10,3 +10,6 @@ export function useLibrary() {
   if (!library) throw new Error('useLibrary must be used inside <LibraryProvider>')
   return library
 }
+
+// The library, or null outside a profile's pages (e.g. Who's watching?), for things shown on every page
+export const useLibraryIfAny = () => useContext(LibraryContext)

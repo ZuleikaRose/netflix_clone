@@ -10,8 +10,10 @@ import { Row } from '../components/Row.jsx'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { describeLength } from '../data/catalog.js'
+import { formatReleaseDay, localDay } from '../data/notifications.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
+import { useReminder } from '../state/useReminder.js'
 import { useStoreTitle } from '../state/useStoreTitle.js'
 import { useTmdbRecommendations, useTmdbSeason, useTmdbTitle } from '../state/useTmdb.js'
 import { NotFound } from './NotFound.jsx'
@@ -88,6 +90,17 @@ function TmdbEpisodes({ title }) {
   )
 }
 
+// A movie that isn't out yet, or a show's next episode: { day, label } for Remind Me, else null
+function upcomingRelease(title) {
+  const today = localDay()
+  if (title.type === 'movie' && title.releaseDate > today) return { day: title.releaseDate, label: `In theaters ${formatReleaseDay(title.releaseDate)}` }
+  const next = title.nextEpisode
+  if (next?.airDate >= today) {
+    return { day: next.airDate, label: `S${next.season}:E${next.number}${next.name ? ` ${next.name}` : ''} airs ${formatReleaseDay(next.airDate)}` }
+  }
+  return null
+}
+
 const tmdbPerson = (p) => ({ key: p.id, name: p.name, to: `/tmdb/person/${p.id}` })
 const directs = (p) => p.job === 'Director' || p.job === 'Creator'
 
@@ -123,6 +136,7 @@ export function TmdbTitle() {
   const store = useStoreTitle()
   const { myList, favorites, toggleMyList, toggleFavorite } = useLibrary()
   const [saveError, setSaveError] = useState(null)
+  const reminder = useReminder()
   useDocumentTitle(title?.title)
 
   if (!validId || status === 'missing') return <NotFound />
@@ -150,6 +164,7 @@ export function TmdbTitle() {
   }
 
   const length = describeLength(title)
+  const upcoming = upcomingRelease(title)
   const saved = myList.includes(title.id)
   const favorite = favorites.includes(title.id)
   // Lists, ratings and reviews point at `titles` rows: with Supabase, the tmdb function stores the title first
@@ -198,7 +213,16 @@ export function TmdbTitle() {
               <Icon name="heart" filled={favorite} /><span>Favorite</span>
             </button>
           </div>
-          {saveError && <p className="form-alert" role="alert">{saveError}</p>}
+          {upcoming && (
+            <div className="release-reminder">
+              <p className="muted">{upcoming.label}</p>
+              <button className={reminder.isSet(title) ? 'ghost-action on' : 'ghost-action'} aria-pressed={reminder.isSet(title)}
+                onClick={() => reminder.toggle(title, upcoming.day)}>
+                <Icon name={reminder.isSet(title) ? 'check' : 'bell'} /><span>{reminder.isSet(title) ? 'Reminder set' : 'Remind Me'}</span>
+              </button>
+            </div>
+          )}
+          {(saveError || reminder.error) && <p className="form-alert" role="alert">{saveError || reminder.error}</p>}
         </div>
 
         <p className="synopsis">{title.synopsis}</p>

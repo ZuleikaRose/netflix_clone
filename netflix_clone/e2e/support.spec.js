@@ -49,3 +49,31 @@ test('members who aren’t staff don’t get the dashboard', async ({ page }) =>
   await navigateInApp(page, '/support-dashboard')
   await expect(page.getByRole('heading', { name: /not found|lost/i }).first()).toBeVisible()
 })
+
+test('the bell counts support replies until the notifications are opened', async ({ page }) => {
+  await signInAsDemo(page)
+  await expect(page.getByRole('link', { name: 'Notifications', exact: true })).toBeVisible()
+  await navigateInApp(page, '/info/report-issue')
+  await page.getByLabel('What went wrong?').fill('Audio is out of sync')
+  await page.getByRole('button', { name: 'Submit report' }).click()
+  const number = (await page.locator('.form-success b').textContent()).trim()
+
+  await navigateInApp(page, '/support-dashboard')
+  await page.getByRole('button', { name: `Open ${number}` }).click()
+  await page.getByLabel('Reply to Alex').fill('Fixed in today’s update.')
+  await page.getByRole('button', { name: 'Send reply' }).click()
+
+  await navigateInApp(page, '/')
+  await page.getByRole('link', { name: 'Notifications (1 new)' }).click()
+  await expect(page).toHaveURL(/\/notifications$/)
+  const item = page.locator('.notification', { hasText: `Support replied to ${number}` })
+  await expect(item).toHaveClass(/new/)
+  await expect(item).toContainText('Fixed in today’s update.')
+  await expect(page.getByRole('link', { name: 'Notifications', exact: true })).toBeVisible()
+  await item.getByRole('link').click()
+  await expect(page).toHaveURL(/\/info\/report-issue$/)
+
+  // Seen: no count, and the reply is no longer marked new
+  await navigateInApp(page, '/notifications')
+  await expect(page.locator('.notification', { hasText: `Support replied to ${number}` })).not.toHaveClass(/new/)
+})

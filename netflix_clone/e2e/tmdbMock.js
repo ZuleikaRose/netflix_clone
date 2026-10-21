@@ -16,12 +16,16 @@ export const thrones = sample(1399, 'show', 'Game of Thrones', 2011, ['Drama', '
 const odyssey = { ...sample(1033462, 'movie', 'The Odyssey', 2026, ['Adventure', 'Fantasy']), maturity: 'PG-13' }
 export const inception = { ...sample(27205, 'movie', 'Inception', 2010, ['Action', 'Science Fiction']), maturity: 'PG-13' }
 const pitt = sample(250307, 'show', 'The Pitt', 2025, ['Drama'])
+// Coming soon, far enough ahead to stay in the future
+export const premiere = { ...sample(1100, 'movie', 'The Premiere', 2030, ['Drama']), maturity: 'PG-13', releaseDate: '2030-06-14' }
 const lists = {
   newMovies: [odyssey], newShows: [pitt],
   trendingMovies: [matrix], trendingShows: [thrones],
   popularMovies: [sample(550, 'movie', 'Fight Club', 1999)], popularShows: [sample(1396, 'show', 'Breaking Bad', 2008)],
+  upcomingMovies: [premiere],
 }
 const details = {
+  'movie:1100': { ...premiere, runtime: '1h 50m', trailer: null, providers: null },
   'movie:603': {
     ...matrix, maturity: 'R', runtime: '2h 16m', cast: ['Keanu Reeves', 'Carrie-Anne Moss'], crew: { director: 'Lana Wachowski, Lilly Wachowski', writer: null },
     people: {

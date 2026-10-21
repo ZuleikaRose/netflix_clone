@@ -22,7 +22,9 @@ const hasGenre = (title, genre) => title.genres.some((g) => g === genre || g.spl
   || genreAliases[genre]?.includes(g))
 
 // Without a query, Search browses every movie and TV show in TMDB's lists (new, trending and popular), once each
-const allListed = (lists) => [...new Map(Object.values(lists).flat().map((t) => [t.id, t])).values()]
+// Every TMDB list title once, except films not out yet (those are New & Hot's Coming Soon)
+const allListed = (lists) => [...new Map(Object.entries(lists).filter(([name]) => name !== 'upcomingMovies')
+  .flatMap(([, titles]) => titles).map((t) => [t.id, t])).values()]
 
 export function Search() {
   // Query state lives in the URL so results survive Back/Forward and can be shared

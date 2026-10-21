@@ -1,6 +1,6 @@
 // POST /functions/v1/tmdb { action, … } → movies and TV shows from The Movie Database (TMDB), in the app's title shape
 //   { action: 'lists' }                              → { newMovies, newShows, trendingMovies, trendingShows,
-//                                                         popularMovies, popularShows }
+//                                                         popularMovies, popularShows, upcomingMovies }
 //   { action: 'search', query }                      → { results }
 //   { action: 'title', type: 'movie' | 'show', id }  → { title } with cast, crew, certification, length, trailer
 //                                                         and where to watch it in the U.S.
@@ -92,6 +92,8 @@ function toTitle(item: Item, type: Type, genres: string[]) {
     title: item.title ?? item.name,
     type,
     year: Number((item.release_date ?? item.first_air_date ?? '').slice(0, 4)) || null,
+    // 'YYYY-MM-DD' (a show's first air date), for reminders
+    releaseDate: item.release_date || item.first_air_date || null,
     maturity: 'NR',
     genres,
     mood: [],
@@ -174,15 +176,20 @@ const list = (path: string, type: Type) =>
 
 // New: movies in theaters now and TV shows with an episode airing this week
 const lists = () => cached('lists', LIST_TTL_MS, async () => {
-  const [newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows] = await Promise.all([
+  const [newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows, upcoming] = await Promise.all([
     list('/movie/now_playing', 'movie'),
     list('/tv/on_the_air', 'show'),
     list('/trending/movie/week', 'movie'),
     list('/trending/tv/week', 'show'),
     list('/movie/popular', 'movie'),
     list('/tv/popular', 'show'),
+    list('/movie/upcoming?region=US', 'movie'),
   ])
-  return { newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows }
+  // Coming soon: TMDB's upcoming list also has films already out, so keep the future ones, soonest first
+  const today = new Date().toISOString().slice(0, 10)
+  const upcomingMovies = upcoming.filter((t) => t.releaseDate && t.releaseDate > today)
+    .sort((a, b) => a.releaseDate.localeCompare(b.releaseDate))
+  return { newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows, upcomingMovies }
 })
 
 const search = (query: string) => cached(`search:${query.toLowerCase()}`, SEARCH_TTL_MS, async () => {
@@ -223,6 +230,12 @@ const title = (type: Type, id: number) => cached(`title:${type}:${id}`, LIST_TTL
     ...(type === 'show'
       ? {
         seasons: item.number_of_seasons ?? 1,
+        nextEpisode: item.next_episode_to_air?.air_date
+          ? {
+            airDate: item.next_episode_to_air.air_date, season: item.next_episode_to_air.season_number,
+            number: item.next_episode_to_air.episode_number, name: item.next_episode_to_air.name || null,
+          }
+          : null,
         // Numbered seasons (TMDB's season 0 holds specials)
         seasonList: (item.seasons ?? []).filter((x: Item) => x.season_number > 0 && x.episode_count > 0).map((x: Item) => ({
           number: x.season_number, name: x.name || `Season ${x.season_number}`, episodes: x.episode_count,

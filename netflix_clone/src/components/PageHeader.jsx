@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from './Icon.jsx'
 import { Logo } from './Logo.jsx'
 import { AccessibilityButton } from './AccessibilityButton.jsx'
+import { NotificationBell } from './NotificationBell.jsx'
 import { useDocumentTitle } from './useDocumentTitle.js'
 
 export function PageHeader({ title, back = false }) {
@@ -17,6 +18,7 @@ export function PageHeader({ title, back = false }) {
       <div className="header-actions">
         <AccessibilityButton />
         <Link to="/search" className="icon-button" aria-label="Search"><Icon name="search" /></Link>
+        <NotificationBell />
       </div>
     </header>
   )

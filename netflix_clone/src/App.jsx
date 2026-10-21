@@ -21,6 +21,7 @@ import { TitleDetail } from './pages/TitleDetail.jsx'
 import { TmdbTitle } from './pages/TmdbTitle.jsx'
 import { TmdbPerson } from './pages/TmdbPerson.jsx'
 import { Person } from './pages/Person.jsx'
+import { Notifications } from './pages/Notifications.jsx'
 import { useAuth } from './state/authContext.js'
 import { ProfileProvider } from './state/ProfileProvider.jsx'
 
@@ -49,6 +50,7 @@ function App() {
           <Route path="people/:name" element={<Person />} />
           <Route path="search" element={<Search />} />
           <Route path="new" element={<NewHot />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="my-netflix" element={<MyNetflix />} />
           <Route path="watchlist" element={<MyNetflix />} />
           <Route path="favorites" element={<MyNetflix />} />

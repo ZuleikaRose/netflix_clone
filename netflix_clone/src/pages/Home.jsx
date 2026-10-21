@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { NotificationBell } from '../components/NotificationBell.jsx'
 import { Logo } from '../components/Logo.jsx'
 import { Icon } from '../components/Icon.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
@@ -108,6 +109,7 @@ export function Home() {
         <div className="top-actions">
           <AccessibilityButton />
           <Link to="/search" className="icon-button" aria-label="Search"><Icon name="search" /></Link>
+          <NotificationBell />
           <Link to="/my-netflix" className="avatar-hit" aria-label="My Netflix profile"><ProfileAvatar profile={profile} /></Link>
         </div>
       </header>

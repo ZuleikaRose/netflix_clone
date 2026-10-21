@@ -1,41 +1,78 @@
 import { Link } from 'react-router-dom'
 import { Icon } from '../components/Icon.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
+import { TmdbCredit } from '../components/TmdbCredit.jsx'
 import { describeLength } from '../data/catalog.js'
+import { formatReleaseDay } from '../data/notifications.js'
 import { useCatalog } from '../state/useCatalog.js'
-import { useLibrary } from '../state/libraryContext.js'
+import { useReminder } from '../state/useReminder.js'
+import { useTmdbLists } from '../state/useTmdb.js'
 
+function RemindButton({ title, reminder, day }) {
+  const on = reminder.isSet(title)
+  return (
+    <button className={on ? 'ghost-action on' : 'ghost-action'} aria-pressed={on} aria-label={`Remind me about ${title.title}`}
+      onClick={() => reminder.toggle(title, day)}>
+      <Icon name={on ? 'check' : 'bell'} /><span>{on ? 'Reminder set' : 'Remind Me'}</span>
+    </button>
+  )
+}
+
+function FeedItem({ title, meta, children }) {
+  return (
+    <li className="feed-item">
+      <Link to={title.path ?? `/title/${title.id}`} className="feed-art">
+        {title.source === 'tmdb'
+          ? <img src={title.backdrop ?? title.image} alt="" loading="lazy" />
+          : <img src={title.image} alt="" style={{ filter: title.tint }} />}
+        <span className="sr-only">{title.title}</span>
+      </Link>
+      <div className="feed-copy">
+        <div className="feed-head">
+          <h3>{title.title}</h3>
+          {children}
+        </div>
+        {meta}
+        <p className="muted">{title.synopsis}</p>
+      </div>
+    </li>
+  )
+}
+
+// New & Hot: movies coming soon (from TMDB, with reminders that the bell announces on release day) and what's new here
 export function NewHot() {
-  const { reminders, toggleReminder } = useLibrary()
-  const { titles: catalog } = useCatalog()
+  const { titles: catalog, isAllowed } = useCatalog()
+  const reminder = useReminder()
+  const comingSoon = (useTmdbLists()?.upcomingMovies ?? []).filter(isAllowed)
   const fresh = catalog.filter((t) => t.isNew).sort((a, b) => b.popularity - a.popularity)
 
   return (
     <>
       <PageHeader title="New & Hot" />
-      <ul className="feed">
-        {fresh.map((t) => {
-          const on = reminders.includes(t.id)
-          return (
-            <li key={t.id} className="feed-item">
-              <Link to={`/title/${t.id}`} className="feed-art">
-                <img src={t.image} alt="" style={{ filter: t.tint }} />
-                <span className="sr-only">{t.title}</span>
-              </Link>
-              <div className="feed-copy">
-                <div className="feed-head">
-                  <h2>{t.title}</h2>
-                  <button className={on ? 'ghost-action on' : 'ghost-action'} aria-pressed={on} onClick={() => toggleReminder(t.id)}>
-                    <Icon name={on ? 'check' : 'bell'} /><span>{on ? 'Reminder set' : 'Remind Me'}</span>
-                  </button>
-                </div>
-                <p className="detail-meta"><span>{t.year}</span><span className="maturity">{t.maturity}</span><span>{describeLength(t)}</span></p>
-                <p className="muted">{t.synopsis}</p>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
+      {reminder.error && <p className="form-alert page-alert" role="alert">{reminder.error}</p>}
+      {comingSoon.length > 0 && (
+        <section aria-labelledby="coming-soon-heading">
+          <div className="section-heading"><h2 id="coming-soon-heading">Coming Soon</h2></div>
+          <ul className="feed">
+            {comingSoon.map((t) => (
+              <FeedItem key={t.id} title={t} meta={<p className="detail-meta"><span>Coming {formatReleaseDay(t.releaseDate)}</span><span className="maturity">{t.maturity}</span></p>}>
+                <RemindButton title={t} reminder={reminder} day={t.releaseDate} />
+              </FeedItem>
+            ))}
+          </ul>
+          <TmdbCredit />
+        </section>
+      )}
+      <section aria-labelledby="new-here-heading">
+        <div className="section-heading"><h2 id="new-here-heading">New on Netflix Clone</h2></div>
+        <ul className="feed">
+          {fresh.map((t) => (
+            <FeedItem key={t.id} title={t} meta={<p className="detail-meta"><span>{t.year}</span><span className="maturity">{t.maturity}</span><span>{describeLength(t)}</span></p>}>
+              <RemindButton title={t} reminder={reminder} />
+            </FeedItem>
+          ))}
+        </ul>
+      </section>
     </>
   )
 }

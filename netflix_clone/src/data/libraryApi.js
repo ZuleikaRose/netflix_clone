@@ -50,10 +50,10 @@ export function libraryApi(supabase, userId, profileId) {
     }
   }
 
-  // Watch list, favorites and reminders are sets of title ids
+  // Watch list, favorites and reminders are sets of title ids (a reminder also keeps its release date: `extra`)
   const titleSet = (table) => ({
-    add: (titleId) => supabase.from(table)
-      .upsert({ user_id: userId, profile_id: profileId, title_id: titleId }, { onConflict: 'profile_id,title_id', ignoreDuplicates: true }).then(unwrap),
+    add: (titleId, extra = {}) => supabase.from(table)
+      .upsert({ user_id: userId, profile_id: profileId, title_id: titleId, ...extra }, { onConflict: 'profile_id,title_id', ignoreDuplicates: true }).then(unwrap),
     remove: (titleId) => supabase.from(table).delete().eq('user_id', userId).eq('profile_id', profileId).eq('title_id', titleId).then(unwrap),
   })
 
@@ -62,7 +62,7 @@ export function libraryApi(supabase, userId, profileId) {
       const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate, progress] = await Promise.all([
         profiles('watch_list_tables', 'title_id').order('added_at').then(unwrap),
         profiles('favorites', 'title_id').order('added_at').then(unwrap),
-        profiles('reminders', 'title_id').order('created_at').then(unwrap),
+        profiles('reminders', 'title_id, release_date').order('created_at').then(unwrap),
         mine('review', 'title_id, rating').is('body', null).not('rating', 'is', null).order('created_at').then(unwrap),
         mine('feedback', 'score, area, message, created_at').order('created_at', { ascending: false }).then(unwrap),
         mine('tickets', ticketColumns).order('created_at', { ascending: false }).then(unwrap),
@@ -75,6 +75,7 @@ export function libraryApi(supabase, userId, profileId) {
         myList: list.map((r) => r.title_id),
         favorites: favorites.map((r) => r.title_id),
         reminders: reminders.map((r) => r.title_id),
+        reminderDates: Object.fromEntries(reminders.filter((r) => r.release_date).map((r) => [r.title_id, r.release_date])),
         ratings: Object.fromEntries(ratings.map((r) => [r.title_id, r.rating])),
         feedback: feedback.map(toFeedback),
         issues: tickets.map(toIssue),

@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(75);
+select plan(76);
 
 -- Seed users
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
@@ -88,6 +88,11 @@ insert into public.review (title_id, rating, body, author_name) values ('after-d
 select is((select author_name from public.review where body = 'pgTAP review'), 'Alex'::varchar, 'reviews carry the real author''s name');
 insert into public.tickets (issue_type, summary) values ('App bug', 'pgTAP ticket');
 select matches((select ticket_number from public.tickets where summary = 'pgTAP ticket'), '^NF-[0-9]+$', 'the database numbers tickets');
+
+-- Notifications: a profile records when it last opened them
+update public.profiles set notifications_seen_at = '2030-01-01' where id = :'alex_profile';
+select is((select notifications_seen_at from public.profiles where id = :'alex_profile'), '2030-01-01'::timestamptz,
+  'a member records when a profile last saw its notifications');
 
 -- Support: Alex isn't staff
 select is((select count(*) from public.staff), 0::bigint, 'a member who isn''t staff has no staff row');

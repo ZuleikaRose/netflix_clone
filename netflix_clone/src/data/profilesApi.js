@@ -5,9 +5,13 @@ const unwrap = ({ data, error }) => {
   return data
 }
 
-const columns = 'id, name, avatar, maturity_rating'
-export const toProfile = (row) => ({ id: row.id, name: row.name, avatar: row.avatar, maturity: row.maturity_rating })
-const toRow = (p) => Object.fromEntries(Object.entries({ name: p.name?.trim(), avatar: p.avatar, maturity_rating: p.maturity })
+const columns = 'id, name, avatar, maturity_rating, notifications_seen_at'
+export const toProfile = (row) => ({
+  id: row.id, name: row.name, avatar: row.avatar, maturity: row.maturity_rating, notificationsSeenAt: row.notifications_seen_at,
+})
+const toRow = (p) => Object.fromEntries(Object.entries({
+  name: p.name?.trim(), avatar: p.avatar, maturity_rating: p.maturity, notifications_seen_at: p.notificationsSeenAt,
+})
   .filter(([, value]) => value !== undefined))
 
 export const loadProfiles = (supabase, userId) => supabase.from('profiles').select(columns).eq('user_id', userId)

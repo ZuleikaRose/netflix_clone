@@ -1,7 +1,7 @@
 import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo } from './helpers.js'
 import { supabaseConfigured as configured } from './ports.js'
-import { mockTmdb, thrones } from './tmdbMock.js'
+import { mockTmdb, premiere, thrones } from './tmdbMock.js'
 
 // The `tmdb` Edge Function is mocked (e2e/tmdbMock.js), so these don't depend on TMDB's data or use up its quota
 
@@ -296,5 +296,37 @@ test.describe('TMDB seasons and episodes', () => {
 
     await page.getByRole('combobox', { name: 'Season', exact: true }).selectOption('2')
     await expect(page.getByRole('list', { name: 'Game of Thrones, Season 2' })).toContainText('The North Remembers')
+  })
+})
+
+test.describe('TMDB release reminders', () => {
+  test.skip(!configured, 'Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.development.local to run these')
+
+  test('New & Hot lists what’s coming soon; a reminder shows as coming up, then as out on release day', async ({ page }) => {
+    await mockTmdb(page)
+    await signInAsDemo(page)
+    await navigateInApp(page, '/new')
+    const soon = page.locator('section', { has: page.getByRole('heading', { name: 'Coming Soon' }) })
+    await expect(soon).toContainText('Coming Fri, Jun 14, 2030')
+    const remind = soon.getByRole('button', { name: `Remind me about ${premiere.title}` })
+    await remind.click()
+    await expect(remind).toHaveAttribute('aria-pressed', 'true')
+    await expect(remind).toHaveText('Reminder set')
+
+    await navigateInApp(page, '/notifications')
+    await expect(page.locator('section', { has: page.getByRole('heading', { name: 'Coming up' }) }))
+      .toContainText('The Premiere comes out Fri, Jun 14, 2030')
+    await expect(page.getByText('You’re all caught up.', { exact: false })).toBeVisible()
+
+    // The title page shows the same reminder
+    await navigateInApp(page, '/tmdb/movie/1100')
+    await expect(page.getByText('In theaters Fri, Jun 14, 2030')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Reminder set' })).toHaveAttribute('aria-pressed', 'true')
+
+    // Release day
+    await page.clock.setFixedTime(new Date('2030-06-14T09:00:00'))
+    await navigateInApp(page, '/')
+    await page.getByRole('link', { name: 'Notifications (1 new)' }).click()
+    await expect(page.locator('.notification.new')).toContainText('The Premiere is out now')
   })
 })

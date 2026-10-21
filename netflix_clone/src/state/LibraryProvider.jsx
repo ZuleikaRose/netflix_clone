@@ -33,6 +33,8 @@ export function LibraryProvider({ children }) {
   const [myList, setMyList] = useState(kept.myList ?? [])
   const [favorites, setFavorites] = useState(kept.favorites ?? [])
   const [reminders, setReminders] = useState(kept.reminders ?? [])
+  // { [titleId]: 'YYYY-MM-DD' }: when each reminded title (or a show's next episode) comes out, if known
+  const [reminderDates, setReminderDates] = useState(kept.reminderDates ?? {})
   const [ratings, setRatings] = useState(kept.ratings ?? {})
   // Reviews posted this session (in-memory backend only; with Supabase, useReviews reads them from the database)
   const [reviews, setReviews] = useState(kept.reviews ?? {})
@@ -49,8 +51,8 @@ export function LibraryProvider({ children }) {
   useEffect(() => {
     if (remote) return
     memoryStash.set(accountKey, { ratings, reviews, feedback, issues, doNotSell, affiliate, dismissedNotices })
-    memoryStash.set(profileKey, { myList, favorites, reminders, bestScores, progress })
-  }, [remote, accountKey, profileKey, myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+    memoryStash.set(profileKey, { myList, favorites, reminders, reminderDates, bestScores, progress })
+  }, [remote, accountKey, profileKey, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   useEffect(() => {
     if (!remote) return
@@ -60,6 +62,7 @@ export function LibraryProvider({ children }) {
       setMyList(saved.myList)
       setFavorites(saved.favorites)
       setReminders(saved.reminders)
+      setReminderDates(saved.reminderDates)
       setRatings(saved.ratings)
       setFeedback(saved.feedback)
       setIssues(saved.issues)
@@ -83,6 +86,7 @@ export function LibraryProvider({ children }) {
       myList,
       favorites,
       reminders,
+      reminderDates,
       ratings,
       reviews,
       feedback,
@@ -96,7 +100,17 @@ export function LibraryProvider({ children }) {
       canSimulateReferrals: !remote,
       toggleMyList: toggleSaved(myList, setMyList, 'myList'),
       toggleFavorite: toggleSaved(favorites, setFavorites, 'favorites'),
-      toggleReminder: toggleSaved(reminders, setReminders, 'reminders'),
+      // releaseDate ('YYYY-MM-DD', optional): when the title comes out, so the bell can say when it's here
+      toggleReminder: (id, releaseDate = null) => {
+        const on = reminders.includes(id)
+        toggleIn(setReminders)(id)
+        setReminderDates((dates) => {
+          const next = { ...dates }
+          delete next[id]
+          return on || !releaseDate ? next : { ...next, [id]: releaseDate }
+        })
+        if (remote) save(on ? remote.reminders.remove(id) : remote.reminders.add(id, releaseDate ? { release_date: releaseDate } : {}))
+      },
       rate: (id, stars) => {
         setRatings((r) => ({ ...r, [id]: stars }))
         save(remote?.rate(id, stars))
@@ -161,7 +175,7 @@ export function LibraryProvider({ children }) {
         setAffiliate((a) => a && ({ ...a, clicks: a.clicks + 1, signups: a.signups + (kind === 'signup' ? 1 : 0) }))
       },
     }
-  }, [remote, myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+  }, [remote, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
 }
