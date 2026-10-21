@@ -33,6 +33,7 @@ const iconPaths = {
   pictureInPicture: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M12.5 12h6v5h-6Z" /></>,
   fullscreen: <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />,
   exitFullscreen: <path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" />,
+  coffee: <><path d="M4 9.5h12v5a5.5 5.5 0 0 1-5.5 5.5h-1A5.5 5.5 0 0 1 4 14.5Z" /><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16" /><path d="M8 3.5c-.8 1 .8 2 0 3M12 3.5c-.8 1 .8 2 0 3" /></>,
 }
 
 export function Icon({ name, filled = false }) {

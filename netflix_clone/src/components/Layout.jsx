@@ -46,6 +46,10 @@ export function Layout() {
               <Icon name={icon} /><span>{label}</span>
             </Link>
           ))}
+          {/* Floats just above the tab bar's right end, so it stays pinned to the phone frame on desktop too */}
+          <Link to="/donate" className="donate-fab" aria-label="Donate: buy us a coffee" aria-current={pathname === '/donate' ? 'page' : undefined}>
+            <Icon name="coffee" />
+          </Link>
         </nav>
       </div>
     </main>

@@ -11,6 +11,17 @@ test.describe('donations on the in-memory build', () => {
     await expect(page).toHaveURL(/\/login$/)
   })
 
+  test('the round coffee button on every page opens the donation page', async ({ page }) => {
+    await signInAsDemo(page)
+    for (const route of ['/', '/games', '/account']) {
+      await navigateInApp(page, route)
+      await expect(page.getByRole('link', { name: 'Donate: buy us a coffee' })).toBeVisible()
+    }
+    await page.getByRole('link', { name: 'Donate: buy us a coffee' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Make a donation' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Donate: buy us a coffee' })).toHaveAttribute('aria-current', 'page')
+  })
+
   test('Account links to the page, which says donations aren’t available and never loads Stripe', async ({ page }) => {
     const stripeRequests = []
     page.on('request', (r) => /stripe\.(com|network)/.test(r.url()) && stripeRequests.push(r.url()))
@@ -135,14 +146,13 @@ test.describe('donations with Supabase and Stripe', () => {
 
   test('a test card donates $10.00, and a declined card says so in plain words', async () => {
     test.setTimeout(90_000)
-    // The real function with Stripe in test mode. It answers 503 until it can read the Stripe API key
-    // (NETFLIX_CLONE_TEST_API) on the dev project.
+    // The real function with Stripe in test mode. It answers 503 until it can read the Stripe API key on the dev project.
     await fillCard('4242 4242 4242 4242')
     const answered = page.waitForResponse((r) => r.url().includes('/functions/v1/process-donation') && r.request().method() === 'POST')
     await donateButton().click()
     const response = await answered
     if (response.status() === 503) {
-      test.skip(true, 'The Stripe API key (NETFLIX_CLONE_TEST_API) is not stored or read on the dev project yet')
+      test.skip(true, 'The Stripe API key is not stored on the dev project yet')
     }
     expect(response.status(), `process-donation answered ${response.status()}: ${await response.text()}`).toBe(200)
     await expect(page.getByRole('heading', { name: 'Thank you for your $10.00 donation' })).toBeVisible({ timeout: 30_000 })
