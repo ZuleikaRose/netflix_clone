@@ -24,12 +24,26 @@ export const corsHeaders = {
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-// The user whose access token is on the request, or null
+// The access token's claims (getUser has already checked its signature)
+function claimsOf(token: string): Record<string, unknown> {
+  try {
+    const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(part.padEnd(Math.ceil(part.length / 4) * 4, '=')))
+  } catch {
+    return {}
+  }
+}
+
+// The user whose access token is on the request, or null. A member with two-step sign-in on counts only once they've
+// entered a code (an aal2 session), like public.second_step_done() in the database.
 export async function callerFrom(req: Request): Promise<{ user: User; token: string } | null> {
   const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
   if (!token) return null
   const { data, error } = await admin.auth.getUser(token)
-  return error || !data.user ? null : { user: data.user, token }
+  if (error || !data.user) return null
+  const twoStep = data.user.factors?.some((f) => f.status === 'verified') ?? false
+  if (twoStep && claimsOf(token).aal !== 'aal2') return null
+  return { user: data.user, token }
 }
 
 // The caller's IP as the platform's proxy reports it (first address in X-Forwarded-For)

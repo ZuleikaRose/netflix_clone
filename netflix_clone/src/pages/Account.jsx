@@ -15,6 +15,7 @@ import { discountedPrice, findPromotion } from '../data/promotions.js'
 import { EMAIL_PATTERN, PASSWORD_HINT, passwordProblem, useAuth } from '../state/authContext.js'
 import { Billing } from './account/Billing.jsx'
 import { DeleteAccount } from './account/DeleteAccount.jsx'
+import { Security } from './account/Security.jsx'
 import { focusFirstError } from './formUtils.js'
 
 const toggles = [
@@ -175,6 +176,7 @@ export function Account() {
 
           <ProfileForm user={user} updateProfile={updateProfile} />
           <PasswordForm email={user.email} changePassword={changePassword} demoPassword={user.email === demoEmail ? demoPassword : null} />
+          <Security />
 
           <section className="settings-card" aria-labelledby="plan-heading">
             <h2 id="plan-heading">Plan</h2>

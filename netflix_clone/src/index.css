@@ -696,6 +696,18 @@ kbd { display: inline-block; min-width: 28px; padding: 3px 7px; border: 1px soli
 .profile-name svg { width: 15px; height: 15px; margin-right: 4px; vertical-align: -2px; }
 .lock-form { display: grid; gap: 12px; }
 
+/* ---------- Two-step sign-in and devices ---------- */
+.two-step-setup { display: grid; gap: 12px; }
+.two-step-qr { width: 180px; height: 180px; padding: 8px; border-radius: 8px; background: #fff; }
+.setup-key { margin: 0; font-size: 14px; }
+.setup-key code { padding: 2px 6px; border-radius: 4px; background: #262626; font: 600 14px ui-monospace, monospace; overflow-wrap: anywhere; }
+.device-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.device-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid #222; }
+.device-list li > span { display: grid; gap: 2px; min-width: 0; }
+.device-list .profile-badge { justify-self: start; margin-left: 0; }
+.device-list .muted { font-size: 13px; }
+.device-list .ghost-cta { flex: none; width: auto; padding: 0 14px; }
+
 /* Accessibility menu settings, set as data-a11y-* attributes on <html> by AccessibilityProvider */
 html[data-a11y-text-size] :is(.page, .auth-body) { zoom: var(--a11y-zoom); }
 html[data-a11y-font="readable"] :is(body, body *:not(kbd)) { font-family: "Atkinson Hyperlegible", Verdana, sans-serif !important; }

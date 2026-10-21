@@ -1,13 +1,49 @@
 import { useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { AuthShell } from '../components/AuthShell.jsx'
 import { Field } from '../components/Field.jsx'
+import { CODE_PATTERN } from '../data/totp.js'
 import { EMAIL_PATTERN, useAuth } from '../state/authContext.js'
 import { focusFirstError } from './formUtils.js'
 
+// The second step for members with two-step sign-in on: the code from their authenticator app
+function SecondStep({ email }) {
+  const { verifySecondStep, cancelSecondStep } = useAuth()
+  const [code, setCode] = useState('')
+  const [error, setError] = useState(null)
+  const [pending, setPending] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    const form = e.currentTarget
+    let problem = CODE_PATTERN.test(code) ? null : 'Enter the six-digit code from your authenticator app.'
+    if (!problem) {
+      setPending(true)
+      problem = await verifySecondStep(code)
+      setPending(false)
+    }
+    setError(problem)
+    if (problem) {
+      setCode('')
+      focusFirstError(form)
+    }
+  }
+
+  return (
+    <AuthShell title="Two-step sign-in">
+      <form className="auth-form" onSubmit={submit} noValidate aria-busy={pending}>
+        <p className="auth-copy">Open your authenticator app and enter the code for <b>{email}</b>.</p>
+        <Field label="Six-digit code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} error={error} />
+        <button type="submit" className="cta" disabled={pending}>Verify</button>
+      </form>
+      <button type="button" className="ghost-cta" onClick={cancelSecondStep} disabled={pending}>Use another account</button>
+    </AuthShell>
+  )
+}
+
 export function Login() {
-  const { backend, ready, user, notice, demoEmail, demoPassword, login, loginDemo } = useAuth()
-  const navigate = useNavigate()
+  const { backend, ready, user, notice, secondStep, demoEmail, demoPassword, login, loginDemo } = useAuth()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
@@ -15,12 +51,13 @@ export function Login() {
   // Signing in with Supabase takes a round trip; don't let a second click start another
   const [pending, setPending] = useState(false)
 
-  // Return to the page that bounced the user here, if any
   // Back to the page that asked for sign-in, with its query (search filters, a watch party's invite)
   const from = location.state?.from
   const destination = from ? `${from.pathname}${from.search ?? ''}` : '/'
   if (!ready) return <p className="session-restoring" role="status">Signing you in…</p>
+  // Signing in sets `user`, which brings the member here and on to where they were going
   if (user) return <Navigate to={destination} replace />
+  if (secondStep) return <SecondStep email={secondStep.email} />
 
   const updateField = (key) => (e) => { const { value } = e.target; setForm((f) => ({ ...f, [key]: value })) }
 
@@ -36,7 +73,6 @@ export function Login() {
       setPending(false)
     }
     if (error) setFormError(error)
-    else navigate(destination, { replace: true })
   }
 
   const submit = (e) => {

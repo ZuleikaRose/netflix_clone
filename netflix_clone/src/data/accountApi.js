@@ -51,6 +51,22 @@ const unwrap = ({ data, error }) => {
   return data
 }
 
+// Two-step sign-in is on once the member has a verified authenticator (TOTP) factor
+export const hasTwoStep = (authUser) => authUser.factors?.some((f) => f.factor_type === 'totp' && f.status === 'verified') ?? false
+
+// Supabase Auth MFA errors as the messages the forms show
+export function codeErrorMessage(error) {
+  if (error?.code === 'mfa_verification_failed' || error?.code === 'mfa_challenge_expired') return 'That code isn’t right. Check your authenticator app and try again.'
+  if (error?.code === 'over_request_rate_limit' || error?.status === 429) return 'Too many attempts. Please wait a minute and try again.'
+  return 'The code couldn’t be checked. Please try again.'
+}
+
+// The member's signed-in devices (public.my_sessions), most recently active first
+export const loadDevices = (supabase) => supabase.rpc('my_sessions').then(unwrap).then((rows) => rows.map((r) => ({
+  id: r.id, userAgent: r.user_agent ?? '', signedInAt: new Date(r.signed_in_at), lastActiveAt: new Date(r.last_active_at), current: r.current,
+})))
+export const endDeviceSession = (supabase, id) => supabase.rpc('end_session', { p_session: id }).then(unwrap)
+
 export async function loadAccount(supabase, authUser) {
   const id = authUser.id
   const [account, prefs, promo, profiles, staff] = await Promise.all([
@@ -61,7 +77,7 @@ export async function loadAccount(supabase, authUser) {
     // Support staff see the support dashboard (RLS: a member can read only their own staff row)
     supabase.from('staff').select('user_id').eq('user_id', id).maybeSingle().then(unwrap),
   ])
-  return { ...toUser(authUser, account, prefs, promo, profiles), isStaff: Boolean(staff) }
+  return { ...toUser(authUser, account, prefs, promo, profiles), isStaff: Boolean(staff), twoStep: hasTwoStep(authUser) }
 }
 
 // A Billing patch ({ day }, { card }, { status, resumesOn, endsOn }…) as netflix_tables columns
