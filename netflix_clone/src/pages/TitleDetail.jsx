@@ -11,9 +11,11 @@ import { Reviews } from '../components/Reviews.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
 import { Row } from '../components/Row.jsx'
 import { ShareButton } from '../components/ShareButton.jsx'
+import { TitleReaction } from '../components/TitleReaction.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { describeLength } from '../data/catalog.js'
 import { useCatalog } from '../state/useCatalog.js'
+import { notDisliked } from '../data/reactions.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { NotFound } from './NotFound.jsx'
 import { episodeCode, findEpisode, seasonsFor } from '../data/episodes.js'
@@ -68,7 +70,7 @@ function PartyButton({ title }) {
 export function TitleDetail() {
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
-  const { myList, favorites, progress, toggleMyList, toggleFavorite } = useLibrary()
+  const { myList, favorites, progress, reactions, toggleMyList, toggleFavorite } = useLibrary()
   const { titles: catalog, isAllowed, findTitle } = useCatalog()
 
   const title = findTitle(id)
@@ -90,7 +92,7 @@ export function TitleDetail() {
   const playing = params.get('play') === '1'
   const saved = myList.includes(id)
   const favorite = favorites.includes(id)
-  const related = catalog.filter((t) => t.id !== id && t.genres.some((g) => title.genres.includes(g)))
+  const related = catalog.filter((t) => t.id !== id && t.genres.some((g) => title.genres.includes(g))).filter(notDisliked(reactions))
 
   return (
     <>
@@ -126,6 +128,7 @@ export function TitleDetail() {
           </div>
         </div>
 
+        <TitleReaction title={title} />
         <AddToList title={title} />
 
         <p className="synopsis">{title.synopsis}</p>

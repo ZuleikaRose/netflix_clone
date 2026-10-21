@@ -9,6 +9,7 @@ import { Row } from '../components/Row.jsx'
 import { PreviewArt, PreviewToggle } from '../components/Preview.jsx'
 import { usePreview } from '../components/usePreview.js'
 import { AccessibilityButton } from '../components/AccessibilityButton.jsx'
+import { notDisliked, reactedWith } from '../data/reactions.js'
 import { serviceStatus } from '../data/serviceStatus.js'
 import { useAuth } from '../state/authContext.js'
 import { useCatalog } from '../state/useCatalog.js'
@@ -41,7 +42,7 @@ export function Home() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { profile } = useProfile()
-  const { myList, favorites, ratings, progress, toggleMyList, dismissedNotices, dismissNotice } = useLibrary()
+  const { myList, favorites, ratings, reactions, progress, toggleMyList, dismissedNotices, dismissNotice } = useLibrary()
   const [type, setType] = useState(null)
   const [slide, setSlide] = useState(0)
   const { titles: catalog, isAllowed, findTitle } = useCatalog()
@@ -54,6 +55,8 @@ export function Home() {
   // The TV Shows / Movies chips filter TMDB's titles too. The tmdb function looks up each title's US certification,
   // so restricted profiles see the ones within their setting (titles TMDB has no rating for stay 'NR' and hidden)
   const showsHere = (t) => (!type || t.type === type) && isAllowed(t)
+  // Recommendation rows leave out titles the profile marked Not for me (Top 10 and Continue Watching keep them)
+  const recommendable = notDisliked(reactions)
   const fromTmdb = (names) => (tmdbLists ? interleave(names.map((name) => tmdbLists[name] ?? [])).filter(showsHere) : [])
   // Outline: "a carousel of featured movies and TV shows" — TMDB's popular movies and shows (alternating), or the
   // catalog's most popular titles when TMDB isn't available. Manual controls only (no auto-advance, WCAG 2.2.2)
@@ -72,7 +75,7 @@ export function Home() {
   const [first, ...rest] = featured ? featured.title.toUpperCase().split(' ') : []
   const featuredIsTmdb = featured?.source === 'tmdb'
   const tmdbRowsShown = tmdbRows
-    .map(([heading, names]) => [heading, fromTmdb(names)])
+    .map(([heading, names]) => [heading, fromTmdb(names).filter(recommendable)])
     .filter(([, titles]) => titles.length > 0)
   // TMDB's ten trending movies and shows (alternating), numbered by place; the catalog's ranked titles when TMDB
   // isn't available
@@ -85,20 +88,25 @@ export function Home() {
     toggleMyList(featured.id)
   }
 
-  // Personalized row: seed from the most recent favorite, then 4★+ ratings, then My List
-  const likedIds = [...[...favorites].reverse(), ...Object.keys(ratings).filter((id) => ratings[id] >= 4), ...[...myList].reverse()]
+  // Personalized row: seed from the latest Love this!, then the most recent favorite, I like this, 4★+ ratings, then
+  // My List (never a title marked Not for me)
+  const likedIds = [
+    ...reactedWith(reactions, 'love'), ...[...favorites].reverse(), ...reactedWith(reactions, 'like'),
+    ...Object.keys(ratings).filter((id) => ratings[id] >= 4), ...[...myList].reverse(),
+  ].filter((id) => reactions[id] !== 'dislike')
   // Respect the "Personalized recommendations" permission from Account
   const seed = user.preferences.personalized ? likedIds.map((id) => titles.find((t) => t.id === id)).find(Boolean) : null
   const sharedGenres = (t) => t.genres.filter((g) => seed.genres.includes(g)).length
-  // Because You Saved: TMDB's recommendations for the TMDB title most recently added to Favorites or My List
+  // Because You Saved: TMDB's recommendations for the TMDB title most recently loved or liked, else favorited or saved
   const savedTmdb = user.preferences.personalized
-    ? [...[...favorites].reverse(), ...[...myList].reverse()].map(findTitle).find((t) => t?.source === 'tmdb' && t.tmdbId)
+    ? [...reactedWith(reactions, 'love', 'like'), ...[...favorites].reverse(), ...[...myList].reverse()].map(findTitle)
+      .find((t) => t?.source === 'tmdb' && t.tmdbId && reactions[t.id] !== 'dislike')
     : null
   const recommended = useTmdbRecommendations(savedTmdb?.type, savedTmdb?.tmdbId)
   const becauseYouSaved = (recommended ?? [])
-    .filter((t) => showsHere(t) && t.id !== savedTmdb?.id && !myList.includes(t.id) && !favorites.includes(t.id))
+    .filter((t) => showsHere(t) && recommendable(t) && t.id !== savedTmdb?.id && !myList.includes(t.id) && !favorites.includes(t.id))
   const becauseYouLiked = seed
-    ? titles.filter((t) => t.id !== seed.id && !myList.includes(t.id) && sharedGenres(t) > 0)
+    ? titles.filter((t) => t.id !== seed.id && recommendable(t) && !myList.includes(t.id) && sharedGenres(t) > 0)
       .sort((a, b) => sharedGenres(b) - sharedGenres(a) || b.popularity - a.popularity)
     : []
 

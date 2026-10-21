@@ -73,7 +73,7 @@ export function libraryApi(supabase, userId, profileId) {
 
   return {
     async load() {
-      const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate, progress, lists, searches] = await Promise.all([
+      const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate, progress, lists, searches, reactions] = await Promise.all([
         profiles('watch_list_tables', 'title_id').order('added_at').then(unwrap),
         profiles('favorites', 'title_id').order('added_at').then(unwrap),
         profiles('reminders', 'title_id, release_date').order('created_at').then(unwrap),
@@ -86,6 +86,7 @@ export function libraryApi(supabase, userId, profileId) {
         profiles('watch_progress', 'title_id, episode, position_seconds, progress_percent').order('updated_at', { ascending: false }).then(unwrap),
         profiles('custom_lists', listColumns).order('created_at').then(unwrap),
         profiles('recent_searches', 'query').order('searched_at', { ascending: false }).limit(RECENT_SEARCHES).then(unwrap),
+        profiles('title_reactions', 'title_id, reaction').order('updated_at').then(unwrap),
       ])
       return {
         myList: list.map((r) => r.title_id),
@@ -101,6 +102,7 @@ export function libraryApi(supabase, userId, profileId) {
         progress: Object.fromEntries(progress.map((r) => [r.title_id, toProgress(r)])),
         lists: lists.map(toList),
         recentSearches: searches.map((r) => r.query),
+        reactions: Object.fromEntries(reactions.map((r) => [r.title_id, r.reaction])),
       }
     },
 
@@ -114,6 +116,14 @@ export function libraryApi(supabase, userId, profileId) {
         .eq('user_id', userId).eq('title_id', titleId).is('body', null).select('id').then(unwrap)
       if (!updated.length) await supabase.from('review').insert({ user_id: userId, title_id: titleId, rating: stars }).then(unwrap)
     },
+
+    // Thumbs ratings: one per profile and title; null removes it
+    react: (titleId, reaction) => (reaction
+      ? supabase.from('title_reactions').upsert(
+        { user_id: userId, profile_id: profileId, title_id: titleId, reaction, updated_at: new Date().toISOString() },
+        { onConflict: 'profile_id,title_id' },
+      )
+      : supabase.from('title_reactions').delete().eq('user_id', userId).eq('profile_id', profileId).eq('title_id', titleId)).then(unwrap),
 
     addFeedback: (entry) => supabase.from('feedback')
       .insert({ user_id: userId, score: entry.score, area: entry.area, message: entry.message }).then(unwrap),

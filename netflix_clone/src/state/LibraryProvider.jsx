@@ -41,6 +41,8 @@ export function LibraryProvider({ children }) {
   // { [titleId]: 'YYYY-MM-DD' }: when each reminded title (or a show's next episode) comes out, if known
   const [reminderDates, setReminderDates] = useState(kept.reminderDates ?? {})
   const [ratings, setRatings] = useState(kept.ratings ?? {})
+  // Thumbs ratings, the profile's own: { [titleId]: 'dislike' | 'like' | 'love' }, oldest first
+  const [reactions, setReactions] = useState(kept.reactions ?? {})
   // Reviews posted this session (in-memory backend only; with Supabase, useReviews reads them from the database)
   const [reviews, setReviews] = useState(kept.reviews ?? {})
   const [feedback, setFeedback] = useState(kept.feedback ?? [])
@@ -64,8 +66,8 @@ export function LibraryProvider({ children }) {
   useEffect(() => {
     if (remote) return
     memoryStash.set(accountKey, { ratings, reviews, feedback, issues, doNotSell, affiliate, dismissedNotices })
-    memoryStash.set(profileKey, { myList, favorites, reminders, reminderDates, bestScores, progress, history, lists, recentSearches })
-  }, [remote, accountKey, profileKey, myList, favorites, reminders, reminderDates, history, lists, recentSearches, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+    memoryStash.set(profileKey, { myList, favorites, reminders, reminderDates, bestScores, progress, history, lists, recentSearches, reactions })
+  }, [remote, accountKey, profileKey, reactions, myList, favorites, reminders, reminderDates, history, lists, recentSearches, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   // In memory, public lists are shared on this page load only (the share link works until a reload)
   useEffect(() => {
@@ -94,6 +96,7 @@ export function LibraryProvider({ children }) {
       setProgress(saved.progress)
       setLists(saved.lists)
       setRecentSearches(saved.recentSearches)
+      setReactions(saved.reactions)
     }).catch(warn)
     return () => { ignore = true }
   }, [remote])
@@ -171,6 +174,15 @@ export function LibraryProvider({ children }) {
           return on || !releaseDate ? next : { ...next, [id]: releaseDate }
         })
         if (remote) save(on ? remote.reminders.remove(id) : remote.reminders.add(id, releaseDate ? { release_date: releaseDate } : {}))
+      },
+      reactions,
+      // A thumbs rating, or null to take it back; the newest moves to the end (the latest seeds Because You Liked)
+      react: (id, reaction) => {
+        setReactions((all) => {
+          const others = Object.fromEntries(Object.entries(all).filter(([titleId]) => titleId !== id))
+          return reaction ? { ...others, [id]: reaction } : others
+        })
+        save(remote?.react(id, reaction))
       },
       rate: (id, stars) => {
         setRatings((r) => ({ ...r, [id]: stars }))
@@ -308,7 +320,7 @@ export function LibraryProvider({ children }) {
         setAffiliate((a) => a && ({ ...a, clicks: a.clicks + 1, signups: a.signups + (kind === 'signup' ? 1 : 0) }))
       },
     }
-  }, [remote, keepHistory, history, lists, recentSearches, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
+  }, [remote, keepHistory, reactions, history, lists, recentSearches, myList, favorites, reminders, reminderDates, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
 }

@@ -8,10 +8,12 @@ import { PageHeader } from '../components/PageHeader.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
 import { Reviews } from '../components/Reviews.jsx'
 import { Row } from '../components/Row.jsx'
+import { TitleReaction } from '../components/TitleReaction.jsx'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
 import { describeLength } from '../data/catalog.js'
 import { formatReleaseDay, localDay } from '../data/notifications.js'
+import { notDisliked } from '../data/reactions.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useReminder } from '../state/useReminder.js'
@@ -135,7 +137,7 @@ export function TmdbTitle() {
   const [watchingTrailer, setWatchingTrailer] = useState(false)
   const { isAllowed } = useCatalog()
   const store = useStoreTitle()
-  const { myList, favorites, toggleMyList, toggleFavorite } = useLibrary()
+  const { myList, favorites, reactions, toggleMyList, toggleFavorite } = useLibrary()
   const [saveError, setSaveError] = useState(null)
   const reminder = useReminder()
   useDocumentTitle(title?.title)
@@ -178,7 +180,7 @@ export function TmdbTitle() {
     }
     toggle(title.id)
   }
-  const moreLikeThis = (recommended ?? []).filter(isAllowed)
+  const moreLikeThis = (recommended ?? []).filter(isAllowed).filter(notDisliked(reactions))
   return (
     <>
       <PageHeader title={heading} back />
@@ -226,6 +228,7 @@ export function TmdbTitle() {
           {(saveError || reminder.error) && <p className="form-alert" role="alert">{saveError || reminder.error}</p>}
         </div>
 
+        <TitleReaction title={title} beforeSave={storeTitle} />
         <AddToList title={title} beforeAdd={storeTitle} />
 
         <p className="synopsis">{title.synopsis}</p>
