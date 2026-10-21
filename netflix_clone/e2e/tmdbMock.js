@@ -12,7 +12,9 @@ const sample = (tmdbId, type, title, year, genres = ['Drama']) => ({
 
 export const matrix = sample(603, 'movie', 'The Matrix', 1999, ['Action', 'Science Fiction'])
 export const thrones = sample(1399, 'show', 'Game of Thrones', 2011, ['Drama', 'Sci-Fi & Fantasy'])
-const odyssey = sample(1033462, 'movie', 'The Odyssey', 2026, ['Adventure', 'Fantasy'])
+// The tmdb function looks up list items' certifications; this one has one, the rest stay 'NR'
+const odyssey = { ...sample(1033462, 'movie', 'The Odyssey', 2026, ['Adventure', 'Fantasy']), maturity: 'PG-13' }
+export const inception = { ...sample(27205, 'movie', 'Inception', 2010, ['Action', 'Science Fiction']), maturity: 'PG-13' }
 const pitt = sample(250307, 'show', 'The Pitt', 2025, ['Drama'])
 const lists = {
   newMovies: [odyssey], newShows: [pitt],
@@ -20,9 +22,14 @@ const lists = {
   popularMovies: [sample(550, 'movie', 'Fight Club', 1999)], popularShows: [sample(1396, 'show', 'Breaking Bad', 2008)],
 }
 const details = {
-  'movie:603': { ...matrix, maturity: 'R', runtime: '2h 16m', cast: ['Keanu Reeves', 'Carrie-Anne Moss'], crew: { director: 'Lana Wachowski, Lilly Wachowski', writer: null } },
-  'show:1399': { ...thrones, maturity: 'TV-MA', seasons: 8, cast: ['Emilia Clarke'], crew: { director: 'David Benioff', writer: null } },
+  'movie:603': {
+    ...matrix, maturity: 'R', runtime: '2h 16m', cast: ['Keanu Reeves', 'Carrie-Anne Moss'], crew: { director: 'Lana Wachowski, Lilly Wachowski', writer: null },
+    trailer: { key: 'vKQi3bBA1y8', name: 'The Matrix (1999) Official Trailer' },
+    providers: { link: 'https://www.themoviedb.org/movie/603/watch?locale=US', stream: [{ name: 'Max', logo: '/favicon.svg' }], rent: [{ name: 'Apple TV', logo: '/favicon.svg' }], buy: [] },
+  },
+  'show:1399': { ...thrones, maturity: 'TV-MA', seasons: 8, cast: ['Emilia Clarke'], crew: { director: 'David Benioff', writer: null }, trailer: null, providers: null },
 }
+const recommendations = { 'movie:603': [inception, matrix], 'show:1399': [] }
 
 // `fail: true` answers every call with a 500. Calling this again in a test replaces the earlier mock (newest route wins).
 export async function mockTmdb(page, { fail = false } = {}) {
@@ -34,6 +41,7 @@ export async function mockTmdb(page, { fail = false } = {}) {
       lists: () => lists,
       search: () => ({ results: [matrix, thrones].filter((t) => t.title.toLowerCase().includes(body.query.toLowerCase())) }),
       title: () => details[`${body.type}:${body.id}`] ? { title: details[`${body.type}:${body.id}`] } : null,
+      recommendations: () => ({ results: recommendations[`${body.type}:${body.id}`] ?? [] }),
       save: () => details[`${body.type}:${body.id}`] ? { title: details[`${body.type}:${body.id}`] } : null,
     }[body.action]?.()
     return reply ? route.fulfill({ headers: cors, json: reply }) : route.fulfill({ status: 404, headers: cors, json: { error: 'Title not found.' } })

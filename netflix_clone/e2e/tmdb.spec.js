@@ -148,3 +148,71 @@ test.describe('TMDB titles from the tmdb Edge Function', () => {
     await expect(page.getByText('TMDB isn’t available right now. Please try again later.')).toBeVisible()
   })
 })
+
+test.describe('TMDB trailers, where to watch, reviews and recommendations', () => {
+  test.skip(!configured, 'Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.development.local to run these')
+
+  test('a TMDB title plays its YouTube trailer on request and lists where to watch it', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/tmdb/movie/603')
+    // Nothing loads from YouTube until the viewer asks
+    await expect(page.locator('iframe')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Play trailer' }).click()
+    const trailer = page.locator('iframe[title="The Matrix trailer"]')
+    await expect(trailer).toHaveAttribute('src', /^https:\/\/www\.youtube-nocookie\.com\/embed\/vKQi3bBA1y8\?/)
+    await page.getByRole('button', { name: 'Close trailer' }).click()
+    await expect(trailer).toHaveCount(0)
+
+    const providers = page.getByRole('region', { name: 'Where to watch in the U.S.' })
+    await expect(providers.getByRole('heading', { name: 'Stream' })).toBeVisible()
+    await expect(providers.getByText('Max', { exact: true })).toBeVisible()
+    await expect(providers.getByText('Apple TV', { exact: true })).toBeVisible()
+    await expect(providers.getByRole('heading', { name: 'Buy' })).toHaveCount(0)
+    await expect(providers.getByRole('link', { name: 'JustWatch' })).toBeVisible()
+
+    // A title without a trailer or providers says so instead
+    await navigateInApp(page, '/tmdb/show/1399')
+    await expect(page.getByRole('heading', { name: 'GAME OF THRONES' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Play trailer' })).toHaveCount(0)
+    await expect(page.getByText('No streaming, rental or purchase options are listed for Game of Thrones right now.')).toBeVisible()
+  })
+
+  test('members can rate and review a TMDB title', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/tmdb/movie/603')
+    await expect(page.getByText('No reviews yet — be the first.')).toBeVisible()
+    await page.locator('.stars label').nth(3).click()
+    await expect(page.getByRole('radio', { name: '4 stars' })).toBeChecked()
+    await page.getByLabel('Write a review').fill('Still holds up.')
+    await page.getByRole('button', { name: 'Post review' }).click()
+    await expect(page.locator('.review-list')).toContainText('Still holds up.')
+    await expect(page.locator('.review-list').getByLabel('4 out of 5 stars')).toBeVisible()
+  })
+
+  test('TMDB recommends titles on the title page and, after saving one, on Home', async ({ page }) => {
+    await signInAsDemo(page)
+    await navigateInApp(page, '/tmdb/movie/603')
+    const moreLikeThis = page.locator('.row-section', { has: page.getByRole('heading', { name: 'More Like This' }) })
+    await expect(moreLikeThis.getByRole('link', { name: 'Inception' })).toHaveAttribute('href', '/tmdb/movie/27205')
+
+    await expect(page.getByRole('heading', { name: /^Because You Saved/ })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Favorite' }).click()
+    await navigateInApp(page, '/')
+    const row = page.locator('.row-section', { has: page.getByRole('heading', { name: 'Because You Saved The Matrix' }) })
+    await expect(row.getByRole('link', { name: 'Inception' })).toBeVisible()
+    // The saved title itself isn't recommended back
+    await expect(row.getByRole('link', { name: 'The Matrix' })).toHaveCount(0)
+  })
+
+  test('a restricted profile sees the TMDB titles whose certification fits its setting', async ({ page }) => {
+    await signInAsDemo(page)
+    const newRow = page.locator('.row-section', { has: page.getByRole('heading', { name: 'New on TMDB' }) })
+    await expect(newRow.getByRole('link', { name: 'The Pitt' })).toBeVisible()
+    await navigateInApp(page, '/account')
+    await page.getByLabel('Maturity rating').selectOption('teen')
+    await navigateInApp(page, '/')
+    await expect(newRow.getByRole('link', { name: 'The Odyssey' })).toBeVisible() // PG-13
+    await expect(newRow.getByRole('link', { name: 'The Pitt' })).toHaveCount(0) // not rated
+    await expect(page.getByRole('heading', { name: 'Trending Movies on TMDB' })).toHaveCount(0)
+  })
+})

@@ -7,6 +7,7 @@ const unwrap = ({ data, error }) => {
 }
 
 const toIssue = (t) => ({ id: t.ticket_number, type: t.issue_type, titleId: t.title_id ?? '', summary: t.summary, steps: t.steps ?? '', device: t.device, status: t.status })
+const toProgress = (r) => ({ percent: r.progress_percent, episode: r.episode, seconds: Number(r.position_seconds) })
 const toFeedback = (f) => ({ score: f.score, area: f.area, message: f.message, at: new Date(f.created_at) })
 
 // No hyphen: /signup?ref= keeps letters and digits only
@@ -47,7 +48,7 @@ export function libraryApi(supabase, userId) {
 
   return {
     async load() {
-      const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate] = await Promise.all([
+      const [list, favorites, reminders, ratings, feedback, tickets, scores, account, affiliate, progress] = await Promise.all([
         mine('watch_list_tables', 'title_id').order('added_at').then(unwrap),
         mine('favorites', 'title_id').order('added_at').then(unwrap),
         mine('reminders', 'title_id').order('created_at').then(unwrap),
@@ -57,6 +58,7 @@ export function libraryApi(supabase, userId) {
         mine('game_scores', 'game, best_score').then(unwrap),
         supabase.from('netflix_tables').select('data_opt_out').eq('id', userId).single().then(unwrap),
         loadAffiliate(),
+        mine('watch_progress', 'title_id, episode, position_seconds, progress_percent').order('updated_at', { ascending: false }).then(unwrap),
       ])
       return {
         myList: list.map((r) => r.title_id),
@@ -68,6 +70,7 @@ export function libraryApi(supabase, userId) {
         bestScores: Object.fromEntries(scores.map((s) => [s.game, s.best_score])),
         doNotSell: account.data_opt_out,
         affiliate,
+        progress: Object.fromEntries(progress.map((r) => [r.title_id, toProgress(r)])),
       }
     },
 
@@ -93,7 +96,14 @@ export function libraryApi(supabase, userId) {
     setDoNotSell: (value) => supabase.from('netflix_tables').update({ data_opt_out: value }).eq('id', userId).then(unwrap),
 
     saveScore: (game, value) => supabase.from('game_scores')
-      .upsert({ user_id: userId, game, best_score: value }, { onConflict: 'user_id,game' }).then(unwrap),
+      .upsert({ user_id: userId, game, best_score: value, updated_at: new Date().toISOString() }, { onConflict: 'user_id,game' }).then(unwrap),
+
+    // Where the member stopped in a title ({ percent, episode, seconds }); one row per title
+    saveProgress: (titleId, p) => supabase.from('watch_progress').upsert({
+      user_id: userId, title_id: titleId, episode: p.episode, position_seconds: Math.round(p.seconds * 10) / 10,
+      progress_percent: p.percent, updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,title_id' }).then(unwrap),
+    clearProgress: (titleId) => supabase.from('watch_progress').delete().eq('user_id', userId).eq('title_id', titleId).then(unwrap),
 
     // Codes are unique across all accounts (many demo users are called Alex), so add a random suffix
     async joinAffiliate(application) {

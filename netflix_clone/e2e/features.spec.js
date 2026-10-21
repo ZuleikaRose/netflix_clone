@@ -195,3 +195,42 @@ test('legal hub links to every legal document', async ({ page }) => {
   await page.locator('.topic-grid').getByRole('link', { name: /Terms of Service/ }).click()
   await expect(page.locator('.page-header h1')).toHaveText('Terms of Service')
 })
+
+test.describe('continue watching', () => {
+  const video = (page) => page.locator('.player video')
+  const continueRow = (page) => page.locator('.row-section', { has: page.getByRole('heading', { name: /^Continue Watching for/ }) })
+
+  test('the player saves where you stopped, Home lists it first and Resume goes back there', async ({ page }) => {
+    await expect(continueRow(page).getByRole('link', { name: 'Resume Behind the Glass' })).toHaveCount(0)
+    await navigateInApp(page, '/title/behind-the-glass')
+    await expect(page.getByRole('button', { name: /^\s*Play$/ })).toBeVisible()
+    await page.getByRole('button', { name: /^\s*Play$/ }).click()
+    await expect(page.getByLabel('Seek')).not.toHaveAttribute('max', '0')
+    await page.getByLabel('Seek').fill('12')
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    await page.getByRole('button', { name: 'Close player' }).click()
+
+    await expect(page.getByRole('button', { name: /^\s*Resume$/ })).toBeVisible()
+    await navigateInApp(page, '/')
+    const resumeLinks = continueRow(page).getByRole('link', { name: /^Resume / })
+    await expect(resumeLinks.first()).toHaveAccessibleName('Resume Behind the Glass')
+
+    await resumeLinks.first().click()
+    await expect.poll(() => video(page).evaluate((v) => v.currentTime)).toBeGreaterThan(11)
+    expect(await video(page).evaluate((v) => v.currentTime)).toBeLessThan(20)
+  })
+
+  test('finishing an episode moves the show on to the next one', async ({ page }) => {
+    await navigateInApp(page, '/title/behind-the-glass')
+    await page.getByRole('button', { name: /^\s*Play$/ }).click()
+    const seek = page.getByLabel('Seek')
+    await expect(seek).not.toHaveAttribute('max', '0')
+    await seek.fill(await seek.getAttribute('max'))
+    await expect(page.getByRole('group', { name: 'Playback finished' })).toBeVisible()
+    await page.getByRole('button', { name: 'Close player' }).click()
+
+    await navigateInApp(page, '/')
+    const card = continueRow(page).locator('.poster', { has: page.getByRole('link', { name: 'Resume Behind the Glass' }) })
+    await expect(card.locator('.episode-badge')).toHaveText('E2')
+  })
+})

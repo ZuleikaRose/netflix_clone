@@ -21,6 +21,7 @@ const toggles = [
 // Permissions from the outline (§8): users can opt out of data use for recommendations
 const privacyToggles = [
   { key: 'personalized', label: 'Personalized recommendations', hint: 'Use what you save, favorite and rate to suggest titles on Home.' },
+  { key: 'showOnLeaderboards', label: 'Show me on game leaderboards', hint: 'Your first name and best scores appear on each game’s leaderboard for other members.' },
 ]
 
 function Status({ message }) {

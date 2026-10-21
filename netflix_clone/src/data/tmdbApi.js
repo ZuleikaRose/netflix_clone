@@ -1,7 +1,7 @@
 import { getSupabase } from '../lib/supabaseConfig.js'
 import { callFunction } from './accountApi.js'
 
-// TMDB titles open on their own route: they aren't `titles` rows, which My List, ratings and reviews reference
+// TMDB titles open on their own route (/tmdb/:type/:tmdbId), not the catalog's /title/:id
 const withPath = (title) => ({ ...title, path: `/tmdb/${title.type}/${title.tmdbId}` })
 
 // One request per question per page load. Resolves to the `tmdb` Edge Function's data, { error } when it fails (failed
@@ -37,6 +37,12 @@ export async function fetchTmdbLists() {
 // Movies and TV shows matching the query, or null when TMDB can't be reached
 export async function searchTmdb(query) {
   const data = await askTmdb({ action: 'search', query })
+  return data?.results ? data.results.map(withPath) : null
+}
+
+// Titles TMDB recommends to fans of this one, or null when TMDB can't be reached
+export async function fetchTmdbRecommendations(type, id) {
+  const data = await askTmdb({ action: 'recommendations', type, id: Number(id) })
   return data?.results ? data.results.map(withPath) : null
 }
 

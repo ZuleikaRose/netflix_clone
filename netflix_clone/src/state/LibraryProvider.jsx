@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { catalog } from '../data/catalog.js'
 import { useAuth } from './authContext.js'
-import { LibraryContext } from './libraryContext.js'
+import { FINISHED_PERCENT, LibraryContext } from './libraryContext.js'
 
 // The signed-in user's lists, ratings, scores and reports. Changes show at once; with Supabase (`library` from the
 // auth context) they are also saved and loaded back at sign-in, including the automatic sign-in after a reload. Without
@@ -10,6 +11,9 @@ import { LibraryContext } from './libraryContext.js'
 const warn = (error) => {
   if (import.meta.env.DEV) console.warn('Supabase:', error)
 }
+
+// In memory, Continue Watching starts from the built-in catalog's sample progress; members start from their own rows
+const sampleProgress = () => Object.fromEntries(catalog.filter((t) => t.progress).map((t) => [t.id, { percent: t.progress, episode: 1, seconds: null }]))
 
 const toggleIn = (setter) => (id) => setter((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
 
@@ -28,6 +32,8 @@ export function LibraryProvider({ children }) {
   // Affiliate account: null until the user applies
   const [affiliate, setAffiliate] = useState(null)
   const [dismissedNotices, setDismissedNotices] = useState([])
+  // { [titleId]: { percent, episode, seconds } }: where the user stopped (seconds is null for the samples)
+  const [progress, setProgress] = useState(() => (remote ? {} : sampleProgress()))
 
   useEffect(() => {
     if (!remote) return
@@ -43,6 +49,7 @@ export function LibraryProvider({ children }) {
       setDoNotSell(saved.doNotSell)
       setBestScores(saved.bestScores)
       setAffiliate(saved.affiliate)
+      setProgress(saved.progress)
     }).catch(warn)
     return () => { ignore = true }
   }, [remote])
@@ -67,6 +74,7 @@ export function LibraryProvider({ children }) {
       bestScores,
       affiliate,
       dismissedNotices,
+      progress,
       // With the database, clicks and sign-ups are tracked for real (record-referral, sign-up trigger)
       canSimulateReferrals: !remote,
       toggleMyList: toggleSaved(myList, setMyList, 'myList'),
@@ -98,6 +106,16 @@ export function LibraryProvider({ children }) {
         setBestScores((s) => ({ ...s, [game]: score }))
         save(remote?.saveScore(game, score))
       },
+      // Called by the player as the user watches; finishing a title takes it out of Continue Watching
+      saveProgress: (titleId, entry) => {
+        const finished = entry.percent >= FINISHED_PERCENT
+        // Newest first, so Continue Watching lists the latest title first
+        setProgress((all) => {
+          const others = Object.fromEntries(Object.entries(all).filter(([id]) => id !== titleId))
+          return finished ? others : { [titleId]: entry, ...others }
+        })
+        if (remote) save(finished ? remote.clearProgress(titleId) : remote.saveProgress(titleId, entry))
+      },
       dismissNotice: (id) => setDismissedNotices((ids) => [...ids, id]),
       async joinAffiliate(application) {
         if (!remote) return setAffiliate({ ...application, clicks: 0, signups: 0 })
@@ -109,7 +127,7 @@ export function LibraryProvider({ children }) {
         setAffiliate((a) => a && ({ ...a, clicks: a.clicks + 1, signups: a.signups + (kind === 'signup' ? 1 : 0) }))
       },
     }
-  }, [remote, myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices])
+  }, [remote, myList, favorites, reminders, ratings, reviews, feedback, issues, doNotSell, bestScores, affiliate, dismissedNotices, progress])
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
 }

@@ -6,8 +6,8 @@ const columns = 'id, title, type, release_year, maturity_rating, seasons, runtim
 
 const localIndex = new Map(localCatalog.map((t, i) => [t.id, i]))
 
-// A `titles` row in the shape the pages use. Sample reviews and watch progress aren't in the database yet,
-// so they still come from the built-in catalog.
+// A `titles` row in the shape the pages use. Sample reviews aren't in the database, so they still come from the
+// built-in catalog; watch progress is each member's own (LibraryProvider, watch_progress).
 function toTitle(row) {
   const local = localCatalog[localIndex.get(row.id)]
   return {
@@ -28,9 +28,8 @@ function toTitle(row) {
     cast: row.cast_members,
     crew: { director: row.director, writer: row.writer },
     reviews: local?.reviews ?? [],
-    progress: local?.progress,
     // A TMDB title a member saved (id 'tmdb-<type>-<TMDB id>') opens on its TMDB page
-    ...(row.source === 'tmdb' ? { source: 'tmdb', path: `/tmdb/${row.type}/${row.id.split('-').pop()}` } : {}),
+    ...(row.source === 'tmdb' ? { source: 'tmdb', tmdbId: Number(row.id.split('-').pop()), path: `/tmdb/${row.type}/${row.id.split('-').pop()}` } : {}),
   }
 }
 
