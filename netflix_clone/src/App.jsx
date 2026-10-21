@@ -29,6 +29,7 @@ import { MyLists } from './pages/MyLists.jsx'
 import { ListDetail } from './pages/ListDetail.jsx'
 import { SharedList } from './pages/SharedList.jsx'
 import { WatchParty } from './pages/WatchParty.jsx'
+import { Donate } from './pages/Donate.jsx'
 import { useAuth } from './state/authContext.js'
 import { ProfileProvider } from './state/ProfileProvider.jsx'
 
@@ -69,6 +70,7 @@ function App() {
           <Route path="watchlist" element={<MyNetflix />} />
           <Route path="favorites" element={<MyNetflix />} />
           <Route path="account" element={<Account />} />
+          <Route path="donate" element={<Donate />} />
           <Route path="support-dashboard" element={<SupportDashboard />} />
           <Route path="games" element={<Games />} />
           <Route path="games/:gameId" element={<Games />} />

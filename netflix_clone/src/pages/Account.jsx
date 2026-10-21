@@ -231,6 +231,7 @@ export function Account() {
             <Link to="/info/faqs">FAQs</Link>
             <Link to="/info/promotions">Promotions &amp; Discounts</Link>
             <Link to="/info/affiliate">Affiliate Program</Link>
+            <Link to="/donate">Make a donation</Link>
             <Link to="/info/legal">Legal &amp; Privacy</Link>
             <Link to="/info/accessibility">Accessibility Policy</Link>
             <Link to="/logout" className="danger-link">Sign out</Link>

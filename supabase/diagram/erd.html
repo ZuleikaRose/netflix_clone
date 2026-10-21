@@ -66,6 +66,8 @@ const tables = [
   ['watch_party_members', 'red', R, 3230, ['party_id:uuid:pfn', 'user_id:uuid:pfn', 'joined_at:timestamptz:n']],
   // 2026-10-23: thumbs ratings (profile PINs live in the private schema, outside the API)
   ['title_reactions', 'indigo', R, 3420, ['user_id:uuid:fn', 'profile_id:uuid:pfn', 'title_id:varchar:pfn', 'reaction:varchar:n', 'updated_at:timestamptz:n'], 'NEW · Not for me / I like this / Love this!'],
+  // 2026-10-23: donations (Stripe)
+  ['donations', 'green', L, 3400, ['id:uuid:pn', 'user_id:uuid:fn', 'amount:integer:n', 'stripe_payment_intent_id:text:un', 'status:text:n', 'created_at:timestamptz:n'], 'NEW · one-time Stripe donations, written only by stripe-webhook'],
 ]
 // [from table, from column, to table, to column]
 const links = [
@@ -83,10 +85,11 @@ const links = [
   ['custom_list_items', 'list_id', 'custom_lists', 'id'],
   ['watch_party_members', 'party_id', 'watch_parties', 'id'],
   ['title_reactions', 'profile_id', 'profiles', 'id'],
+  ['donations', 'user_id', 'netflix_tables', 'id'],
 ]
 
 const board = document.getElementById('board')
-board.insertAdjacentHTML('beforeend', '<div id="title">Netflix Clone database</div><div id="sub">Supabase Postgres (eagle_platoon / eagle_platoon_dev) · every table has RLS · 29 tables · updated 2026-10-23</div>')
+board.insertAdjacentHTML('beforeend', '<div id="title">Netflix Clone database</div><div id="sub">Supabase Postgres (eagle_platoon / eagle_platoon_dev) · every table has RLS · 30 tables · updated 2026-10-23</div>')
 for (const [name, color, x, y, rows, note] of tables) {
   const [c, bg] = C[color]
   const el = document.createElement('div')

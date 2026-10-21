@@ -38,6 +38,9 @@
 --   and sign out the member's devices (auth.sessions).
 -- - ..._second_step_for_definer_functions: staff_tickets(), staff_set_ticket_status() and join_watch_party() also
 --   refuse a session that hasn't entered its two-step code.
+-- 2026-10-23 (donations):
+-- - ..._donations: new table donations (one-time Stripe donations, recorded by the stripe-webhook function; members
+--   only read their own).
 
 CREATE SEQUENCE ticket_number_seq START 48400;
 
@@ -384,4 +387,15 @@ CREATE TABLE title_reactions (
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (profile_id, title_id),
   FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE
+);
+
+-- One-time donations through Stripe, in cents (USD). Written only by the stripe-webhook function (service role), one
+-- row per PaymentIntent; a failed donation can become 'succeeded' when the card is retried, never the reverse
+CREATE TABLE donations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  amount integer NOT NULL CHECK (amount > 0 AND amount <= 1000000),
+  stripe_payment_intent_id text NOT NULL UNIQUE,
+  status text NOT NULL CHECK (status IN ('succeeded', 'failed')),
+  created_at timestamptz NOT NULL DEFAULT now()
 );

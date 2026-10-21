@@ -28,16 +28,17 @@ supabase/             Supabase CLI project (config.toml); MCP config in supabase
   migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits,
                       saved TMDB titles, watch progress and leaderboards, profiles, support dashboard, notifications,
                       viewing history, custom lists, watch parties (Realtime RLS), better search (pg_trgm), thumbs
-                      ratings, Year in Review, profile locks, two-step sign-in (restrictive policies, devices)
+                      ratings, Year in Review, profile locks, two-step sign-in (restrictive policies, devices), donations
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
                       (Index Advisor is installed on both projects: dashboard → Query Performance suggests missing ones)
-  functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb, assistant (+ _shared/:
+  functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb, assistant,
+                      process-donation, stripe-webhook (+ _shared/:
                       clients, CORS, caller check, per-IP rate limits via public.hit_rate_limit); hello and multiply are
                       standalone public test endpoints
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
   diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
-schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 29 public tables)
+schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 30 public tables)
 user_stories.md       What the database stores, one story per thing the app remembers
 prompt.md             The original build prompt and the Supabase-phase prompts
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
@@ -49,6 +50,11 @@ non_transactional file and function to dev first, then production, with the same
 Both run all 20 migrations (through `20261023040000_second_step_for_definer_functions`), non_transactional 001–008
 and the same 8 functions, with `assistant` (production caught up 2026-10-21). `assistant` needs the
 `ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
+Dev is one step ahead: it also runs migration 21, `20261023050000_donations`, and the functions `process-donation`
+and `stripe-webhook` (10 functions); production doesn't have them yet. They need two function variables per project:
+`NETFLIX_CLONE_TEST_API` (the Stripe API key, test mode on dev; without it process-donation answers 503) and `STRIPE_WEBHOOK_SECRET`,
+the signing value of the Stripe webhook endpoint that points at `<project>.supabase.co/functions/v1/stripe-webhook`
+(events `payment_intent.succeeded` and `payment_intent.payment_failed`). Never put either value in the repo.
 `apply_migration` stamps the current time as the version: afterwards set it to the file's version in
 `supabase_migrations.schema_migrations`, and apply one migration per second or less often, or two get the same stamp
 and the second fails on the duplicate version.
@@ -103,6 +109,7 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | (extra) Year in Review | `/year-in-review` | `pages/YearInReview.jsx`, `data/yearInReview.js` |
 | (extra) What should I watch? (assistant) | `/what-to-watch` | `pages/Assistant.jsx`, `data/assistant.js`, `supabase/functions/assistant` |
 | (extra) Security (two-step sign-in, devices) | in `/account` | `pages/account/Security.jsx`, `data/totp.js`, `data/devices.js` |
+| (extra) Donate (one-time, Stripe) | `/donate` (linked from Account → Help) | `pages/Donate.jsx`, `pages/donate/DonateForm.jsx` (lazy), `data/donations.js`, `lib/stripe.js`, `supabase/functions/process-donation` |
 
 When the outline changes: diff `app_outline/user_journey.md` (`git diff --word-diff`), map each change to this
 table, add or extend the page, add `/info/<slug>` pages to `data/infoPages.js` (that also adds the footer link)
@@ -258,6 +265,13 @@ after editing.
   helper) to pick up to five of the profile's allowed titles; ids it invents are dropped. Signed-in only, 20/hour per
   member and 60/hour per IP. Only the request and liked titles' names are sent. Any failure (or no key, or memory
   mode) falls back to `matchWords()` in `data/assistant.js`, and the page says which answered.
+- **Donations** (Stripe, one-time, USD): `process-donation` (signed in, `{ amount, user_id }` in cents, 1–1,000,000;
+  user_id must be the caller) creates a card-only PaymentIntent with `metadata.user_id` and returns its
+  `client_secret`; the app confirms it with Stripe.js, so card numbers never reach us. `stripe-webhook` checks the
+  Stripe-Signature and writes `public.donations` with the service role, one row per PaymentIntent (failed can become
+  succeeded, never the reverse; payments without `metadata.user_id` are ignored). Members only read their own rows:
+  no insert/update/delete grants or policies, and not even the service role deletes. 20/hour per member, 60/hour per
+  IP. Database rules in `supabase/tests/database/donations.test.sql`.
 - **Form state**: update with functional setters and read `e.target.value` before them
   (`(e) => { const { value } = e.target; setForm((f) => ({ ...f, key: value })) }`): with transitions pending, a
   spread of the render's `form` can restore an older value.

@@ -169,3 +169,10 @@ insert into public.title_reactions (user_id, title_id, reaction) values
   ('a1e00000-0000-4000-8000-000000000001', 'the-signal', 'love'),
   ('a1e00000-0000-4000-8000-000000000001', 'dead-reckoning', 'dislike'),
   ('a1e00000-0000-4000-8000-000000000002', 'night-shift', 'like');
+
+-- Donations (normally written by the stripe-webhook function; these PaymentIntent ids are made up, not Stripe's):
+-- Alex gave $5 and $25 (the first card was declined, then a retry went through); Jordan's $10 failed
+insert into public.donations (user_id, amount, stripe_payment_intent_id, status, created_at) values
+  ('a1e00000-0000-4000-8000-000000000001', 500, 'pi_seed_alex_0001', 'succeeded', now() - interval '40 days'),
+  ('a1e00000-0000-4000-8000-000000000001', 2500, 'pi_seed_alex_0002', 'succeeded', now() - interval '3 days'),
+  ('a1e00000-0000-4000-8000-000000000002', 1000, 'pi_seed_jordan_0001', 'failed', now() - interval '1 day');

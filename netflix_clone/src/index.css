@@ -744,6 +744,21 @@ html[data-a11y-stop-animations] *, html[data-a11y-stop-animations] *::before, ht
 .credit-list { display: grid; gap: 8px; margin: 0; padding-left: 18px; color: #d4d4d4; font-size: 14px; line-height: 1.5; }
 .demo-credentials { margin: 0; color: #bcbcbc; font-size: 13px; line-height: 1.5; }
 .demo-credentials code { padding: 1px 6px; border-radius: 4px; color: #fff; background: #262626; font: 600 13px ui-monospace, monospace; }
+/* Donate (/donate): the card field is Stripe's iframe inside .card-input, styled like .field input */
+.donate-card-label { margin: 0; color: #bcbcbc; font-size: 13px; font-weight: 600; }
+.card-input { min-height: 48px; padding: 14px; border: 1px solid #3a3a3a; border-radius: 6px; background: #161616; }
+.card-input.StripeElement--focus { border-color: #8c8c8c; outline: 2px solid #fff; outline-offset: 1px; }
+.field.has-error .card-input, .card-input.StripeElement--invalid { border-color: var(--error); }
+.card-input.StripeElement--disabled { opacity: .6; }
+.donate-problem { display: grid; gap: 8px; padding: 12px 14px; border-radius: 6px; color: #111; background: var(--error); }
+.donate-problem h3 { margin: 0; font-size: 15px; }
+.donate-problem p { margin: 0; font-size: 14px; line-height: 1.4; }
+.donate-result h2:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.donate-problem h3:focus-visible { outline: 2px solid #111; outline-offset: 2px; }
+.donate-problem .ghost-cta { margin-top: 4px; border-color: #111; color: #111; }
+.donate-intro { margin: 0; }
+.donate-result [role="status"] { display: grid; gap: 8px; }
+.donate-result p { margin: 0; }
 .session-restoring { margin: 0; padding: 48px 16px; color: #bcbcbc; font-size: 15px; text-align: center; }
 .auth-body .demo-credentials { margin-top: 12px; }
 .credit-list p { margin: 0; }

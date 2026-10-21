@@ -439,3 +439,9 @@ verify_jwt = false
 
 [functions.assistant]
 verify_jwt = false
+
+[functions.process-donation]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false

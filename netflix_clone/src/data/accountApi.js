@@ -98,18 +98,20 @@ export const savePreference = (supabase, id, key, value) =>
   supabase.from('preferences').upsert({ user_id: id, [preferenceColumns[key]]: value }, { onConflict: 'user_id' }).then(unwrap)
 
 // Calls an Edge Function; resolves to { data } or { error } with the function's own message when it sent one.
-// Never throws: network failures (no response to read) become the generic message too.
+// Never throws: network failures (no response to read) become the generic message too, with `network: true`.
 export async function callFunction(supabase, name, body = {}) {
   const fallback = { error: 'Something went wrong. Check your connection and try again.' }
+  const unreachable = { ...fallback, network: true }
   try {
     const { data, error } = await supabase.functions.invoke(name, { body })
     if (!error) return { data }
     // An HTTP error carries the Response; a fetch failure doesn't
     const response = error.context
-    const sent = typeof response?.json === 'function' ? await response.json().catch(() => null) : null
+    if (typeof response?.json !== 'function') return unreachable
+    const sent = await response.json().catch(() => null)
     return sent?.error ? { error: sent.error } : fallback
   } catch {
-    return fallback
+    return unreachable
   }
 }
 
