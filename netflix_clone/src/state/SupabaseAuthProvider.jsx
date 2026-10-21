@@ -233,9 +233,14 @@ export function SupabaseAuthProvider({ children }) {
         }
       },
       async signOutOtherDevices() {
-        const { error } = await client.auth.signOut({ scope: 'others' })
-        if (!error) return null
-        warn(error)
+        try {
+          const { error } = await client.auth.signOut({ scope: 'others' })
+          if (!error) return null
+          warn(error)
+        } catch (error) {
+          // e.g. offline
+          warn(error)
+        }
         return 'Your other devices couldn’t be signed out. Please try again.'
       },
       async loginDemo() {
