@@ -93,8 +93,11 @@ function DonationForm({ onDonated }) {
         // whatever amount is chosen now. Still waiting for a card: the same amount carries on with it (one intent, so
         // one row in Your donations); a different amount starts a new intent, as nothing was paid on the earlier one.
         const { error, paymentIntent } = await stripe.retrievePaymentIntent(intent.clientSecret)
-        if (error) result = outcomeOf(intent.cents, { error })
-        else if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing') {
+        if (error) {
+          result = outcomeOf(intent.cents, { error })
+          // Stripe answered but won't say (not a lost connection): forget it, or every later try would stop here too
+          if (result.kind === 'failed') intent = null
+        } else if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing') {
           result = outcomeOf(intent.cents, { paymentIntent })
         } else if (intent.cents === cents && CONFIRMABLE.includes(paymentIntent.status)) {
           result = outcomeOf(cents, await confirm(intent.clientSecret))
@@ -104,6 +107,7 @@ function DonationForm({ onDonated }) {
         const { data, error, network } = await callFunction(await getSupabase(), 'process-donation', { amount: cents, user_id: user.id })
         if (network) result = { kind: 'network', cents }
         else if (error) result = { kind: 'failed', message: error, cents }
+        else if (!data?.client_secret) result = { kind: 'failed', message: paymentError(null).message, cents }
         else {
           intent = { clientSecret: data.client_secret, cents }
           result = outcomeOf(cents, await confirm(intent.clientSecret))
