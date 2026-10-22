@@ -277,7 +277,7 @@ textarea { resize: vertical; }
 .review-list { margin: 16px 0 0; padding: 0; list-style: none; }
 .review-list li { padding: 12px 0; border-bottom: 1px solid #1f1f1f; font-size: 13px; }
 .review-list p { margin: 0 0 4px; }
-.review-list .text-button { font-size: 13px; font-weight: 400; color: #bcbcbc; }
+.review-list .text-button { min-width: 44px; font-size: 13px; font-weight: 400; color: #bcbcbc; }
 .review-reported { margin: 4px 0 0; font-size: 12px; }
 /* Report a review (components/Reviews.jsx) */
 .report-form { display: grid; gap: 10px; margin-top: 8px; padding: 12px; border: 1px solid #333; border-radius: 6px; }
