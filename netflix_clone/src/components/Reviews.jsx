@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import { MAX_REPORT_DETAILS, reportReasons } from '../data/reviewReports.js'
 import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useReviews } from '../state/useReviews.js'
@@ -17,12 +18,60 @@ function StarRating({ value, onChange, label }) {
   )
 }
 
+// "Report" under another member's review: a reason and optional details go to support staff (data/reviewReports.js)
+function ReportReview({ review, report }) {
+  const id = useId()
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState(null)
+  const [details, setDetails] = useState('')
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  if (review.reported) return <p className="muted review-reported" role="status">Reported. Our support team will take a look.</p>
+  if (!open) {
+    return <button type="button" className="text-button" onClick={() => setOpen(true)} aria-label={`Report ${review.author}’s review`}>Report</button>
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!reason) return setError('Choose a reason.')
+    setBusy(true)
+    const problem = await report(review, reason, details.trim())
+    setBusy(false)
+    setError(problem)
+  }
+
+  return (
+    <form className="report-form" onSubmit={submit} noValidate aria-label={`Report ${review.author}’s review`}>
+      <fieldset className="choice-group">
+        <legend>What’s wrong with this review?</legend>
+        <div className="choice-options">
+          {reportReasons.map((r) => (
+            <label key={r.value} className="choice">
+              <input type="radio" name={`${id}-reason`} value={r.value} checked={reason === r.value}
+                onChange={() => { setReason(r.value); setError(null) }} />
+              <span>{r.label}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <label htmlFor={`${id}-details`}>Anything else? (optional)</label>
+      <textarea id={`${id}-details`} rows="2" maxLength={MAX_REPORT_DETAILS} value={details} onChange={(e) => setDetails(e.target.value)} />
+      {error && <p className="form-alert" role="alert">{error}</p>}
+      <div className="report-actions">
+        <button type="submit" className="cta" disabled={busy}>Send report</button>
+        <button type="button" className="ghost-cta" onClick={() => { setOpen(false); setError(null) }}>Cancel</button>
+      </div>
+    </form>
+  )
+}
+
 // Ratings & Reviews for a catalog or TMDB title. `beforeSave` (optional) runs before the first rating or review is
 // saved and resolves to false when the title can't be stored (a TMDB title must be a `titles` row first).
 export function Reviews({ title, beforeSave }) {
   const { ratings, rate } = useLibrary()
   const { user } = useAuth()
-  const { reviews, addReview } = useReviews(title)
+  const { reviews, addReview, report } = useReviews(title)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState(null)
   const myRating = ratings[title.id] ?? 0
@@ -56,10 +105,11 @@ export function Reviews({ title, beforeSave }) {
         ? <p className="muted">No reviews yet — be the first.</p>
         : (
           <ul className="review-list">
-            {reviews.map((r, i) => (
-              <li key={`${r.author}-${i}`}>
+            {reviews.map((r) => (
+              <li key={r.id}>
                 <p><b>{r.author}</b>{r.stars && <span className="review-stars" aria-label={`${r.stars} out of 5 stars`}>{'★'.repeat(r.stars)}</span>}</p>
                 <p>{r.text}</p>
+                {!r.mine && <ReportReview review={r} report={report} />}
               </li>
             ))}
           </ul>

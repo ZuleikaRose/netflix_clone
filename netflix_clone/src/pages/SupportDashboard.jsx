@@ -5,6 +5,8 @@ import { ticketStatuses } from '../data/supportApi.js'
 import { useAuth } from '../state/authContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useSupportQueue } from '../state/useSupportQueue.js'
+import { useReviewReports } from '../state/useReviewReports.js'
+import { reasonLabel, reportStatuses } from '../data/reviewReports.js'
 import { NotFound } from './NotFound.jsx'
 
 // One ticket, opened from the queue: details, status and the conversation
@@ -53,10 +55,82 @@ function TicketDetail({ ticket, queue }) {
   )
 }
 
-// /support-dashboard: support staff's ticket queue (everyone else gets the not-found page)
+// /support-dashboard: support staff's ticket queue and reported reviews (everyone else gets the not-found page)
 export function SupportDashboard() {
   const { user } = useAuth()
-  return user.isStaff ? <Queue /> : <NotFound />
+  const [view, setView] = useState('tickets') // 'tickets' | 'reviews'
+  if (!user.isStaff) return <NotFound />
+  return (
+    <>
+      <PageHeader title="Support dashboard" back />
+      <div className="settings">
+        <section className="status-filters" aria-label="Queue">
+          {[['tickets', 'Tickets'], ['reviews', 'Reported reviews']].map(([key, label]) => (
+            <button key={key} type="button" className={view === key ? 'chip active' : 'chip'} aria-pressed={view === key} onClick={() => setView(key)}>{label}</button>
+          ))}
+        </section>
+        {view === 'tickets' ? <Queue /> : <ReviewQueue />}
+      </div>
+    </>
+  )
+}
+
+// Reported reviews, grouped by review: keep it, or remove it from the title page
+function ReviewQueue() {
+  const [status, setStatus] = useState('Open')
+  const { reports, failed, resolve } = useReviewReports(status)
+  const { findTitle } = useCatalog()
+  const [errors, setErrors] = useState({})
+  const [done, setDone] = useState('')
+  // A removed review's reports have no review id any more: each stands alone
+  const groups = Object.values((reports ?? []).reduce((all, r) => {
+    const key = r.reviewId ?? r.id
+    all[key] = all[key] ? { ...all[key], reports: [...all[key].reports, r] } : { key, first: r, reports: [r] }
+    return all
+  }, {}))
+
+  const settle = async (group, remove) => {
+    const problem = await resolve(group.first.reviewId, remove)
+    setErrors((e) => ({ ...e, [group.key]: problem }))
+    if (!problem) setDone(`${group.first.author}’s review ${remove ? 'removed' : 'kept'}`)
+  }
+
+  return (
+    <>
+      <section className="status-filters" aria-label="Report status">
+        {[...reportStatuses, null].map((s) => (
+          <button key={s ?? 'all'} type="button" className={status === s ? 'chip active' : 'chip'} aria-pressed={status === s}
+            onClick={() => { setStatus(s); setDone('') }}>{s ?? 'All'}</button>
+        ))}
+      </section>
+      <p className="save-status" role="status">{done && <><span aria-hidden="true">✓</span> {done}</>}</p>
+      {failed && <p className="form-alert" role="alert">Reported reviews couldn’t be loaded. Please try again.</p>}
+      {!failed && !reports && <p className="muted" role="status">Loading reported reviews…</p>}
+      {reports?.length === 0 && <p className="muted">No {status ? status.toLowerCase() : ''} reported reviews.</p>}
+      {groups.length > 0 && (
+        <ul className="ticket-list staff-queue" aria-label={`${status ?? 'All'} reported reviews`}>
+          {groups.map((g) => (
+            <li key={g.key} className="settings-card">
+              <p><b>{g.first.author}</b> on {findTitle(g.first.titleId)?.title ?? g.first.titleId} <span className="ticket-status">{g.first.status}</span></p>
+              <blockquote className="reported-review">{g.first.text}</blockquote>
+              <ul className="report-reasons-list">
+                {g.reports.map((r) => (
+                  <li key={r.id} className="muted">{reasonLabel(r.reason)} · {r.reporter} · {r.at.toLocaleDateString()}{r.details && <> · “{r.details}”</>}</li>
+                ))}
+              </ul>
+              {g.first.status === 'Open' && g.first.reviewId && (
+                <div className="report-actions">
+                  <button type="button" className="ghost-cta" onClick={() => settle(g, false)}>Keep review</button>
+                  <button type="button" className="cta delete-fill" onClick={() => settle(g, true)}>Remove review</button>
+                </div>
+              )}
+              {errors[g.key] && <p className="form-alert" role="alert">{errors[g.key]}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  )
 }
 
 function Queue() {
@@ -66,34 +140,31 @@ function Queue() {
 
   return (
     <>
-      <PageHeader title="Support dashboard" back />
-      <div className="settings">
-        <section className="status-filters" aria-label="Ticket status">
-          {[...ticketStatuses, null].map((s) => (
-            <button key={s ?? 'all'} type="button" className={status === s ? 'chip active' : 'chip'} aria-pressed={status === s}
-              onClick={() => { setStatus(s); setOpenId(null) }}>{s ?? 'All'}</button>
+      <section className="status-filters" aria-label="Ticket status">
+        {[...ticketStatuses, null].map((s) => (
+          <button key={s ?? 'all'} type="button" className={status === s ? 'chip active' : 'chip'} aria-pressed={status === s}
+            onClick={() => { setStatus(s); setOpenId(null) }}>{s ?? 'All'}</button>
+        ))}
+      </section>
+      {queue.failed && <p className="form-alert" role="alert">The ticket queue couldn’t be loaded. Please try again.</p>}
+      {!queue.failed && !queue.tickets && <p className="muted" role="status">Loading tickets…</p>}
+      {queue.tickets?.length === 0 && <p className="muted">No {status ? status.toLowerCase() : ''} tickets.</p>}
+      {queue.tickets?.length > 0 && (
+        <ul className="ticket-list staff-queue" aria-label={`${status ?? 'All'} tickets`}>
+          {queue.tickets.map((t) => (
+            <li key={t.ticketId} className="settings-card">
+              <p><b>{t.id}</b> <span className="ticket-status">{t.status}</span>{t.replyCount > 0 && <span className="muted"> · {t.replyCount} {t.replyCount === 1 ? 'reply' : 'replies'}</span>}</p>
+              <p>{t.summary}</p>
+              <p className="muted">{t.type} · {t.member} · {t.at.toLocaleDateString()}</p>
+              <button type="button" className="ghost-cta" aria-expanded={openId === t.ticketId}
+                onClick={() => setOpenId(openId === t.ticketId ? null : t.ticketId)}>
+                {openId === t.ticketId ? `Close ${t.id}` : `Open ${t.id}`}
+              </button>
+              {openId === t.ticketId && <TicketDetail ticket={t} queue={queue} />}
+            </li>
           ))}
-        </section>
-        {queue.failed && <p className="form-alert" role="alert">The ticket queue couldn’t be loaded. Please try again.</p>}
-        {!queue.failed && !queue.tickets && <p className="muted" role="status">Loading tickets…</p>}
-        {queue.tickets?.length === 0 && <p className="muted">No {status ? status.toLowerCase() : ''} tickets.</p>}
-        {queue.tickets?.length > 0 && (
-          <ul className="ticket-list staff-queue" aria-label={`${status ?? 'All'} tickets`}>
-            {queue.tickets.map((t) => (
-              <li key={t.ticketId} className="settings-card">
-                <p><b>{t.id}</b> <span className="ticket-status">{t.status}</span>{t.replyCount > 0 && <span className="muted"> · {t.replyCount} {t.replyCount === 1 ? 'reply' : 'replies'}</span>}</p>
-                <p>{t.summary}</p>
-                <p className="muted">{t.type} · {t.member} · {t.at.toLocaleDateString()}</p>
-                <button type="button" className="ghost-cta" aria-expanded={openId === t.ticketId}
-                  onClick={() => setOpenId(openId === t.ticketId ? null : t.ticketId)}>
-                  {openId === t.ticketId ? `Close ${t.id}` : `Open ${t.id}`}
-                </button>
-                {openId === t.ticketId && <TicketDetail ticket={t} queue={queue} />}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        </ul>
+      )}
     </>
   )
 }

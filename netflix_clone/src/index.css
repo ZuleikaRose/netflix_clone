@@ -277,6 +277,14 @@ textarea { resize: vertical; }
 .review-list { margin: 16px 0 0; padding: 0; list-style: none; }
 .review-list li { padding: 12px 0; border-bottom: 1px solid #1f1f1f; font-size: 13px; }
 .review-list p { margin: 0 0 4px; }
+.review-list .text-button { font-size: 13px; font-weight: 400; color: #bcbcbc; }
+.review-reported { margin: 4px 0 0; font-size: 12px; }
+/* Report a review (components/Reviews.jsx) */
+.report-form { display: grid; gap: 10px; margin-top: 8px; padding: 12px; border: 1px solid #333; border-radius: 6px; }
+.report-form label[for] { font-size: 13px; font-weight: 600; }
+.report-form textarea { width: 100%; padding: 10px; border: 1px solid #555; border-radius: 6px; color: #fff; background: #161616; font: inherit; }
+.report-actions { display: flex; gap: 10px; }
+.report-actions .cta, .report-actions .ghost-cta { margin-top: 0; }
 .review-stars { margin-left: 8px; color: #f5c518; }
 
 /* Search */
@@ -313,6 +321,9 @@ textarea { resize: vertical; }
 .status-filters .chip { min-width: 44px; min-height: 44px; }
 .staff-queue { display: grid; gap: 12px; padding: 0; list-style: none; }
 .staff-queue .ghost-cta { margin-top: 8px; }
+.reported-review { margin: 8px 0; padding: 8px 12px; border-left: 3px solid #555; color: #e5e5e5; font-size: 14px; }
+.report-reasons-list { display: grid; gap: 4px; margin: 0 0 8px; padding: 0; list-style: none; font-size: 13px; }
+.staff-queue .report-actions .ghost-cta, .staff-queue .report-actions .cta { flex: 1; margin-top: 0; }
 .ticket-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 12px 0; font-size: 14px; }
 .ticket-facts dt { color: #a3a3a3; }
 .ticket-facts dd { margin: 0; overflow-wrap: anywhere; }

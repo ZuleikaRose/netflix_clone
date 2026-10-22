@@ -127,6 +127,17 @@ test('interactive states meet WCAG 2.2 AA', async ({ page }) => {
   await expect(page.getByRole('group', { name: 'Playback finished' })).toBeVisible()
   await audit(page, 'player end screen')
 
+  await navigateInApp(page, '/title/behind-the-glass')
+  await page.getByRole('button', { name: 'Report Jordan’s review' }).click()
+  await page.getByRole('button', { name: 'Send report' }).click()
+  await audit(page, 'report a review, with an error')
+  await page.getByRole('radio', { name: 'Spam or advertising' }).check()
+  await page.getByRole('button', { name: 'Send report' }).click()
+  await navigateInApp(page, '/support-dashboard')
+  await page.getByRole('button', { name: 'Reported reviews' }).click()
+  await expect(page.getByRole('list', { name: 'Open reported reviews' })).toBeVisible()
+  await audit(page, 'reported reviews queue')
+
   await navigateInApp(page, '/account')
   await page.getByRole('button', { name: 'Delete account' }).click()
   await page.getByRole('button', { name: 'Delete my account access' }).click()
