@@ -6,6 +6,7 @@ import { useAccessibility } from '../../state/accessibilityContext.js'
 const features = [
   'An accessibility menu (the icon at the top of every page) with one-tap profiles and settings for text size, readable and dyslexia-friendly fonts, line height, letter spacing, contrast, color, link and heading highlights, a strong focus outline, a big cursor, a reading guide, hiding images and stopping animations.',
   'Closed captions in the video player, in three sizes, with a captions button on the player and a default in the accessibility menu.',
+  'Audio description: the player reads out what happens on screen (in English or Spanish, following the caption language) and waits while it speaks, so descriptions never talk over the dialogue. Turn it on with the AD button, the D key or the accessibility menu.',
   'Player controls you can reach by keyboard: play or pause, skip back or forward 10 seconds, seek, mute, a volume slider (remembered for the next video, and on any device once you’re signed in), previous and next episode for TV shows, playback speed (0.75× to 1.5×), captions and full screen.',
   'Autoplay you control: previews never start by themselves unless you turn on Autoplay previews, and never when motion is reduced. Autoplay next episode can be turned off too.',
   'Every control works with a keyboard and has a visible focus outline. Buttons and links are at least 44 pixels tall.',
@@ -51,7 +52,7 @@ export function AccessibilityPolicy() {
 
       <section aria-labelledby="limits">
         <h2 id="limits">Known limitations</h2>
-        <p>This is a demo: every title plays a short sample clip from an open movie, with that film’s English captions. The captions cover dialogue only, without sound descriptions. Audio description is not available yet. When you’re signed in, your accessibility settings are saved to your account and come back on every device and after a refresh; when you’re signed out, they reset when the page reloads.</p>
+        <p>This is a demo: every title plays a short sample clip from an open movie, with that film’s English captions (and our Spanish translation). The captions cover dialogue only, without sound descriptions. Audio description uses your browser’s built-in voice, so it sounds different on each device. In a watch party the video doesn’t wait for descriptions, so everyone stays in step; they’re read over the video instead. When you’re signed in, your accessibility settings are saved to your account and come back on every device and after a refresh; when you’re signed out, they reset when the page reloads.</p>
       </section>
 
       <section aria-labelledby="contact">

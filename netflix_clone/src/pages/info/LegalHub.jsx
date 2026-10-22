@@ -33,7 +33,7 @@ export function LegalHub() {
       </section>
       <section className="settings-card" aria-labelledby="media-credits-heading">
         <h2 id="media-credits-heading">Media credits</h2>
-        <p className="muted">Sample video clips are short, re-encoded excerpts of the Blender Foundation’s open movies. English captions come from {captionsCredit.source} (<a href={captionsCredit.licenseUrl} className="inline-link" target="_blank" rel="noreferrer">{captionsCredit.license}</a>), re-timed to each excerpt; the Spanish captions are our translation of them, under the same licence.</p>
+        <p className="muted">Sample video clips are short, re-encoded excerpts of the Blender Foundation’s open movies. English captions come from {captionsCredit.source} (<a href={captionsCredit.licenseUrl} className="inline-link" target="_blank" rel="noreferrer">{captionsCredit.license}</a>), re-timed to each excerpt; the Spanish captions are our translation of them, under the same licence. The audio descriptions are our own, in English and Spanish.</p>
         <ul className="credit-list">
           {clips.map((c) => (
             <li key={c.id}>

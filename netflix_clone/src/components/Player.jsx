@@ -7,13 +7,15 @@ import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useProfile } from '../state/profileContext.js'
 import { useScreenTime } from '../state/useScreenTime.js'
+import { useAudioDescription } from '../state/useAudioDescription.js'
 import { TICK_SECONDS } from '../data/screenTime.js'
 import { ScreenTimeUp } from './ScreenTimeUp.jsx'
 import { Icon } from './Icon.jsx'
 
 // Video player for the title's sample clip (data/clips.js) with custom, keyboard-accessible controls.
 // Captions come from the clip's WebVTT track; the track stays "hidden" so the browser loads the cues while we draw
-// them, which lets the accessibility menu size them and keeps them on screen in full screen.
+// them, which lets the accessibility menu size them and keeps them on screen in full screen. Audio description reads a
+// second track (kind "descriptions") aloud: state/useAudioDescription.js.
 const NEXT_EPISODE_DELAY = 5
 const SKIP_SECONDS = 10
 const speeds = [0.75, 1, 1.25, 1.5]
@@ -170,6 +172,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
       track.mode = 'disabled'
     }
   }, [languageCode])
+  useAudioDescription(videoRef, { on: settings.audioDescription, languageCode, pauseWhileSpeaking: !party })
 
   useEffect(() => {
     timeUp.current = screenTime.timeUp
@@ -302,6 +305,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
     }
   })
   const toggleCaptions = () => update({ captions: !settings.captions })
+  const toggleAudioDescription = () => update({ audioDescription: !settings.audioDescription })
   // 0 counts as muted, so the slider and the Mute button always agree
   // From the element, not state: state catches up on 'volumechange', so quick key presses would each start from the
   // same old level
@@ -346,7 +350,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
 
   // Shortcuts work while focus is inside the player (the sliders and speed menu keep their own keys)
   const shortcuts = {
-    k: togglePlay, j: () => seekTo(time - SKIP_SECONDS), l: () => seekTo(time + SKIP_SECONDS), c: toggleCaptions, m: toggleMute, f: toggleFullscreen, s: skipAhead,
+    k: togglePlay, j: () => seekTo(time - SKIP_SECONDS), l: () => seekTo(time + SKIP_SECONDS), c: toggleCaptions, d: toggleAudioDescription, m: toggleMute, f: toggleFullscreen, s: skipAhead,
     ...(canPictureInPicture && { i: togglePictureInPicture }),
     arrowup: () => changeVolume(currentLevel() + VOLUME_STEP), arrowdown: () => changeVolume(currentLevel() - VOLUME_STEP),
     ...(isShow && { 'shift+p': goToPreviousEpisode, 'shift+n': goToNextEpisode }),
@@ -387,12 +391,16 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
           <source src={sources.webm} type="video/webm" />
           <source src={sources.mp4} type="video/mp4" />
           <track key={language.code} id={`captions-${language.code}`} kind="captions" src={sources.captions} srcLang={language.code} label={language.label} />
+          <track key={`descriptions-${language.code}`} id={`descriptions-${language.code}`} kind="descriptions" src={sources.descriptions}
+            srcLang={language.code} label={`${language.label}: audio description`} />
         </video>
         <p className="player-status" role="status">{status}{muted && ' · Muted'}</p>
         <p className="player-chapter">Chapter: {chapter.name}</p>
         {canPictureInPicture && (
           <button type="button" className="icon-button player-pip" aria-label="Picture in picture" aria-pressed={pictureInPicture} aria-keyshortcuts="I" onClick={togglePictureInPicture}><Icon name="pictureInPicture" /></button>
         )}
+        <button type="button" className="icon-button player-ad" aria-label="Audio description" aria-pressed={settings.audioDescription} aria-keyshortcuts="D"
+          onClick={toggleAudioDescription}><span className="ad-mark" aria-hidden="true">AD</span></button>
         <button type="button" className="icon-button player-close" aria-label="Close player" onClick={onClose}><Icon name="close" /></button>
 
         {settings.captions && caption && !ended && <p className={`captions caption-${settings.captionSize}`} lang={language.code}>{caption}</p>}

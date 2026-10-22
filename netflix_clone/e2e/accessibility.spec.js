@@ -303,6 +303,49 @@ test.describe('video player', () => {
     await expect(page.getByText(/Spanish captions translated from Wikimedia Commons subtitles/)).toBeVisible()
   })
 
+  test('audio description reads out what happens on screen, pausing the video while it speaks', async ({ page }) => {
+    // A stand-in for the browser's speech: it records each description (and whether the video waited) and finishes
+    // after a moment
+    await page.addInitScript(() => {
+      window.spoken = []
+      const speech = {
+        speak(utterance) {
+          window.spoken.push({ text: utterance.text, lang: utterance.lang, videoWaited: document.querySelector('.player video').paused })
+          setTimeout(() => utterance.onend?.(), 300)
+        },
+        cancel() {},
+      }
+      Object.defineProperty(window, 'speechSynthesis', { value: speech, configurable: true })
+    })
+    const spoken = () => page.evaluate(() => window.spoken)
+    await openPlayer(page, 'after-dark')
+    const button = page.getByRole('button', { name: 'Audio description' })
+    await expect(button).toHaveAttribute('aria-pressed', 'false')
+    await button.click()
+    await expect(button).toHaveAttribute('aria-pressed', 'true')
+
+    // Back to the start (it resumed further in): the first description is read while the video waits, then it plays on
+    await seek(page).fill('0')
+    await expect.poll(async () => (await spoken()).find((s) => s.text.startsWith('Title:'))).toEqual({
+      text: 'Title: Elephants Dream, on a tiled green wall that fades to dark.', lang: 'en-US', videoWaited: true,
+    })
+    await expect.poll(() => video(page).evaluate((v) => v.currentTime)).toBeGreaterThan(0.5)
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+
+    // D turns it off; the accessibility menu has the same switch, and descriptions follow the caption language
+    await button.focus()
+    await page.keyboard.press('d')
+    await expect(button).toHaveAttribute('aria-pressed', 'false')
+    await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
+    await menu(page).getByRole('switch', { name: /Audio description/ }).check()
+    await menu(page).getByRole('radio', { name: 'Español' }).check()
+    await page.keyboard.press('Escape')
+    await expect(button).toHaveAttribute('aria-pressed', 'true')
+    await seek(page).fill('17')
+    await expect.poll(async () => (await spoken()).at(-1)?.text).toContain('Una máquina inmensa de cables y metal.')
+    expect((await spoken()).at(-1).lang).toBe('es-ES')
+  })
+
   test('autoplay next episode counts down, and waits when turned off', async ({ page }) => {
     await openPlayer(page, 'night-shift')
     await seek(page).fill(await seek(page).getAttribute('max'))

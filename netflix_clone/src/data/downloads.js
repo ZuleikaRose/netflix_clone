@@ -1,7 +1,7 @@
 import { captionLanguages, clipFor, clipSources } from './clips.js'
 import { readStored, writeStored } from '../lib/supabaseConfig.js'
 
-// Offline downloads: a title's sample clip, captions and seek previews are saved in the browser's Cache Storage
+// Offline downloads: a title's sample clip, captions, audio description and seek previews are saved in the browser's Cache Storage
 // (DOWNLOAD_CACHE), and public/sw.js answers /media requests from it, byte ranges included, so the player works
 // without a connection. Which titles are downloaded is kept per device (STORAGE_KEY). Catalog titles share clips, so
 // a clip's files stay until no downloaded title uses them.
@@ -27,13 +27,14 @@ const save = (next) => {
 // Downloads need Cache Storage and a service worker controlling the page (production builds, see lib/pwa.js)
 export const canDownload = () => typeof caches !== 'undefined' && Boolean(navigator.serviceWorker?.controller)
 
-// The one video file this browser will play (Playwright's Chromium only plays WebM), its captions and previews
+// The one video file this browser will play (Playwright's Chromium only plays WebM), its captions and audio
+// description in every language, and its previews
 function filesFor(clip) {
   const sources = clipSources(clip)
   const webm = document.createElement('video').canPlayType('video/webm; codecs="vp9, opus"')
   return [
     webm ? sources.webm : sources.mp4,
-    ...captionLanguages.map((l) => clipSources(clip, l.code).captions),
+    ...captionLanguages.flatMap((l) => [clipSources(clip, l.code).captions, clipSources(clip, l.code).descriptions]),
     sources.thumbs,
   ]
 }

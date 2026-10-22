@@ -719,7 +719,13 @@ kbd { display: inline-block; min-width: 28px; padding: 3px 7px; border: 1px soli
 /* Picture-in-picture sits beside Close: the controls row has no room left at phone width */
 .player-pip { position: absolute; top: 2px; right: 50px; }
 .player-pip[aria-pressed="true"] { color: #111; background: #fff; border-radius: 8px; }
-.player:has(.player-pip) :is(.player-status, .player-chapter) { right: 104px; }
+.player-ad { position: absolute; top: 2px; right: 50px; }
+.player:has(.player-pip) .player-ad { right: 96px; }
+.player-ad[aria-pressed="true"] { color: #111; background: #fff; border-radius: 8px; }
+.ad-mark { padding: 1px 4px; border: 2px solid currentColor; border-radius: 4px; font-size: 11px; font-weight: 800; letter-spacing: .5px; line-height: 1.2; }
+.player-ad[aria-pressed="true"] .ad-mark { border-color: transparent; }
+.player :is(.player-status, .player-chapter) { right: 104px; }
+.player:has(.player-pip) :is(.player-status, .player-chapter) { right: 150px; }
 
 /* ---------- Year in Review ---------- */
 .year-hero h2 { font-size: 22px; }

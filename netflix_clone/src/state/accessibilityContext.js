@@ -23,6 +23,7 @@ export const defaultA11y = {
   captions: false,
   captionSize: 'medium',
   captionLanguage: 'en',
+  audioDescription: false,
 }
 
 // Settings with a fixed set of values, shown as radio chips in the menu
@@ -54,6 +55,7 @@ export const a11ySwitches = {
     { key: 'stopAnimations', label: 'Stop animations', hint: 'Turns off motion, transitions and video previews.' },
     { key: 'hideImages', label: 'Hide images', hint: 'Hides posters and artwork.' },
     { key: 'captions', label: 'Closed captions', hint: 'Show captions in the video player.' },
+    { key: 'audioDescription', label: 'Audio description', hint: 'The video player reads out what happens on screen, in the caption language, pausing while it speaks.' },
   ],
 }
 
