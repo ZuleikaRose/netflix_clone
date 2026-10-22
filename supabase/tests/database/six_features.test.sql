@@ -1,12 +1,13 @@
--- Helpful votes on reviews, run by `supabase test db` (pgTAP) against the seeded local database. Everything runs in one
--- transaction and is rolled back.
+-- Helpful votes on reviews and the staff donations view, run by `supabase test db` (pgTAP) against the seeded local
+-- database. Everything runs in one transaction and is rolled back.
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(8);
+select plan(11);
 
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
 \set jordan '''a1e00000-0000-4000-8000-000000000002'''
+\set staff '''a1e00000-0000-4000-8000-000000000006'''
 select id as jordan_review from public.review where user_id = :jordan and body is not null order by created_at limit 1 \gset
 
 set local role authenticated;
@@ -30,6 +31,12 @@ select is((select helpful_count from public.review where id = :'jordan_review'),
 select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated","aal":"aal1"}', to_json(:jordan::text)), true);
 insert into public.review_helpful_votes (review_id) select id from public.review where body = 'My own take.';
 select is((select count(*) from public.review_helpful_votes), 1::bigint, 'members see only their own votes');
+
+-- Donations on the support dashboard ----------------------------------------------------------------------------------
+select throws_ok($$select * from public.staff_donation_months()$$, '42501', null, 'members cannot see donation totals');
+select throws_ok($$select * from public.staff_recent_donations()$$, '42501', null, 'members cannot see other members'' donations');
+select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated","aal":"aal1"}', to_json(:staff::text)), true);
+select lives_ok($$select * from public.staff_recent_donations('failed')$$, 'staff can list donations');
 
 select * from finish();
 rollback;

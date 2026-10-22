@@ -7,6 +7,9 @@ import { useCatalog } from '../state/useCatalog.js'
 import { useSupportQueue } from '../state/useSupportQueue.js'
 import { useReviewReports } from '../state/useReviewReports.js'
 import { reasonLabel, reportStatuses } from '../data/reviewReports.js'
+import { formatDonationDate, formatUsd } from '../data/donations.js'
+import { donationFilters, formatMonth, stripePaymentUrl } from '../data/staffDonations.js'
+import { useStaffDonations } from '../state/useStaffDonations.js'
 import { NotFound } from './NotFound.jsx'
 
 // One ticket, opened from the queue: details, status and the conversation
@@ -55,22 +58,86 @@ function TicketDetail({ ticket, queue }) {
   )
 }
 
-// /support-dashboard: support staff's ticket queue and reported reviews (everyone else gets the not-found page)
+// /support-dashboard: support staff's ticket queue, reported reviews and donations (everyone else gets the not-found page)
 export function SupportDashboard() {
   const { user } = useAuth()
-  const [view, setView] = useState('tickets') // 'tickets' | 'reviews'
+  const [view, setView] = useState('tickets') // 'tickets' | 'reviews' | 'donations'
   if (!user.isStaff) return <NotFound />
   return (
     <>
       <PageHeader title="Support dashboard" back />
       <div className="settings">
         <section className="status-filters" aria-label="Queue">
-          {[['tickets', 'Tickets'], ['reviews', 'Reported reviews']].map(([key, label]) => (
+          {[['tickets', 'Tickets'], ['reviews', 'Reported reviews'], ['donations', 'Donations']].map(([key, label]) => (
             <button key={key} type="button" className={view === key ? 'chip active' : 'chip'} aria-pressed={view === key} onClick={() => setView(key)}>{label}</button>
           ))}
         </section>
-        {view === 'tickets' ? <Queue /> : <ReviewQueue />}
+        {view === 'tickets' && <Queue />}
+        {view === 'reviews' && <ReviewQueue />}
+        {view === 'donations' && <DonationsView />}
       </div>
+    </>
+  )
+}
+
+// Donations: paid and failed totals per month, then the latest donations with a link to each payment in the Stripe
+// Dashboard (where refunds are made)
+function DonationsView() {
+  const [status, setStatus] = useState(null)
+  const { months, donations, failed } = useStaffDonations(status)
+  const filterLabel = donationFilters.find((f) => f.value === status).label
+
+  return (
+    <>
+      {failed && <p className="form-alert" role="alert">Donations couldn’t be loaded. Please try again.</p>}
+      {!failed && !months && <p className="muted" role="status">Loading donations…</p>}
+      {months && (
+        <section className="settings-card" aria-labelledby="donation-months-heading">
+          <h2 id="donation-months-heading">By month</h2>
+          {months.length === 0
+            ? <p className="muted">No donations in the last 12 months.</p>
+            : (
+              <table className="donation-months">
+                <thead><tr><th scope="col">Month</th><th scope="col">Paid</th><th scope="col">Donations</th><th scope="col">Didn’t go through</th></tr></thead>
+                <tbody>
+                  {months.map((m) => (
+                    <tr key={m.month}><th scope="row">{formatMonth(m.month)}</th><td>{formatUsd(m.paidCents)}</td><td>{m.paidCount}</td><td>{m.failedCount}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+        </section>
+      )}
+      <section className="status-filters" aria-label="Donation status">
+        {donationFilters.map((f) => (
+          <button key={f.label} type="button" className={status === f.value ? 'chip active' : 'chip'} aria-pressed={status === f.value}
+            onClick={() => setStatus(f.value)}>{f.label}</button>
+        ))}
+      </section>
+      {donations?.length === 0 && <p className="muted">No donations to show.</p>}
+      {donations?.length > 0 && (
+        <ul className="device-list donation-list staff-donations" aria-label={`${filterLabel} donations`}>
+          {donations.map((d) => {
+            const url = stripePaymentUrl(d.paymentId)
+            return (
+              <li key={d.id}>
+                <span>
+                  <b>{formatUsd(d.amount)}</b>
+                  <span className="muted">{d.member} · {formatDonationDate(d.at)}</span>
+                  {url && (
+                    <a href={url} target="_blank" rel="noreferrer">
+                      Open in Stripe<span className="sr-only"> (new tab): {formatUsd(d.amount)} from {d.member}</span>
+                    </a>
+                  )}
+                </span>
+                <span className={d.status === 'succeeded' ? 'donation-status' : 'donation-status failed'}>
+                  {d.status === 'succeeded' ? 'Paid' : 'Didn’t go through'}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </>
   )
 }

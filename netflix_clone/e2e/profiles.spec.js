@@ -280,7 +280,8 @@ test('Screen time sums up the last 7 days', async ({ page }) => {
   // The next day: today starts from nothing, and Monday keeps its 10 minutes
   await page.clock.setSystemTime(new Date(2026, 9, 20, 9, 0))
   await navigateInApp(page, '/account')
-  screenTime = await openScreenTime()
+  // The same region again: `days` finds the list inside it
+  await openScreenTime()
   await expect(days.first()).toHaveText(/Today\s*None/)
   await expect(days.nth(1)).toHaveText(/Mon, Oct 19\s*10 minutes/)
 })

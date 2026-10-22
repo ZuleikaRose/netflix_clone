@@ -813,6 +813,11 @@ html[data-a11y-stop-animations] *, html[data-a11y-stop-animations] *::before, ht
 .download-row p { margin: 0; }
 .donation-status { flex: none; color: #46d369; font-size: 13px; font-weight: 600; }
 .donation-status.failed { color: var(--error); }
+.staff-donations a { display: inline-flex; align-items: center; min-height: 44px; color: #fff; font-size: 13px; }
+.donation-months { width: 100%; border-collapse: collapse; font-size: 13px; }
+.donation-months th, .donation-months td { padding: 8px 4px; border-bottom: 1px solid #2a2a2a; text-align: right; }
+.donation-months :is(th, td):first-child { text-align: left; }
+.donation-months thead th { color: #bcbcbc; font-weight: 600; }
 .session-restoring { margin: 0; padding: 48px 16px; color: #bcbcbc; font-size: 15px; text-align: center; }
 .auth-body .demo-credentials { margin-top: 12px; }
 .credit-list p { margin: 0; }

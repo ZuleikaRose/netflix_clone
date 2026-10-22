@@ -115,3 +115,24 @@ test('a member reports a review; staff keep or remove it from the dashboard', as
   await expect(page.getByRole('heading', { name: 'Ratings & Reviews' })).toBeVisible()
   await expect(page.getByText('Every episode ends on a hook.')).toHaveCount(0)
 })
+
+test('staff see donations by month and filter the latest ones', async ({ page }) => {
+  await signInAsDemo(page)
+  await navigateInApp(page, '/support-dashboard')
+  await page.getByRole('button', { name: 'Donations' }).click()
+  // In memory, sample donations stand in: three this month (one didn't go through) and two last month
+  const months = page.getByRole('table')
+  await expect(months.getByRole('row')).toHaveCount(3)
+  const thisMonth = months.getByRole('row').nth(1)
+  await expect(thisMonth.getByRole('cell')).toHaveText(['$35.00', '2', '1'])
+
+  const list = page.getByRole('list', { name: 'All donations' })
+  await expect(list.getByRole('listitem')).toHaveCount(5)
+  await page.getByRole('button', { name: 'Didn’t go through' }).click()
+  const failed = page.getByRole('list', { name: 'Didn’t go through donations' })
+  await expect(failed.getByRole('listitem')).toHaveCount(1)
+  await expect(failed).toContainText('$5.00')
+  await expect(failed).toContainText('Sam')
+  // Sample donations have no Stripe payment to open
+  await expect(failed.getByRole('link', { name: /Open in Stripe/ })).toHaveCount(0)
+})
