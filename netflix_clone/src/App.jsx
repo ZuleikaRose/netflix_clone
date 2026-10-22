@@ -26,6 +26,7 @@ import { ViewingActivity } from './pages/ViewingActivity.jsx'
 import { Assistant } from './pages/Assistant.jsx'
 import { YearInReview } from './pages/YearInReview.jsx'
 import { MyLists } from './pages/MyLists.jsx'
+import { Downloads } from './pages/Downloads.jsx'
 import { ListDetail } from './pages/ListDetail.jsx'
 import { SharedList } from './pages/SharedList.jsx'
 import { WatchParty } from './pages/WatchParty.jsx'
@@ -64,6 +65,7 @@ function App() {
           <Route path="year-in-review" element={<YearInReview />} />
           <Route path="what-to-watch" element={<Assistant />} />
           <Route path="lists" element={<MyLists />} />
+          <Route path="downloads" element={<Downloads />} />
           <Route path="party/:code" element={<WatchParty />} />
           <Route path="lists/:listId" element={<ListDetail />} />
           <Route path="my-netflix" element={<MyNetflix />} />

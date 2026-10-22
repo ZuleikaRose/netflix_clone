@@ -782,6 +782,10 @@ html[data-a11y-stop-animations] *, html[data-a11y-stop-animations] *::before, ht
 .donate-intro { margin: 0; }
 .donate-result [role="status"] { display: grid; gap: 8px; }
 .donate-result p { margin: 0; }
+.download-row { display: grid; gap: 6px; }
+.download-row .ghost-cta { gap: 8px; }
+.download-row .ghost-cta svg, .download-row p svg { width: 18px; height: 18px; vertical-align: -3px; }
+.download-row p { margin: 0; }
 .donation-status { flex: none; color: #46d369; font-size: 13px; font-weight: 600; }
 .donation-status.failed { color: var(--error); }
 .session-restoring { margin: 0; padding: 48px 16px; color: #bcbcbc; font-size: 15px; text-align: center; }

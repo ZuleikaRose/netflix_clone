@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo } from './helpers.js'
 
@@ -49,4 +50,38 @@ test('Account offers to install the app when the browser can', async ({ page }) 
   })
   await app.getByRole('button', { name: 'Install Netflix Clone' }).click()
   await expect(app).toContainText('Netflix Clone is installed on this device.')
+})
+
+test('a downloaded title plays and seeks without a connection, and removing it frees the space', async ({ page, context }) => {
+  test.setTimeout(60_000)
+  await page.goto('/login')
+  // Once the worker controls the page (it claims it after installing), downloads are offered
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)), { timeout: 15_000 }).toBe(true)
+  await page.getByRole('button', { name: 'Use demo account' }).click()
+  await expect(page).not.toHaveURL(/\/login$/)
+
+  await navigateInApp(page, '/title/behind-the-glass')
+  await page.getByRole('button', { name: 'Download to watch offline' }).click()
+  await expect(page.getByRole('status').filter({ hasText: /Downloaded \(\d/ })).toBeVisible({ timeout: 20_000 })
+
+  await page.getByRole('link', { name: 'Downloads', exact: true }).first().click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Downloads' })).toBeVisible()
+  await expect(page.getByRole('listitem').filter({ hasText: 'Behind the Glass' })).toContainText(/MB/)
+  // The download controls only show with the worker, which the WCAG sweeps in a11y.spec.js block
+  const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
+  expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
+
+  await context.setOffline(true)
+  await page.getByRole('link', { name: 'Behind the Glass' }).click()
+  const video = page.locator('video')
+  await expect.poll(() => video.evaluate((v) => v.currentTime), { timeout: 15_000 }).toBeGreaterThan(0.3)
+  // Seeking asks for a byte range, which the worker answers from the download
+  await page.getByLabel('Seek').fill('30')
+  await expect.poll(() => video.evaluate((v) => v.currentTime), { timeout: 15_000 }).toBeGreaterThan(30)
+  await context.setOffline(false)
+
+  await navigateInApp(page, '/downloads')
+  await page.getByRole('button', { name: 'Remove Behind the Glass download' }).click()
+  await expect(page.getByText('No downloads yet.')).toBeVisible()
+  await expect.poll(() => page.evaluate(async () => (await (await caches.open('downloads')).keys()).length)).toBe(0)
 })
