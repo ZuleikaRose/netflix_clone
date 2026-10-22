@@ -5,10 +5,10 @@ const unwrap = ({ data, error }) => {
   return data
 }
 
-const columns = 'id, name, avatar, maturity_rating, notifications_seen_at, locked'
+const columns = 'id, name, avatar, maturity_rating, notifications_seen_at, locked, daily_limit_minutes'
 export const toProfile = (row) => ({
   id: row.id, name: row.name, avatar: row.avatar, maturity: row.maturity_rating, notificationsSeenAt: row.notifications_seen_at,
-  locked: row.locked,
+  locked: row.locked, dailyLimit: row.daily_limit_minutes ?? null,
 })
 const toRow = (p) => Object.fromEntries(Object.entries({
   name: p.name?.trim(), avatar: p.avatar, maturity_rating: p.maturity, notifications_seen_at: p.notificationsSeenAt,
@@ -32,6 +32,9 @@ export const setProfilePinRow = (supabase, id, pin, password) => supabase
   .rpc('set_profile_pin', { p_profile: id, p_pin: pin, p_password: password }).then(unwrap)
 // 'ok' | 'wrong' | 'locked'
 export const unlockProfileRow = (supabase, id, pin) => supabase.rpc('unlock_profile', { p_profile: id, p_pin: pin }).then(unwrap)
+// Screen-time limits (migration ..._screen_time): minutes a day, or null for none
+export const setScreenTimeLimitRow = (supabase, id, minutes, password) => supabase
+  .rpc('set_screen_time_limit', { p_profile: id, p_minutes: minutes, p_password: password }).then(unwrap)
 export const verifyPassword = (supabase, password) => supabase.rpc('verify_account_password', { p_password: password }).then(unwrap)
 
 // A friendlier message for the database's checks (unique names, at most five, at least one)

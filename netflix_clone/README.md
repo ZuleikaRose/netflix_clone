@@ -55,6 +55,12 @@ New passwords need 13+ characters with lowercase, uppercase, a digit and a symbo
 | Watch party | On a catalog title, **Watch party**; open the invite link in a second tab and press play in either |
 | Search | Try `nite shift` (a typo), `mara` (a person) or `thril` (a genre); press Enter to keep a search in recent searches |
 | Install | Account → App (Chrome and Edge offer **Install Netflix Clone**; iPhone: Share → Add to Home Screen); production builds only |
+| Surprise me | Home (under the hero) or Search: opens a random title for the profile, following the Movies / TV Shows filter |
+| Keyboard shortcuts | Press **?** on any page (or Accessibility menu → Keyboard shortcuts) |
+| Screen-time limits | Profiles → Manage profiles → Edit → Screen time: choose a daily limit and enter the account password. When it's used up the player stops; **Ask a grown-up** allows 30 more minutes with the password |
+| Spanish captions | Accessibility menu → Caption language → Español, then turn on CC in the player |
+| Downloads | In a production build (`npm run build`, then serve `dist/`), a title page offers **Download to watch offline**; My App → Downloads lists them. Go offline and it still plays |
+| Report a review | Under someone else's review on a title page, **Report**. In memory the demo account is staff: Account → Support dashboard → Reported reviews to keep or remove it |
 | Seed data (dev project) | Six `@example.com` members (Alex, Jordan, Sam, Priya, Chris, Dana) with lists, reviews, tickets and affiliates, from `../supabase/seeds/` |
 
 ### Troubleshooting
@@ -106,7 +112,8 @@ Tests serve the built app with `e2e/serve.js`, a tiny static server with SPA fal
 | Together | `/lists`, `/lists/:listId`, `/shared/:slug`, `/party/:code` | Custom lists shareable by link (public page for anyone), watch parties over Supabase Realtime with presence and chat |
 | Activity | `/notifications`, `/history`, `/support-dashboard` | Notifications bell (released reminders, support replies), viewing activity with privacy controls, the support team's ticket queue |
 | Library | `/my-netflix`, `/watchlist`, `/favorites`, `/account` | Watch list & Favorites pages; profile, password, plan, billing (payment method, billing date, pause, cancel), autoplay, maturity, accessibility and privacy settings, Security (two-step sign-in, signed-in devices), danger zone (delete account) |
-| Donate | `/donate` | One-time card donations through Stripe ($5, $10, $25, $50 or $1–$10,000), opened from the round coffee button above the tab bar on every page or from Account; the `process-donation` and `stripe-webhook` Edge Functions (dev project for now) |
+| Donate | `/donate` | One-time card donations through Stripe ($5, $10, $25, $50 or $1–$10,000), opened from the round coffee button above the tab bar on every page or from Account, with the member's past donations and an emailed Stripe receipt; the `process-donation` and `stripe-webhook` Edge Functions (dev project for now) |
+| Downloads | `/downloads` | Titles saved on this device to watch offline ("Download to watch offline" on a title page; the service worker plays them, seeking included) |
 | Games | `/games`, `/games/:gameId` | Poster Match (`memory`), Plot Twist (`trivia`), Timeline (`timeline`), Cast Call (`cast`), Higher or Lower (`higher-lower`) and Title Scramble (`scramble`), with best scores (saved with Supabase) and opt-in leaderboards (first names only) |
 | Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Affiliate Program (join, referral dashboard, tiered commissions, marketing materials), Legal & Privacy hub, Terms, Privacy, Do Not Sell, Accessibility Policy |
 

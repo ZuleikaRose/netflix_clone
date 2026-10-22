@@ -2,7 +2,9 @@
 // Starts a one-time donation: creates a Stripe PaymentIntent (USD, cards only) for `amount` cents, which the app
 // confirms with Stripe.js (CardElement + confirmCardPayment), so card numbers never reach this function. The outcome is
 // recorded in public.donations by the stripe-webhook function. user_id must be the signed-in member: the token decides
-// who donates, the body only confirms it. Needs the STRIPE_SECRET_KEY function variable (test mode on dev).
+// who donates, the body only confirms it. Stripe emails the receipt to the member's address (not for demo accounts,
+// whose addresses are made up; in test mode Stripe sends none). Needs the STRIPE_SECRET_KEY function variable (test
+// mode on dev).
 import Stripe from 'npm:stripe@23.0.0'
 import { allowRequest, callerFrom, clientIp, json, serve } from '../_shared/supabase.ts'
 
@@ -33,6 +35,9 @@ serve(async (req, body) => {
     return json({ error: 'You’ve tried to donate several times this hour. Please try again later.' }, 429)
   }
 
+  // Demo accounts (app_metadata.demo) have random example addresses: no receipt for them
+  const receiptEmail = caller.user.app_metadata?.demo === true ? undefined : caller.user.email
+
   try {
     // maxNetworkRetries makes the SDK send an idempotency key, so a retried request can't create a second intent
     const intent = await stripe.paymentIntents.create({
@@ -40,6 +45,7 @@ serve(async (req, body) => {
       currency: 'usd',
       allowed_payment_method_types: ['card'], // stripe-node 23 renamed payment_method_types
       description: 'Donation',
+      ...(receiptEmail ? { receipt_email: receiptEmail } : {}),
       metadata: { user_id: userId, source: 'netflix-clone-donation' },
     })
     if (!intent.client_secret) throw new Error(`PaymentIntent ${intent.id} has no client_secret`)

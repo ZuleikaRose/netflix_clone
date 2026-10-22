@@ -11,10 +11,10 @@ function Choice({ name, value, onChange }) {
     <fieldset className="choice-group">
       <legend>{label}</legend>
       <div className="choice-options">
-        {options.map(([optionValue, optionLabel]) => (
+        {options.map(([optionValue, optionLabel, lang]) => (
           <label key={optionValue} className="choice">
             <input type="radio" name={`${id}-${name}`} checked={value === optionValue} onChange={() => onChange({ [name]: optionValue })} />
-            <span>{optionLabel}</span>
+            <span lang={lang}>{optionLabel}</span>
           </label>
         ))}
       </div>
@@ -33,7 +33,7 @@ function Switch({ label, hint, checked, onChange }) {
 
 // The accessibility menu: one-tap profiles plus individual text, color, navigation and media settings
 export function AccessibilityPanel() {
-  const { settings, update, reset, menuOpen, closeMenu } = useAccessibility()
+  const { settings, update, reset, menuOpen, closeMenu, openShortcuts } = useAccessibility()
   const { user, setPreference } = useAuth()
   const dialogRef = useRef(null)
 
@@ -93,6 +93,7 @@ export function AccessibilityPanel() {
           <h3 id="a11y-media">Video &amp; motion</h3>
           {switches('media')}
           <Choice name="captionSize" value={settings.captionSize} onChange={update} />
+          <Choice name="captionLanguage" value={settings.captionLanguage} onChange={update} />
           {/* Autoplay belongs to the signed-in profile, so it's the same switch as in Account settings */}
           {user && (
             <>
@@ -105,6 +106,7 @@ export function AccessibilityPanel() {
 
       <footer className="a11y-foot">
         <button type="button" className="ghost-cta" onClick={reset}>Reset all settings</button>
+        <button type="button" className="ghost-cta" aria-haspopup="dialog" aria-keyshortcuts="?" onClick={openShortcuts}>Keyboard shortcuts</button>
         <Link to="/info/accessibility" className="inline-link" onClick={closeMenu}>Accessibility Policy</Link>
       </footer>
     </dialog>

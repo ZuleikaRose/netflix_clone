@@ -75,3 +75,19 @@ export function paymentError(error) {
     default: return { message: error?.decline_code ? DECLINED_MESSAGE : GENERIC_PAYMENT_MESSAGE }
   }
 }
+
+// The member's donations, newest first (RLS: only their own rows). Recorded by the stripe-webhook function once Stripe
+// reports the outcome, so a donation can take a few seconds to appear.
+export const DONATION_HISTORY_LIMIT = 20
+export async function loadDonations(supabase) {
+  const { data, error } = await supabase.from('donations').select('id, amount, status, created_at')
+    .order('created_at', { ascending: false }).limit(DONATION_HISTORY_LIMIT)
+  if (error) throw error
+  return data.map((d) => ({ id: d.id, cents: d.amount, status: d.status, createdAt: new Date(d.created_at) }))
+}
+
+const day = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+export const formatDonationDate = (date) => day.format(date)
+
+// Stripe emails the receipt; demo accounts have made-up addresses, so they get none
+export const receiptEmailFor = (user) => (user.isDemo ? null : user.email)

@@ -8,7 +8,7 @@ test.use({ reducedMotion: 'reduce' })
 const WCAG_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
 const signedInRoutes = [
-  '/', '/title/after-dark', '/title/after-dark?play=1', '/tmdb/movie/603', '/tmdb/person/6384', '/people/Mara%20Quinn', '/search', '/search?q=zzz', '/new', '/my-netflix', '/favorites', '/account', '/profiles', '/support-dashboard', '/notifications', '/history', '/year-in-review', '/what-to-watch', '/donate', '/lists', '/party/0000000000', '/shared/0000000000000000',
+  '/', '/title/after-dark', '/title/after-dark?play=1', '/tmdb/movie/603', '/tmdb/person/6384', '/people/Mara%20Quinn', '/search', '/search?q=zzz', '/new', '/my-netflix', '/favorites', '/account', '/profiles', '/support-dashboard', '/notifications', '/history', '/year-in-review', '/what-to-watch', '/donate', '/lists', '/downloads', '/party/0000000000', '/shared/0000000000000000',
   '/games', '/games/memory', '/games/trivia', '/games/timeline', '/games/cast', '/games/higher-lower', '/games/scramble', '/does/not/exist',
   ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell', 'accessibility'].map((s) => `/info/${s}`),
 ]
@@ -112,6 +112,10 @@ test('interactive states meet WCAG 2.2 AA', async ({ page }) => {
   await audit(page, 'accessibility menu with a profile on')
   await page.getByRole('button', { name: 'Reset all settings' }).click()
   await page.keyboard.press('Escape')
+  await page.locator('body').press('?')
+  await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible()
+  await audit(page, 'keyboard shortcuts help')
+  await page.keyboard.press('Escape')
 
   await navigateInApp(page, '/title/night-shift?play=1')
   await expect(page.getByLabel('Seek')).not.toHaveAttribute('max', '0')
@@ -122,6 +126,17 @@ test('interactive states meet WCAG 2.2 AA', async ({ page }) => {
   await page.getByLabel('Seek').fill(await page.getByLabel('Seek').getAttribute('max'))
   await expect(page.getByRole('group', { name: 'Playback finished' })).toBeVisible()
   await audit(page, 'player end screen')
+
+  await navigateInApp(page, '/title/behind-the-glass')
+  await page.getByRole('button', { name: 'Report Jordan’s review' }).click()
+  await page.getByRole('button', { name: 'Send report' }).click()
+  await audit(page, 'report a review, with an error')
+  await page.getByRole('radio', { name: 'Spam or advertising' }).check()
+  await page.getByRole('button', { name: 'Send report' }).click()
+  await navigateInApp(page, '/support-dashboard')
+  await page.getByRole('button', { name: 'Reported reviews' }).click()
+  await expect(page.getByRole('list', { name: 'Open reported reviews' })).toBeVisible()
+  await audit(page, 'reported reviews queue')
 
   await navigateInApp(page, '/account')
   await page.getByRole('button', { name: 'Delete account' }).click()

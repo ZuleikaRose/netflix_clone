@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { authErrorMessage, billingColumns, callFunction, codeErrorMessage, endDeviceSession, loadAccount, loadDevices, saveAccount, savePreference } from '../data/accountApi.js'
 import { libraryApi } from '../data/libraryApi.js'
 import { pinMessages } from '../data/profiles.js'
-import { deleteProfileRow, insertProfile, profileErrorMessage, setProfilePinRow, unlockProfileRow, updateProfileRow, verifyPassword } from '../data/profilesApi.js'
+import { deleteProfileRow, insertProfile, profileErrorMessage, setProfilePinRow, setScreenTimeLimitRow, unlockProfileRow, updateProfileRow, verifyPassword } from '../data/profilesApi.js'
 import { getSupabase, hasStoredSession, readStored, writeStored } from '../lib/supabaseConfig.js'
 import { AuthContext, normalizeEmail } from './authContext.js'
 
@@ -439,6 +439,17 @@ export function SupabaseAuthProvider({ children }) {
           return profileErrorMessage(error)
         }
         setUser((u) => ({ ...u, profiles: u.profiles.map((p) => (p.id === id ? { ...p, locked: pin !== null } : p)) }))
+        return null
+      },
+      // A profile's daily screen-time limit in minutes, or null to remove it; needs the account password
+      async setScreenTimeLimit(id, minutes, password) {
+        try {
+          await setScreenTimeLimitRow(client, id, minutes, password)
+        } catch (error) {
+          warn(error)
+          return profileErrorMessage(error)
+        }
+        setUser((u) => ({ ...u, profiles: u.profiles.map((p) => (p.id === id ? { ...p, dailyLimit: minutes } : p)) }))
         return null
       },
       async unlockProfile(id, pin) {

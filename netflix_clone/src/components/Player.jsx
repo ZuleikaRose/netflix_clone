@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { THUMBS, captionsCredit, chapterAt, clipFor, clipSources, thumbAt } from '../data/clips.js'
+import { THUMBS, captionLanguage, captionsCredit, chapterAt, clipFor, clipSources, thumbAt } from '../data/clips.js'
 import { episodeCode, episodeCount, findEpisode } from '../data/episodes.js'
 import { readStored, writeStored } from '../lib/supabaseConfig.js'
 import { useAccessibility } from '../state/accessibilityContext.js'
 import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
+import { useProfile } from '../state/profileContext.js'
+import { useScreenTime } from '../state/useScreenTime.js'
+import { TICK_SECONDS } from '../data/screenTime.js'
+import { ScreenTimeUp } from './ScreenTimeUp.jsx'
 import { Icon } from './Icon.jsx'
 
 // Video player for the title's sample clip (data/clips.js) with custom, keyboard-accessible controls.
@@ -57,13 +61,18 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
   const { user, setPreference } = useAuth()
   const { settings, update } = useAccessibility()
   const { progress, saveProgress } = useLibrary()
+  const { profile } = useProfile()
+  // Screen-time limits: time counts while playing; once it's up the video pauses and won't start again today
+  const screenTime = useScreenTime()
+  const timeUp = useRef(false)
   const lastEpisode = episodeCount(title)
   const [resumeFrom] = useState(() => {
     const saved = party ? null : progress[title.id] ?? null
     return startEpisode && saved?.episode !== startEpisode ? null : saved
   })
   const clip = clipFor(title.id)
-  const sources = clipSources(clip)
+  const language = captionLanguage(settings.captionLanguage)
+  const sources = clipSources(clip, language.code)
   const playerRef = useRef(null)
   const videoRef = useRef(null)
   const [episode, setEpisode] = useState(() => Math.min(Math.max(1, startEpisode ?? resumeFrom?.episode ?? 1), lastEpisode || 1))
@@ -102,7 +111,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
   }
 
   // The browser can refuse to start playback (e.g. autoplay without a user gesture); show Play instead
-  const play = () => videoRef.current.play().catch(() => setPaused(true))
+  const play = () => (timeUp.current ? undefined : videoRef.current.play().catch(() => setPaused(true)))
 
   // Start at the remembered level (the state already holds it; the element starts at 1)
   useEffect(() => {
@@ -148,13 +157,30 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
     }, VOLUME_SAVE_DELAY_MS)
   }
 
+  // A new caption language swaps the <track> (keyed by language), so pick up the new one
+  const languageCode = language.code
   useEffect(() => {
-    const track = videoRef.current.textTracks[0]
+    const track = videoRef.current.textTracks.getTrackById(`captions-${languageCode}`)
+    if (!track) return undefined
     track.mode = 'hidden'
     const showCue = () => setCaption([...(track.activeCues ?? [])].map(cueText).join('\n'))
     track.addEventListener('cuechange', showCue)
-    return () => track.removeEventListener('cuechange', showCue)
-  }, [])
+    return () => {
+      track.removeEventListener('cuechange', showCue)
+      track.mode = 'disabled'
+    }
+  }, [languageCode])
+
+  useEffect(() => {
+    timeUp.current = screenTime.timeUp
+    if (screenTime.timeUp) videoRef.current?.pause()
+  }, [screenTime.timeUp])
+  const { limit: dailyLimit, addSeconds: addScreenSeconds } = screenTime
+  useEffect(() => {
+    if (!dailyLimit || paused || ended) return undefined
+    const id = setInterval(() => addScreenSeconds(TICK_SECONDS), TICK_SECONDS * 1000)
+    return () => clearInterval(id)
+  }, [dailyLimit, paused, ended, addScreenSeconds])
 
   // "Autoplay next episode": count down, then start it (the sample clip stands in for every episode)
   useEffect(() => {
@@ -349,7 +375,10 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
           onDurationChange={() => setDuration(videoRef.current.duration)}
           onTimeUpdate={syncPosition}
           onSeeked={syncPosition}
-          onPlay={() => { setPaused(false); setEnded(false); watched.current.ended = false }}
+          onPlay={() => {
+            if (timeUp.current) return videoRef.current.pause()
+            setPaused(false); setEnded(false); watched.current.ended = false
+          }}
           onPause={() => { setPaused(true); recordProgress() }}
           onEnded={() => { setEnded(true); recordFinished() }}
           onVolumeChange={onVolumeChange}
@@ -357,7 +386,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
         >
           <source src={sources.webm} type="video/webm" />
           <source src={sources.mp4} type="video/mp4" />
-          <track kind="captions" src={sources.captions} srcLang="en" label="English" />
+          <track key={language.code} id={`captions-${language.code}`} kind="captions" src={sources.captions} srcLang={language.code} label={language.label} />
         </video>
         <p className="player-status" role="status">{status}{muted && ' · Muted'}</p>
         <p className="player-chapter">Chapter: {chapter.name}</p>
@@ -366,10 +395,13 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
         )}
         <button type="button" className="icon-button player-close" aria-label="Close player" onClick={onClose}><Icon name="close" /></button>
 
-        {settings.captions && caption && !ended && <p className={`captions caption-${settings.captionSize}`}>{caption}</p>}
-        {skip && <button type="button" className="skip-button" aria-keyshortcuts="S" onClick={skipAhead}>{skip.label}</button>}
+        {settings.captions && caption && !ended && <p className={`captions caption-${settings.captionSize}`} lang={language.code}>{caption}</p>}
+        {skip && !screenTime.timeUp && <button type="button" className="skip-button" aria-keyshortcuts="S" onClick={skipAhead}>{skip.label}</button>}
 
-        {ended && (
+        {screenTime.timeUp && (
+          <ScreenTimeUp profileName={profile.name} limit={screenTime.limit} onAllow={screenTime.allowMoreTime} onClose={onClose} />
+        )}
+        {ended && !screenTime.timeUp && (
           <div className="player-end" role="group" aria-label="Playback finished">
             {countingDown
               ? <>
@@ -440,7 +472,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
       </section>
       <p className="clip-credit">
         Sample clip: <a href={clip.sourceUrl} target="_blank" rel="noreferrer">{clip.film}</a> ({clip.year}, {clip.excerpt}) by the {clip.makers},{' '}
-        <a href={clip.licenseUrl} target="_blank" rel="noreferrer">{clip.license}</a>. English captions from {captionsCredit.source},{' '}
+        <a href={clip.licenseUrl} target="_blank" rel="noreferrer">{clip.license}</a>. {language.code === 'en' ? 'English captions from' : 'Spanish captions translated from'} {captionsCredit.source},{' '}
         <a href={captionsCredit.licenseUrl} target="_blank" rel="noreferrer">{captionsCredit.license}</a>.
       </p>
     </>

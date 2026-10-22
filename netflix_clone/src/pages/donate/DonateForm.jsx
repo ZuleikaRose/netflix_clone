@@ -2,7 +2,7 @@ import { use, useEffect, useRef, useState } from 'react'
 import { CardElement, Elements, useElements, useStripe } from '@stripe/react-stripe-js'
 import { Field } from '../../components/Field.jsx'
 import { callFunction } from '../../data/accountApi.js'
-import { DEFAULT_AMOUNT, DONATION_AMOUNTS, NETWORK_MESSAGE, cardFieldMessage, formatUsd, paymentError, readAmount } from '../../data/donations.js'
+import { DEFAULT_AMOUNT, DONATION_AMOUNTS, NETWORK_MESSAGE, cardFieldMessage, formatUsd, paymentError, readAmount, receiptEmailFor } from '../../data/donations.js'
 import { getSupabase } from '../../lib/supabaseConfig.js'
 import { forgetStripe, getStripe } from '../../lib/stripe.js'
 import { useAuth } from '../../state/authContext.js'
@@ -24,7 +24,7 @@ const elementsOptions = { fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?f
 
 // Lazy-loaded by pages/Donate.jsx only when donations are available, so Stripe stays out of the main bundle and the
 // in-memory build never loads Stripe.js
-export default function DonateForm() {
+export default function DonateForm({ onDonated }) {
   // getStripe() is memoised, so `use` sees the same promise on every render
   const stripe = use(getStripe())
   const [, retry] = useState(0)
@@ -37,10 +37,10 @@ export default function DonateForm() {
       </section>
     )
   }
-  return <Elements stripe={stripe} options={elementsOptions}><DonationForm /></Elements>
+  return <Elements stripe={stripe} options={elementsOptions}><DonationForm onDonated={onDonated} /></Elements>
 }
 
-function DonationForm() {
+function DonationForm({ onDonated }) {
   const { user } = useAuth()
   const stripe = useStripe()
   const elements = useElements()
@@ -106,6 +106,7 @@ function DonationForm() {
     }
     setProcessing(false)
     setOutcome(result)
+    if (result.kind === 'succeeded') onDonated?.()
   }
 
   const submit = (e) => {
@@ -137,7 +138,10 @@ function DonationForm() {
       <section className="settings-card donate-result" aria-labelledby="donate-result-heading">
         <div role="status">
           <h2 id="donate-result-heading" ref={resultHeading} tabIndex={-1}>Thank you for your {formatUsd(outcome.cents)} donation</h2>
-          <p className="muted">Your payment went through. A receipt will appear on your card statement.</p>
+          <p className="muted">
+            Your payment went through.{' '}
+            {receiptEmailFor(user) ? <>Stripe will email a receipt to <b>{receiptEmailFor(user)}</b>.</> : 'It will appear on your card statement.'}
+          </p>
         </div>
         <button type="button" className="cta" onClick={startOver}>Make another donation</button>
       </section>

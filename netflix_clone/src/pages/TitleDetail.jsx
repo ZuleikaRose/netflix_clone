@@ -10,6 +10,7 @@ import { Preview } from '../components/Preview.jsx'
 import { Reviews } from '../components/Reviews.jsx'
 import { PosterCard } from '../components/PosterCard.jsx'
 import { Row } from '../components/Row.jsx'
+import { DownloadButton } from '../components/DownloadButton.jsx'
 import { ShareButton } from '../components/ShareButton.jsx'
 import { TitleReaction } from '../components/TitleReaction.jsx'
 import { useDocumentTitle } from '../components/useDocumentTitle.js'
@@ -126,6 +127,7 @@ export function TitleDetail() {
             <ShareButton title={title} />
             <PartyButton title={title} />
           </div>
+          <DownloadButton title={title} />
         </div>
 
         <TitleReaction title={title} />

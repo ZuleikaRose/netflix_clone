@@ -10,7 +10,9 @@ together.
 
 * **Mobile-first:** designed for a 390px phone. The app column is at most 430px wide (`.phone`).
 * **Desktop:** from 600px wide the app sits in a centered phone frame (up to 900px tall, rounded, 1px `#333` border)
-  that scrolls inside itself, so the header and tab bar stay pinned.
+  that scrolls inside itself, so the header and tab bar stay pinned. The page area grows to fill the frame, so on a
+  short page (an empty Watch list) the footer and tab bar still sit at the frame's bottom, in the same place on every
+  tab.
 * **Page header** (every page): sticky, translucent black (`#090909f2`) with a blur. Back button or brand on the left,
   the page title centered, and the accessibility menu button on the right.
 * **Bottom tab bar** (signed in): Home · Games · New & Hot · My App, fixed at the bottom, highlighting the current
@@ -102,7 +104,22 @@ together.
   card field styled like our inputs (`#1a1a1a`, white text, orange when invalid), and a full-width accent "Donate
   $10.00" button. The result replaces the form: a focused "Thank you for your $10.00 donation" heading, or an alert
   box ("Your donation didn't go through" / "We couldn't reach the payment service" with Try again). Stripe's error
-  codes are never shown.
+  codes are never shown. Below it, Your donations: one row per donation with the amount in bold, the date in muted
+  grey and "Paid" in green (`#46d369`) or "Didn't go through" in the error orange.
+* **Surprise me:** an outlined button (`.ghost-cta`, auto width) with a dice, above Home's rows and beside Search's
+  assistant link.
+* **Keyboard shortcuts help:** a bottom sheet like the accessibility menu (same header, close button and backdrop),
+  each shortcut as a `<kbd>` key cap beside what it does, grouped Anywhere / Video player / Search box.
+* **Screen time:** a settings card on the profile editor (Daily limit select; the password field appears only when the
+  limit changes). When time is up a near-black panel (`#000000eb`) covers the whole player, controls included, with
+  "Time's up for today", **Ask a grown-up** (white) and **Close**; the password form opens in place.
+* **Downloads:** a full-width outlined "Download to watch offline" button under a title's actions; once saved, a muted
+  "✓ Downloaded (2.3 MB) · plays offline" line and **Remove download**. The Downloads page lists them like signed-in
+  devices (title, type and size, Remove).
+* **Report a review:** a small grey underlined "Report" under each review by someone else; it opens an outlined box with
+  the reasons as pill radio choices, an optional note, an accent **Send report** and Cancel. Afterwards a muted
+  "Reported" line replaces it. On the support dashboard each reported review shows its text as a quote with a grey left
+  rule, the reasons and reporters below, and **Keep review** (outlined) beside **Remove review** (`.delete-fill`).
 * **Icon buttons:** at least 44×44px; pressed toggles invert to white.
 
 ## Touch targets and focus
@@ -126,9 +143,10 @@ together.
   ADHD friendly, Dyslexia friendly, Keyboard navigation, Deaf & hard of hearing) and settings for text size
   (100–150%), font, line height, letter spacing, left-aligned text, contrast, saturation, link and heading
   highlights, strong focus outline, big cursor, reading guide (gold `#ffd84d` bar), hiding images, stopping
-  animations, captions and caption size, and autoplay. Settings apply as `data-a11y-*` attributes on `<html>`; for
+  animations, captions, caption size and caption language, and autoplay. Settings apply as `data-a11y-*` attributes on `<html>`; for
   members they are saved to their account.
-* The video player works fully from the keyboard and has real closed captions.
+* The video player works fully from the keyboard and has real closed captions in English and Spanish (the caption
+  text carries its `lang`). Press ? on any page for every keyboard shortcut.
 * Labels on every input, headings on every page, and an Accessibility Policy page linked from the footer.
 
 ## Signed-in experience

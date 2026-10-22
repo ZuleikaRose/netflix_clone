@@ -3,11 +3,15 @@
 //   are cached the first time they load.
 // - Page loads try the network first and fall back to the cached shell, so the app starts offline and its own
 //   fallbacks take over (the built-in catalog, "You're offline").
-// - Videos (/media, byte ranges), other sites (Supabase, TMDB, fonts) and anything but GET are left to the browser.
+// - Downloaded titles (data/downloads.js) are kept in the DOWNLOAD_CACHE, which is never deleted here: /media requests
+//   are answered from it when the file is there, byte ranges included (video seeks ask for them), so they play offline.
+//   Other /media requests go to the network as usual.
+// - Other sites (Supabase, TMDB, fonts) and anything but GET are left to the browser.
 // Bump VERSION when this file's caching rules change; built assets are versioned by their file names.
-const VERSION = 'v1'
+const VERSION = 'v2'
 const SHELL_CACHE = `shell-${VERSION}`
 const ASSET_CACHE = `assets-${VERSION}`
+const DOWNLOAD_CACHE = 'downloads' // as in src/data/downloads.js
 const SHELL = ['/', '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png']
 
 // Keeps a copy for offline use; a full or blocked cache only means no offline copy, never a failed page
@@ -19,7 +23,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    const keep = new Set([SHELL_CACHE, ASSET_CACHE])
+    const keep = new Set([SHELL_CACHE, ASSET_CACHE, DOWNLOAD_CACHE])
     for (const name of await caches.keys()) if (!keep.has(name)) await caches.delete(name)
     await self.clients.claim()
   })())
@@ -30,10 +34,42 @@ self.addEventListener('message', (event) => {
   if (event.data === 'skip-waiting') self.skipWaiting()
 })
 
+// A downloaded file, or the part a "Range: bytes=start-end" header asks for (206 Partial Content)
+async function fromDownloads(request, url) {
+  const cache = await caches.open(DOWNLOAD_CACHE)
+  const cached = await cache.match(url.pathname)
+  if (!cached) return null
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') ?? '')
+  if (!range) return cached
+  const body = await cached.blob()
+  const size = body.size
+  let start = range[1] === '' ? size - Number(range[2]) : Number(range[1])
+  let end = range[1] === '' || range[2] === '' ? size - 1 : Math.min(Number(range[2]), size - 1)
+  start = Math.max(0, start)
+  if (start >= size || start > end) {
+    return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } })
+  }
+  end = Math.max(start, end)
+  return new Response(body.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      'Content-Type': cached.headers.get('Content-Type') ?? body.type,
+      'Content-Length': String(end - start + 1),
+      'Content-Range': `bytes ${start}-${end}/${size}`,
+      'Accept-Ranges': 'bytes',
+    },
+  })
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
-  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/media/')) return
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return
+
+  if (url.pathname.startsWith('/media/')) {
+    event.respondWith((async () => (await fromDownloads(request, url).catch(() => null)) ?? fetch(request))())
+    return
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith((async () => {

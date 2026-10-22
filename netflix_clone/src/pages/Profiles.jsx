@@ -8,6 +8,8 @@ import { ProfileAvatar } from '../components/ProfileAvatar.jsx'
 import { MAX_PROFILES, MAX_PROFILE_NAME, PIN_PATTERN, avatarColors, maturityChoices, profileNameProblem } from '../data/profiles.js'
 import { useAuth } from '../state/authContext.js'
 import { useProfile } from '../state/profileContext.js'
+import { LIMIT_CHOICES, formatMinutes } from '../data/screenTime.js'
+import { useScreenTime } from '../state/useScreenTime.js'
 import { focusFirstError } from './formUtils.js'
 
 // Adds a profile (no `profile`) or edits one; deleting needs a second, explicit press
@@ -190,6 +192,63 @@ function ProfileLockForm({ profile }) {
   )
 }
 
+// A daily viewing limit for the profile (meant for Kids profiles); the account password confirms it's a grown-up
+function ScreenTimeForm({ profile }) {
+  const { setScreenTimeLimit } = useAuth()
+  const { profile: watching } = useProfile()
+  const { usedSeconds } = useScreenTime()
+  const [minutes, setMinutes] = useState(profile.dailyLimit ? String(profile.dailyLimit) : '')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(null)
+  const [status, setStatus] = useState('')
+  const [busy, setBusy] = useState(false)
+  const unchanged = (minutes ? Number(minutes) : null) === (profile.dailyLimit ?? null)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    const form = e.currentTarget
+    let problem = password ? null : 'Please enter the account password.'
+    if (!problem) {
+      setBusy(true)
+      problem = await setScreenTimeLimit(profile.id, minutes ? Number(minutes) : null, password)
+      setBusy(false)
+    }
+    setError(problem)
+    if (problem) return focusFirstError(form)
+    setPassword('')
+    setStatus(minutes ? `${profile.name} can watch ${formatMinutes(Number(minutes))} a day` : `No daily limit for ${profile.name}`)
+  }
+
+  return (
+    <section className="settings-card" aria-labelledby="screen-time-heading">
+      <h2 id="screen-time-heading">Screen time</h2>
+      <p className="muted">
+        {profile.dailyLimit
+          ? `${profile.name} can watch ${formatMinutes(profile.dailyLimit)} a day. When it’s used up, the player stops until tomorrow unless a grown-up allows more time.`
+          : `${profile.name} can watch as long as they like. Set a daily limit to stop the player once the time is used up.`}
+        {profile.dailyLimit && profile.id === watching?.id ? ` Watched today: ${formatMinutes(Math.floor(usedSeconds / 60))}.` : ''}
+      </p>
+      <form className="lock-form" onSubmit={submit} noValidate aria-label="Set a daily limit">
+        <label className="select-row">
+          <span className="switch-label">Daily limit</span>
+          <select value={minutes} onChange={(e) => { const { value } = e.target; setMinutes(value); setStatus('') }}>
+            <option value="">No limit</option>
+            {LIMIT_CHOICES.map((m) => <option key={m} value={m}>{formatMinutes(m)} a day</option>)}
+          </select>
+        </label>
+        {!unchanged && (
+          <>
+            <Field label="Account password" type="password" autoComplete="current-password" value={password}
+              onChange={(e) => setPassword(e.target.value)} error={error} />
+            <button type="submit" className="cta" disabled={busy}>Save daily limit</button>
+          </>
+        )}
+      </form>
+      <p className="save-status" role="status">{status && <><span aria-hidden="true">✓</span> {status}</>}</p>
+    </section>
+  )
+}
+
 // "Who's watching?": pick a profile, or manage them (add, rename, recolour, change the maturity rating, delete)
 export function Profiles() {
   const { profiles, chooseProfile, isUnlocked } = useProfile()
@@ -238,6 +297,7 @@ export function Profiles() {
           <GrownUpGate what="profile settings">
             <ProfileForm key={mode} profile={editing} others={profiles.filter((p) => p.id !== editing?.id)} onDone={() => setMode('manage')} />
             {editing && <ProfileLockForm profile={editing} />}
+            {editing && <ScreenTimeForm key={editing.id} profile={editing} />}
           </GrownUpGate>
         </div>
       </>

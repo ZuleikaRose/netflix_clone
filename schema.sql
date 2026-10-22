@@ -41,6 +41,13 @@
 -- 2026-10-23 (donations):
 -- - ..._donations: new table donations (one-time Stripe donations, recorded by the stripe-webhook function; members
 --   only read their own).
+-- 2026-10-24 (eight more features):
+-- - ..._screen_time: profiles gains daily_limit_minutes (only set_screen_time_limit() changes it, with the account
+--   password); new table screen_time (seconds watched per profile and day), changed only through add_screen_time() and
+--   add_extra_screen_time(); rows older than a week are deleted nightly.
+-- - ..._caption_language: accessibility_settings gains caption_language ('en' or 'es').
+-- - ..._review_reports: new table review_reports (a member's report of another member's review, with a copy of it);
+--   staff read them through staff_review_reports() and keep or remove the review with staff_resolve_review().
 
 CREATE SEQUENCE ticket_number_seq START 48400;
 
@@ -73,6 +80,7 @@ CREATE TABLE profiles (
   maturity_rating varchar NOT NULL DEFAULT 'all' CHECK (maturity_rating IN ('all', 'teen', 'kids')),
   notifications_seen_at timestamptz NOT NULL DEFAULT now(), -- when the profile last opened its notifications
   locked boolean NOT NULL DEFAULT false, -- has a PIN (only set_profile_pin() changes it)
+  daily_limit_minutes smallint CHECK (daily_limit_minutes IN (30, 60, 90, 120, 180, 240)), -- screen-time limit; null = none
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (id, user_id),
   UNIQUE (user_id, name)
@@ -284,6 +292,7 @@ CREATE TABLE accessibility_settings (
   stop_animations boolean NOT NULL DEFAULT false,
   captions boolean NOT NULL DEFAULT false,
   caption_size varchar NOT NULL DEFAULT 'medium' CHECK (caption_size IN ('medium', 'large', 'xlarge')),
+  caption_language varchar NOT NULL DEFAULT 'en' CHECK (caption_language IN ('en', 'es')),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -398,4 +407,35 @@ CREATE TABLE donations (
   stripe_payment_intent_id text NOT NULL UNIQUE,
   status text NOT NULL CHECK (status IN ('succeeded', 'failed')),
   created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Screen time per profile and (the member's local) day, for profiles with a daily limit. Members read their own rows;
+-- add_screen_time() counts up in steps of at most 60 seconds and add_extra_screen_time() allows more time with the
+-- account password. Rows older than a week are deleted nightly.
+CREATE TABLE screen_time (
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  profile_id uuid NOT NULL,
+  day date NOT NULL,
+  seconds integer NOT NULL DEFAULT 0 CHECK (seconds BETWEEN 0 AND 86400),
+  extra_seconds integer NOT NULL DEFAULT 0 CHECK (extra_seconds BETWEEN 0 AND 86400),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (profile_id, day),
+  FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE
+);
+
+-- A member's report of another member's review. A trigger fills in the reporter and a copy of the review (kept when
+-- staff remove it); members read their own reports; staff settle them through staff_resolve_review().
+CREATE TABLE review_reports (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  review_id uuid REFERENCES review (id) ON DELETE SET NULL,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  reason varchar NOT NULL CHECK (reason IN ('spoilers', 'offensive', 'spam', 'other')),
+  details text CHECK (details IS NULL OR char_length(details) <= 500),
+  title_id varchar,
+  review_author varchar NOT NULL DEFAULT '',
+  review_body text NOT NULL DEFAULT '',
+  status varchar NOT NULL DEFAULT 'Open' CHECK (status IN ('Open', 'Kept', 'Removed')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz,
+  UNIQUE (review_id, user_id)
 );

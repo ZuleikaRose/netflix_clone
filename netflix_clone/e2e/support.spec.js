@@ -79,3 +79,39 @@ test('the bell counts support replies until the notifications are opened', async
   await navigateInApp(page, '/notifications')
   await expect(page.locator('.notification', { hasText: `Support replied to ${number}` })).not.toHaveClass(/new/)
 })
+
+test('a member reports a review; staff keep or remove it from the dashboard', async ({ page }) => {
+  await signInAsDemo(page)
+  await navigateInApp(page, '/title/behind-the-glass')
+  const reviews = page.getByRole('region', { name: 'Ratings & Reviews' })
+  // Your own reviews can't be reported
+  await reviews.getByLabel('Write a review').fill('Loved the ending.')
+  await reviews.getByRole('button', { name: 'Post review' }).click()
+  await expect(reviews.getByRole('listitem').filter({ hasText: 'Loved the ending.' }).getByRole('button', { name: /Report/ })).toHaveCount(0)
+
+  await reviews.getByRole('button', { name: 'Report Jordan’s review' }).click()
+  const form = reviews.getByRole('form', { name: 'Report Jordan’s review' })
+  await form.getByRole('button', { name: 'Send report' }).click()
+  await expect(form.getByRole('alert')).toHaveText('Choose a reason.')
+  await form.getByRole('radio', { name: 'Spoilers' }).check()
+  await form.getByLabel('Anything else? (optional)').fill('Gives away the twist')
+  await form.getByRole('button', { name: 'Send report' }).click()
+  await expect(reviews.getByText('Reported. Our support team will take a look.')).toBeVisible()
+
+  await navigateInApp(page, '/support-dashboard')
+  await page.getByRole('button', { name: 'Reported reviews' }).click()
+  const queue = page.getByRole('list', { name: 'Open reported reviews' })
+  await expect(queue).toContainText('Every episode ends on a hook.')
+  await expect(queue).toContainText('Spoilers · Alex')
+  await expect(queue).toContainText('“Gives away the twist”')
+  await queue.getByRole('button', { name: 'Remove review' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Jordan’s review removed' })).toBeVisible()
+  await expect(page.getByText('No open reported reviews.')).toBeVisible()
+  await page.getByRole('button', { name: 'Removed', exact: true }).click()
+  await expect(page.getByRole('list', { name: 'Removed reported reviews' })).toContainText('Every episode ends on a hook.')
+
+  // The review is gone from the title page
+  await navigateInApp(page, '/title/behind-the-glass')
+  await expect(page.getByRole('heading', { name: 'Ratings & Reviews' })).toBeVisible()
+  await expect(page.getByText('Every episode ends on a hook.')).toHaveCount(0)
+})

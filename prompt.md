@@ -127,5 +127,13 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
 28. Update `drawsql.png` and `schema.sql` (the `donations` table), `user_journey.md`, `user_stories.md`, the style
     guide, `CLAUDE.md`, `prompt.md`, Supabase (dev only for now) and the README, committing and pushing after each.
 
-Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and donations on production
-(migration, both functions, the two Stripe function settings and a Stripe webhook endpoint for production).
+29. "What new features can you add?", then "please do 1–8": donation history on /donate, Stripe receipts, Surprise
+    me, keyboard shortcuts help (?), screen-time limits for Kids profiles, Spanish captions with a Caption language
+    choice, offline downloads and reporting reviews to the support dashboard; each tested, committed and pushed.
+    Migrations went to the dev project only.
+30. Fix My App so the tab bar (Home, Games, New & Hot, My App) sits where it does on the other tabs (on desktop it rose
+    on short pages in a tall window).
+
+Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and donations and the eight
+features on production (migrations 21–24, non_transactional 009–010, both Stripe functions, the two Stripe function
+settings and a Stripe webhook endpoint for production).

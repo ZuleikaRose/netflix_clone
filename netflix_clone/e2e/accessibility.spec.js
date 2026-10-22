@@ -64,6 +64,33 @@ test.describe('accessibility menu', () => {
   })
 })
 
+test.describe('keyboard shortcuts help', () => {
+  const help = (page) => page.getByRole('dialog', { name: 'Keyboard shortcuts' })
+
+  test('? opens it on any page (not while typing), Escape closes it, and the menu links to it', async ({ page }) => {
+    await page.goto('/login')
+    await page.locator('body').press('?')
+    await expect(help(page)).toBeVisible()
+    await expect(help(page).getByRole('heading', { name: 'Video player' })).toBeVisible()
+    await expect(help(page).getByText('Previous episode (TV shows)')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(help(page)).toBeHidden()
+
+    // Typing a ? in a field types it
+    await page.getByLabel('Email').fill('')
+    await page.getByLabel('Email').press('?')
+    await expect(help(page)).toBeHidden()
+    await expect(page.getByLabel('Email')).toHaveValue('?')
+
+    await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
+    await menu(page).getByRole('button', { name: 'Keyboard shortcuts' }).click()
+    await expect(menu(page)).toBeHidden()
+    await expect(help(page)).toBeVisible()
+    await help(page).getByRole('button', { name: 'Close keyboard shortcuts' }).click()
+    await expect(help(page)).toBeHidden()
+  })
+})
+
 test('the Accessibility Policy is linked in the footer and the legal hub', async ({ page }) => {
   await signInAsDemo(page)
   await page.getByRole('navigation', { name: 'Legal' }).getByRole('link', { name: 'Accessibility Policy' }).click()
@@ -265,6 +292,15 @@ test.describe('video player', () => {
     await menu(page).getByRole('radio', { name: 'Extra large' }).check()
     await page.keyboard.press('Escape')
     await expect(captions).toHaveClass(/caption-xlarge/)
+
+    // Spanish captions, from the menu's Caption language
+    await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
+    await menu(page).getByRole('radio', { name: 'Español' }).check()
+    await page.keyboard.press('Escape')
+    await seek(page).fill('3')
+    await expect(captions).toHaveText('Esta espada tiene un pasado oscuro.')
+    await expect(captions).toHaveAttribute('lang', 'es')
+    await expect(page.getByText(/Spanish captions translated from Wikimedia Commons subtitles/)).toBeVisible()
   })
 
   test('autoplay next episode counts down, and waits when turned off', async ({ page }) => {
