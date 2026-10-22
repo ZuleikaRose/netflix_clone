@@ -21,6 +21,8 @@ const cardStyle = {
   invalid: { color: '#e87c03', iconColor: '#e87c03' },
 }
 const elementsOptions = { fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap' }], locale: 'en' }
+// PaymentIntent statuses that can still be confirmed with a card
+const CONFIRMABLE = ['requires_payment_method', 'requires_confirmation', 'requires_action']
 
 // Lazy-loaded by pages/Donate.jsx only when donations are available, so Stripe stays out of the main bundle and the
 // in-memory build never loads Stripe.js
@@ -49,8 +51,11 @@ function DonationForm({ onDonated }) {
   const [errors, setErrors] = useState({}) // { amount, card }
   const [card, setCard] = useState({ complete: false, error: null })
   const [processing, setProcessing] = useState(false)
-  // null while filling in; { kind: 'succeeded' | 'failed' | 'network', message?, cents }
+  // null while filling in; { kind: 'succeeded' | 'processing' | 'failed' | 'network', message?, cents }
   const [outcome, setOutcome] = useState(null)
+  // The PaymentIntent of an earlier attempt that didn't succeed (declined, or no answer): { clientSecret, cents }.
+  // The next attempt asks Stripe about it before anything else, so it's never paid twice or left behind for a new one.
+  const [pending, setPending] = useState(null)
   const resultHeading = useRef(null)
   const formRef = useRef(null)
 
@@ -62,51 +67,62 @@ function DonationForm({ onDonated }) {
   const amount = readAmount(choice, other)
   const buttonLabel = amount.cents ? `Donate ${formatUsd(amount.cents)}` : 'Donate'
 
-  // A Stripe.js error or result → the outcome. A connection failure keeps the PaymentIntent's client_secret, so
-  // "Try again" carries on with the same intent instead of asking for a second one (which could charge twice).
-  const outcomeOf = (cents, clientSecret, { error, paymentIntent }) => {
+  // A Stripe.js error or result → the outcome. `processing` (the bank hasn't answered yet) isn't a failure: the webhook
+  // records it once Stripe knows.
+  const outcomeOf = (cents, { error, paymentIntent }) => {
     if (error) {
       const { network, message } = paymentError(error)
-      return network ? { kind: 'network', cents, clientSecret } : { kind: 'failed', message, cents }
+      return network ? { kind: 'network', cents } : { kind: 'failed', message, cents }
     }
-    if (paymentIntent?.status === 'succeeded') return { kind: 'succeeded', cents }
+    if (paymentIntent?.status === 'succeeded' || paymentIntent?.status === 'processing') return { kind: paymentIntent.status, cents }
     return { kind: 'failed', message: paymentError(null).message, cents }
   }
   const confirm = (clientSecret) => stripe.confirmCardPayment(clientSecret, {
     payment_method: { card: elements.getElement(CardElement) },
   })
 
-  // `clientSecret`: the intent of an earlier attempt whose confirmation never got an answer
-  const donate = async (cents, clientSecret = null) => {
+  const donate = async (cents) => {
     setProcessing(true)
     setOutcome(null)
-    let secret = clientSecret
+    // The intent this attempt ends up with: the earlier one, or a new one from process-donation
+    let intent = pending
     let result
     try {
-      if (secret) {
-        // Did the earlier confirmation go through after all? Only confirm again if it's still waiting for a card.
-        const { error, paymentIntent } = await stripe.retrievePaymentIntent(secret)
-        if (error) result = outcomeOf(cents, secret, { error })
-        else if (paymentIntent.status === 'succeeded') result = { kind: 'succeeded', cents }
-        else if (['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(paymentIntent.status)) {
-          result = outcomeOf(cents, secret, await confirm(secret))
-        } else result = { kind: 'failed', message: paymentError(null).message, cents }
-      } else {
+      if (intent) {
+        // Did the earlier attempt go through after all (a confirmation that got no answer)? Then that's the donation,
+        // whatever amount is chosen now. Still waiting for a card: the same amount carries on with it (one intent, so
+        // one row in Your donations); a different amount starts a new intent, as nothing was paid on the earlier one.
+        const { error, paymentIntent } = await stripe.retrievePaymentIntent(intent.clientSecret)
+        if (error) {
+          result = outcomeOf(intent.cents, { error })
+          // Stripe answered but won't say (not a lost connection): forget it, or every later try would stop here too
+          if (result.kind === 'failed') intent = null
+        } else if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing') {
+          result = outcomeOf(intent.cents, { paymentIntent })
+        } else if (intent.cents === cents && CONFIRMABLE.includes(paymentIntent.status)) {
+          result = outcomeOf(cents, await confirm(intent.clientSecret))
+        } else intent = null
+      }
+      if (!result) {
         const { data, error, network } = await callFunction(await getSupabase(), 'process-donation', { amount: cents, user_id: user.id })
         if (network) result = { kind: 'network', cents }
         else if (error) result = { kind: 'failed', message: error, cents }
+        else if (!data?.client_secret) result = { kind: 'failed', message: paymentError(null).message, cents }
         else {
-          secret = data.client_secret
-          result = outcomeOf(cents, secret, await confirm(secret))
+          intent = { clientSecret: data.client_secret, cents }
+          result = outcomeOf(cents, await confirm(intent.clientSecret))
         }
       }
     } catch {
-      // The Supabase client couldn't load, or Stripe.js threw: a connection problem (keeping any intent for the retry)
-      result = { kind: 'network', cents, clientSecret: secret }
+      // The Supabase client couldn't load, or Stripe.js threw: a connection problem
+      result = { kind: 'network', cents }
     }
+    // Keep an intent that may still be paid; forget it once it went through (or is going through)
+    const done = result.kind === 'succeeded' || result.kind === 'processing'
+    setPending(done ? null : intent)
     setProcessing(false)
     setOutcome(result)
-    if (result.kind === 'succeeded') onDonated?.()
+    if (done) onDonated?.()
   }
 
   const submit = (e) => {
@@ -119,9 +135,7 @@ function DonationForm({ onDonated }) {
     setErrors(next)
     if (next.amount) return focusFirstError(e.currentTarget)
     if (next.card) return elements.getElement(CardElement)?.focus()
-    // After an unanswered confirmation, the same amount carries on with that intent rather than starting a second one
-    const pending = outcome?.kind === 'network' && outcome.cents === amount.cents ? outcome.clientSecret : null
-    donate(amount.cents, pending)
+    donate(amount.cents)
   }
 
   const startOver = () => {
@@ -133,16 +147,26 @@ function DonationForm({ onDonated }) {
     requestAnimationFrame(() => formRef.current?.querySelector('input[name="donation-amount"]:checked')?.focus())
   }
 
-  if (outcome?.kind === 'succeeded') {
+  if (outcome?.kind === 'succeeded' || outcome?.kind === 'processing') {
     return (
       <section className="settings-card donate-result" aria-labelledby="donate-result-heading">
-        <div role="status">
-          <h2 id="donate-result-heading" ref={resultHeading} tabIndex={-1}>Thank you for your {formatUsd(outcome.cents)} donation</h2>
-          <p className="muted">
-            Your payment went through.{' '}
-            {receiptEmailFor(user) ? <>Stripe will email a receipt to <b>{receiptEmailFor(user)}</b>.</> : 'It will appear on your card statement.'}
-          </p>
-        </div>
+        {outcome.kind === 'succeeded' ? (
+          <div role="status">
+            <h2 id="donate-result-heading" ref={resultHeading} tabIndex={-1}>Thank you for your {formatUsd(outcome.cents)} donation</h2>
+            <p className="muted">
+              Your payment went through.{' '}
+              {receiptEmailFor(user) ? <>Stripe will email a receipt to <b>{receiptEmailFor(user)}</b>.</> : 'It will appear on your card statement.'}
+            </p>
+          </div>
+        ) : (
+          <div role="status">
+            <h2 id="donate-result-heading" ref={resultHeading} tabIndex={-1}>Your {formatUsd(outcome.cents)} donation is being processed</h2>
+            <p className="muted">
+              Your bank hasn’t confirmed the payment yet. It will show under Your donations once it has, so there’s no
+              need to donate again.
+            </p>
+          </div>
+        )}
         <button type="button" className="cta" onClick={startOver}>Make another donation</button>
       </section>
     )
@@ -190,7 +214,7 @@ function DonationForm({ onDonated }) {
           <h3 ref={resultHeading} tabIndex={-1}>{outcome.kind === 'network' ? 'We couldn’t reach the payment service' : 'Your donation didn’t go through'}</h3>
           <p>{outcome.kind === 'network' ? NETWORK_MESSAGE : outcome.message}</p>
           {outcome.kind === 'network' && (
-            <button type="button" className="ghost-cta" onClick={() => donate(outcome.cents, outcome.clientSecret)} disabled={processing}>Try again</button>
+            <button type="button" className="ghost-cta" onClick={() => donate(outcome.cents)} disabled={processing}>Try again</button>
           )}
         </div>
       )}

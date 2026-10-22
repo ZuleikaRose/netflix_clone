@@ -147,6 +147,97 @@ test.describe('donations with Supabase and Stripe', () => {
     await page.getByRole('button', { name: 'Make another donation' }).click()
   })
 
+  // Made-up PaymentIntents answered by mocks of the function and Stripe's API, for the retry rules below
+  const stripeReply = (body, status = 200) => ({
+    status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body),
+  })
+  const fakeIntent = (id, status, amount = 1000) => ({
+    id, object: 'payment_intent', amount, currency: 'usd', status, client_secret: `${id}_secret_e2e`, livemode: false,
+  })
+  // Mocks process-donation (one intent per call, from `ids`) and Stripe's confirm and retrieve calls for those intents.
+  // `confirmWith(id, n)` answers the nth confirmation of an intent (a route.fulfill options object, or 'abort');
+  // `statusOf(id)` is what retrieving it says. Returns the amounts the function was asked for.
+  async function mockDonation({ ids, confirmWith, statusOf = () => 'requires_payment_method' }) {
+    const requested = []
+    const confirms = {}
+    await page.route(functionUrl, (route) => {
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors })
+      const id = ids[requested.length]
+      requested.push(route.request().postDataJSON().amount)
+      return route.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: JSON.stringify({ client_secret: `${id}_secret_e2e` }) })
+    })
+    await page.route(/https:\/\/api\.stripe\.com\/v1\/payment_intents\/pi_3E2e\w+/, (route) => {
+      const [, id, action] = new URL(route.request().url()).pathname.match(/payment_intents\/(\w+?)(?:\/(confirm))?$/)
+      if (!action) return route.fulfill(stripeReply(fakeIntent(id, statusOf(id))))
+      confirms[id] = (confirms[id] ?? 0) + 1
+      const answer = confirmWith(id, confirms[id])
+      return answer === 'abort' ? route.abort('internetdisconnected') : route.fulfill(answer)
+    })
+    return requested
+  }
+  async function unmockDonation() {
+    await page.unroute(functionUrl)
+    await page.unroute(/https:\/\/api\.stripe\.com\/v1\/payment_intents\/pi_3E2e\w+/)
+  }
+  const declined = stripeReply({ error: { type: 'card_error', code: 'card_declined', decline_code: 'generic_decline', message: 'Your card was declined.' } }, 402)
+
+  test('trying again after a declined card keeps the same PaymentIntent, so Your donations shows one donation', async () => {
+    const requested = await mockDonation({
+      ids: ['pi_3E2eDonationDecline01'],
+      confirmWith: (id, n) => (n === 1 ? declined : stripeReply(fakeIntent(id, 'succeeded'))),
+    })
+    await fillCard('4242 4242 4242 4242')
+    await donateButton().click()
+    await expect(page.getByRole('alert')).toContainText('Your card was declined. Please try a different card.')
+    await donateButton().click()
+    await expect(page.getByRole('heading', { name: 'Thank you for your $10.00 donation' })).toBeVisible()
+    expect(requested).toEqual([1000])
+    await unmockDonation()
+    await page.getByRole('button', { name: 'Make another donation' }).click()
+  })
+
+  test('a new amount after a confirmation that got no answer checks the first one before starting another', async () => {
+    // The first $10.00 went through after all: that's the donation, and no $25.00 intent is created
+    let requested = await mockDonation({ ids: ['pi_3E2eDonationAmount01'], confirmWith: () => 'abort', statusOf: () => 'succeeded' })
+    await fillCard('4242 4242 4242 4242')
+    await donateButton().click()
+    await expect(page.getByRole('alert')).toContainText('Something went wrong. Please check your connection and try again.', { timeout: 20_000 })
+    await page.getByRole('radio', { name: '$25' }).check()
+    await page.getByRole('button', { name: 'Donate $25.00' }).click()
+    await expect(page.getByRole('heading', { name: 'Thank you for your $10.00 donation' })).toBeVisible()
+    expect(requested).toEqual([1000])
+    await unmockDonation()
+    await page.getByRole('button', { name: 'Make another donation' }).click()
+
+    // The first one was never paid: the new amount gets its own intent
+    requested = await mockDonation({
+      ids: ['pi_3E2eDonationAmount02', 'pi_3E2eDonationAmount03'],
+      confirmWith: (id) => (id === 'pi_3E2eDonationAmount02' ? 'abort' : stripeReply(fakeIntent(id, 'succeeded', 2500))),
+    })
+    await fillCard('4242 4242 4242 4242')
+    await donateButton().click()
+    await expect(page.getByRole('alert')).toContainText('Something went wrong. Please check your connection and try again.', { timeout: 20_000 })
+    await page.getByRole('radio', { name: '$25' }).check()
+    await page.getByRole('button', { name: 'Donate $25.00' }).click()
+    await expect(page.getByRole('heading', { name: 'Thank you for your $25.00 donation' })).toBeVisible()
+    expect(requested).toEqual([1000, 2500])
+    await unmockDonation()
+    await page.getByRole('button', { name: 'Make another donation' }).click()
+  })
+
+  test('a payment the bank is still processing says so, rather than that it didn’t go through', async () => {
+    await mockDonation({ ids: ['pi_3E2eDonationPending01'], confirmWith: (id) => stripeReply(fakeIntent(id, 'processing')) })
+    await fillCard('4242 4242 4242 4242')
+    await donateButton().click()
+    const heading = page.getByRole('heading', { name: 'Your $10.00 donation is being processed' })
+    await expect(heading).toBeVisible()
+    await expect(heading).toBeFocused()
+    await expect(page.getByText('there’s no need to donate again')).toBeVisible()
+    await expect(page.getByText('Your donation didn’t go through')).toHaveCount(0)
+    await unmockDonation()
+    await page.getByRole('button', { name: 'Make another donation' }).click()
+  })
+
   test('a test card donates $10.00, and a declined card says so in plain words', async () => {
     test.setTimeout(90_000)
     // The real function with Stripe in test mode. It answers 503 until it can read the Stripe API key on the dev project.
