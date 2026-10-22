@@ -48,8 +48,8 @@ Without it, the demo account lives in memory and the TMDB sections don't appear.
 - **Make it work for you:** an accessibility menu on every page with one-tap profiles and settings for text size, readable and dyslexia-friendly fonts, spacing, contrast, color, link and heading highlights, focus outline, big cursor, reading guide, hiding images, stopping animations and captions. Members' settings are saved and come back at sign-in.
 - **Get help:** support hub with live chat, FAQs, feedback, issue reporting with ticket numbers from the database (and support's replies, which you can answer), technical requirements and a maintenance banner. Support staff work the tickets on a support dashboard.
 - **Save money and earn:** promo codes that discount your plan (checked on the server), and an **Affiliate Program** with a referral dashboard, tiered commissions and marketing materials; clicks and sign-ups on your link are counted.
-- **Buy us a coffee:** a round coffee button at the bottom right of every page opens a donation page: pick $5, $10, $25, $50 or any amount from $1 to $10,000 and pay once by card through Stripe. You get a thank-you with the amount, or a plain explanation if the card is declined, and "Try again" after a dropped connection never charges twice. Card numbers go straight to Stripe and never reach the app. The donation page lists your past donations, and Stripe emails a receipt.
-- **Surprise me:** a button on Home and Search opens a random title your profile can watch.
+- **Buy us a coffee:** a round coffee button at the bottom right of every page opens a donation page: pick $5, $10, $25, $50 or any amount from $1 to $10,000 and pay once by card through Stripe. You get a thank-you with the amount, a plain explanation if the card is declined, or "being processed" while your bank confirms it, and no retry ever charges twice: not after a declined card, a dropped connection or a changed amount. Card numbers go straight to Stripe and never reach the app. The donation page lists your past donations, and Stripe emails a receipt.
+- **Surprise me:** a button on Home and Search opens a random title your profile can watch: one of the app's own, or a movie or TV show from TMDB.
 - **Keyboard shortcuts:** press **?** on any page to see every shortcut.
 - **Screen-time limits:** give a profile (say, a Kids profile) a daily limit with the account password; the player stops when it's used up, and only the account password allows more time.
 - **Spanish captions:** choose Caption language → Español in the accessibility menu.
@@ -93,7 +93,7 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 
 | Path | What it is |
 | --- | --- |
-| [`netflix_clone/`](netflix_clone/) | The Vite app: source, Playwright tests, configs |
+| [`netflix_clone/`](netflix_clone/) | The Vite app: source, Playwright tests, configs (also published on its own as [netflix_clone_front_end](https://github.com/ZuleikaRose/netflix_clone_front_end), set up for Vercel) |
 | [`supabase/`](supabase/) | Supabase CLI project: migrations, `non_transactional/` index files, Edge Functions, seeds, pgTAP tests |
 | [`app_outline/`](app_outline/) | Requirements: [`user_journey.md`](app_outline/user_journey.md), per-page folders, [`style_guide.md`](app_outline/style_guide.md), Figma wireframe export |
 | [`user_stories.md`](user_stories.md) | What the database stores, one user story per thing the app remembers |
@@ -104,7 +104,7 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 
 ## Quality checks
 
-- **288 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present). The donation tests pay with Stripe's test cards (4242… succeeds, 4000…0002 is declined) on the dev project.
+- **296 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present). The donation tests pay with Stripe's test cards (4242… succeeds, 4000…0002 is declined) on the dev project.
 - **Accessibility:** an axe-core WCAG 2.2 AA audit of every page and key interactive state (including the accessibility menu, the player with captions, the delete-account form and the password reset pages), plus checks for 44px touch targets, visible keyboard focus, and focus never hidden behind the sticky bars.
 - **Database:** pgTAP tests of the access rules (including saved TMDB titles, the player volume, watch progress, opt-in leaderboards and donations), triggers, cleanup job, rate limiter and indexes. Every foreign key is indexed, and Supabase's Index Advisor is installed on both projects.
 - **CI** runs lint, build, the Playwright suite and the pgTAP tests on GitHub Actions; `main` requires both to pass.
@@ -112,7 +112,7 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 ## Notes
 
 - Billing and payouts are simulated: only a card's brand, last 4 digits and expiry are kept, never the full number or CVC.
-- Donations are real Stripe payments (test mode on the dev project; production doesn't have them yet). The card field
+- Donations are real Stripe payments: test mode on the dev project, live on production. The card field
   is Stripe's own, so card details go straight to Stripe; the app keeps only the amount, the result and Stripe's
   payment id.
 - The browser uses only the publishable key; the secret key stays in the Edge Functions.
