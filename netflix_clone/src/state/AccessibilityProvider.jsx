@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AccessibilityPanel } from '../components/AccessibilityPanel.jsx'
+import { ShortcutsDialog } from '../components/ShortcutsDialog.jsx'
+import { opensShortcutHelp } from '../data/shortcuts.js'
 import { loadAccessibility, saveAccessibility } from '../data/accessibilityApi.js'
 import { getSupabase } from '../lib/supabaseConfig.js'
 import { AccessibilityContext, defaultA11y } from './accessibilityContext.js'
@@ -76,8 +78,20 @@ function useSavedSettings(settings, setSettings) {
 export function AccessibilityProvider({ children }) {
   const [settings, setSettings] = useState(defaultA11y)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
 
   useEffect(() => applyToDocument(settings), [settings])
+  // ? on any page (not while typing) opens the keyboard shortcuts help
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (!opensShortcutHelp(e)) return
+      e.preventDefault()
+      setMenuOpen(false)
+      setShortcutsOpen(true)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
   useSavedSettings(settings, setSettings)
 
   const value = useMemo(() => ({
@@ -87,12 +101,16 @@ export function AccessibilityProvider({ children }) {
     menuOpen,
     openMenu: () => setMenuOpen(true),
     closeMenu: () => setMenuOpen(false),
-  }), [settings, menuOpen])
+    shortcutsOpen,
+    openShortcuts: () => { setMenuOpen(false); setShortcutsOpen(true) },
+    closeShortcuts: () => setShortcutsOpen(false),
+  }), [settings, menuOpen, shortcutsOpen])
 
   return (
     <AccessibilityContext.Provider value={value}>
       {children}
       <AccessibilityPanel />
+      <ShortcutsDialog />
       {settings.readingGuide && <ReadingGuide />}
     </AccessibilityContext.Provider>
   )

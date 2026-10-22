@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { ShortcutKeys } from '../../components/ShortcutsDialog.jsx'
+import { shortcutGroups } from '../../data/shortcuts.js'
 import { useAccessibility } from '../../state/accessibilityContext.js'
 
 const features = [
@@ -11,10 +13,10 @@ const features = [
   'Motion is subtle and turns off when your device asks for reduced motion. Carousels never move by themselves.',
 ]
 
-const shortcuts = [['K', 'Play or pause'], ['J / L', 'Back or forward 10 seconds'], ['C', 'Captions on or off'], ['M', 'Mute or unmute'], ['↑ / ↓', 'Volume up or down 10%'], ['Shift + P / Shift + N', 'Previous or next episode (TV shows)'], ['F', 'Full screen']]
+const playerShortcuts = shortcutGroups.find((g) => g.heading === 'Video player').keys
 
 export function AccessibilityPolicy() {
-  const { openMenu } = useAccessibility()
+  const { openMenu, openShortcuts } = useAccessibility()
 
   return (
     <article className="legal-doc">
@@ -38,10 +40,13 @@ export function AccessibilityPolicy() {
 
       <section aria-labelledby="shortcuts">
         <h2 id="shortcuts">Video player keyboard shortcuts</h2>
-        <p>These work while focus is inside the player.</p>
+        <p>These work while focus is inside the player. Press <kbd>?</kbd> on any page to see every keyboard shortcut.</p>
         <dl className="shortcut-list">
-          {shortcuts.map(([key, action]) => <div key={key}><dt><kbd>{key}</kbd></dt><dd>{action}</dd></div>)}
+          {playerShortcuts.map(([combo, action]) => (
+            <div key={action}><dt><ShortcutKeys combo={combo} /></dt><dd>{action}</dd></div>
+          ))}
         </dl>
+        <button type="button" className="ghost-cta" aria-haspopup="dialog" aria-keyshortcuts="?" onClick={openShortcuts}>Show all keyboard shortcuts</button>
       </section>
 
       <section aria-labelledby="limits">

@@ -33,7 +33,7 @@ function Switch({ label, hint, checked, onChange }) {
 
 // The accessibility menu: one-tap profiles plus individual text, color, navigation and media settings
 export function AccessibilityPanel() {
-  const { settings, update, reset, menuOpen, closeMenu } = useAccessibility()
+  const { settings, update, reset, menuOpen, closeMenu, openShortcuts } = useAccessibility()
   const { user, setPreference } = useAuth()
   const dialogRef = useRef(null)
 
@@ -105,6 +105,7 @@ export function AccessibilityPanel() {
 
       <footer className="a11y-foot">
         <button type="button" className="ghost-cta" onClick={reset}>Reset all settings</button>
+        <button type="button" className="ghost-cta" aria-haspopup="dialog" aria-keyshortcuts="?" onClick={openShortcuts}>Keyboard shortcuts</button>
         <Link to="/info/accessibility" className="inline-link" onClick={closeMenu}>Accessibility Policy</Link>
       </footer>
     </dialog>

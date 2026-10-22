@@ -112,6 +112,10 @@ test('interactive states meet WCAG 2.2 AA', async ({ page }) => {
   await audit(page, 'accessibility menu with a profile on')
   await page.getByRole('button', { name: 'Reset all settings' }).click()
   await page.keyboard.press('Escape')
+  await page.locator('body').press('?')
+  await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible()
+  await audit(page, 'keyboard shortcuts help')
+  await page.keyboard.press('Escape')
 
   await navigateInApp(page, '/title/night-shift?play=1')
   await expect(page.getByLabel('Seek')).not.toHaveAttribute('max', '0')

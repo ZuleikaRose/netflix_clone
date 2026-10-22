@@ -630,6 +630,9 @@ textarea { resize: vertical; }
 .a11y-body h3 { margin: 0; color: #bcbcbc; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
 .a11y-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px max(14px, env(safe-area-inset-bottom)); border-top: 1px solid #262626; }
 .a11y-foot .ghost-cta { width: auto; margin: 0; padding: 0 16px; }
+.a11y-foot { flex-wrap: wrap; }
+/* Keyboard shortcuts help (components/ShortcutsDialog.jsx), opened with ? */
+.shortcuts-dialog .shortcut-list dt { min-width: 104px; white-space: nowrap; }
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .profile-btn { display: grid; gap: 4px; min-height: 44px; padding: 10px; border: 1px solid #333; border-radius: 10px; color: inherit; background: #1b1b1b; text-align: left; font-size: 12px; cursor: pointer; }
 .profile-btn b { font-size: 14px; }
