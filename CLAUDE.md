@@ -28,7 +28,8 @@ supabase/             Supabase CLI project (config.toml); MCP config in supabase
   migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits,
                       saved TMDB titles, watch progress and leaderboards, profiles, support dashboard, notifications,
                       viewing history, custom lists, watch parties (Realtime RLS), better search (pg_trgm), thumbs
-                      ratings, Year in Review, profile locks, two-step sign-in (restrictive policies, devices), donations
+                      ratings, Year in Review, profile locks, two-step sign-in (restrictive policies, devices), donations,
+                      screen-time limits, caption language, reported reviews
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
                       (Index Advisor is installed on both projects: dashboard → Query Performance suggests missing ones)
   functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb, assistant,
@@ -38,7 +39,7 @@ supabase/             Supabase CLI project (config.toml); MCP config in supabase
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
   diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
-schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 30 public tables)
+schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 32 public tables)
 user_stories.md       What the database stores, one story per thing the app remembers
 prompt.md             The original build prompt and the Supabase-phase prompts
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
@@ -50,8 +51,9 @@ non_transactional file and function to dev first, then production, with the same
 Both run all 20 migrations (through `20261023040000_second_step_for_definer_functions`), non_transactional 001–008
 and the same 8 functions, with `assistant` (production caught up 2026-10-21). `assistant` needs the
 `ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
-Dev is one step ahead: it also runs migration 21, `20261023050000_donations`, and the functions `process-donation`
-and `stripe-webhook` (10 functions); production doesn't have them yet. They need two function variables per project:
+Dev is ahead: it also runs migrations 21–24 (`20261023050000_donations`, `20261024000000_screen_time`,
+`20261024010000_caption_language`, `20261024020000_review_reports`), non_transactional 009–010 and the functions
+`process-donation` and `stripe-webhook` (10 functions); production doesn't have them yet. They need two function variables per project:
 `STRIPE_SECRET_KEY` (a test-mode key on dev; without it process-donation answers 503) and `STRIPE_WEBHOOK_SECRET`,
 the signing value of the Stripe webhook endpoint that points at `<project>.supabase.co/functions/v1/stripe-webhook`
 (events `payment_intent.succeeded` and `payment_intent.payment_failed`). Never put either value in the repo.
@@ -109,6 +111,7 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | (extra) Year in Review | `/year-in-review` | `pages/YearInReview.jsx`, `data/yearInReview.js` |
 | (extra) What should I watch? (assistant) | `/what-to-watch` | `pages/Assistant.jsx`, `data/assistant.js`, `supabase/functions/assistant` |
 | (extra) Security (two-step sign-in, devices) | in `/account` | `pages/account/Security.jsx`, `data/totp.js`, `data/devices.js` |
+| (extra) Downloads (offline) | `/downloads` (linked from My App; "Download to watch offline" on catalog title pages) | `pages/Downloads.jsx`, `components/DownloadButton.jsx`, `data/downloads.js`, `state/useDownloads.js`, `public/sw.js` |
 | (extra) Donate (one-time, Stripe) | `/donate` (linked from Account → Help and the round coffee button above the tab bar on every page) | `pages/Donate.jsx`, `pages/donate/DonateForm.jsx` (lazy), `data/donations.js`, `lib/stripe.js`, `supabase/functions/process-donation` |
 
 When the outline changes: diff `app_outline/user_journey.md` (`git diff --word-diff`), map each change to this
@@ -277,6 +280,35 @@ after editing.
   can't charge twice. The round coffee link (`.donate-fab`, "Donate: buy us a coffee") sits inside `.bottom-nav`,
   absolutely positioned above it, so it is pinned to the phone frame and covered by the tab bar's axe audit; the
   bottom `scroll-padding` leaves room for it. `donate.spec.js` pays with Stripe test cards 4242… and 4000…0002 on :4174.
+- **Donation history and receipts**: /donate lists the member's donations (`DonationHistory`, read straight from
+  `donations`; it rechecks a few times after a donation while the webhook records it). `process-donation` sets
+  `receipt_email` to the member's address, except for demo accounts (`app_metadata.demo`); Stripe sends no receipts in
+  test mode.
+- **Surprise me**: `components/SurpriseButton.jsx` on Home (follows the TV Shows / Movies chip) and Search (follows
+  Type) opens a random catalog title the profile may watch (`data/surprise.js`: never Not for me, never the last pick).
+- **Keyboard shortcuts help**: `?` on any page (not while typing) opens `components/ShortcutsDialog.jsx`, also from
+  the accessibility menu and the Accessibility Policy. The list is `data/shortcuts.js`: change it with the handlers
+  (Player's `shortcuts`, SearchBox).
+- **Screen-time limits**: `profiles.daily_limit_minutes` (30–240, null = none) changes only through
+  `set_screen_time_limit()` with the account password (a trigger keeps it otherwise, like `locked`). Only limited
+  profiles count time: `state/useScreenTime.js` adds 5 s per tick while the player plays and saves every 15 s through
+  `add_screen_time()` (1–60 s per call, never down; `screen_time` per profile and local day). At the limit the player
+  pauses under `components/ScreenTimeUp.jsx`; `add_extra_screen_time()` (password) allows 30 more minutes. Set it in
+  Profiles → Edit → Screen time. In memory the usage lives for the page load.
+- **Caption language**: `captionLanguage` ('en' | 'es') in the accessibility menu (saved as
+  `accessibility_settings.caption_language`); the Player keys its `<track>` by language
+  (`public/media/<clip>.<lang>.vtt`). The Spanish files are this app's translation of the CC BY-SA English captions:
+  keep the credit in the player and the Legal hub.
+- **Offline downloads**: `data/downloads.js` puts a title's clip (the format this browser plays), both caption files
+  and the seek previews in the `downloads` cache; `public/sw.js` answers `/media` from it, byte ranges included, and
+  never deletes that cache. The list is per device (`netflix-clone-downloads`). Offered only when a service worker
+  controls the page (production builds), so `pwa.spec.js` is where it's tested.
+- **Reported reviews**: members report another member's review (`review_reports`; a trigger copies the review and
+  refuses your own; one per member per review). The support dashboard's Reported reviews view uses
+  `staff_review_reports()` / `staff_resolve_review()` (keep, or delete the review; reports stay marked Removed). In
+  memory the sample reviews can be reported and the demo account settles them (`data/reviewReports.js`).
+- **Phone frame**: on desktop `.phone` is a flex column and `.page` grows, so the footer and sticky tab bar sit at the
+  frame's bottom on short pages too (`layout.spec.js` checks it in a tall window).
 - **Form state**: update with functional setters and read `e.target.value` before them
   (`(e) => { const { value } = e.target; setForm((f) => ({ ...f, key: value })) }`): with transitions pending, a
   spread of the render's `form` can restore an older value.
@@ -316,6 +348,10 @@ after editing.
   previews and picture-in-picture in `accessibility.spec.js`; PINs and Kids in `profiles.spec.js`; two-step sign-in and
   devices in `auth.spec.js`; all of them against the dev project (real TOTP) in `supabase-auth.spec.js`; database rules
   in `supabase/tests/database/seven_features.test.sql`.
+- The eight after that: donation history in `donate.spec.js`; Surprise me in `features.spec.js`; shortcuts help and
+  Spanish captions in `accessibility.spec.js`; screen-time limits in `profiles.spec.js` (Playwright's fake clock);
+  downloads in `pwa.spec.js`; reported reviews in `support.spec.js`; database rules in
+  `supabase/tests/database/eight_features.test.sql`.
 - Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility
   menu" also contains it.
 
