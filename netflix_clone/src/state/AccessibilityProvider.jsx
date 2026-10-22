@@ -3,6 +3,7 @@ import { AccessibilityPanel } from '../components/AccessibilityPanel.jsx'
 import { ShortcutsDialog } from '../components/ShortcutsDialog.jsx'
 import { opensShortcutHelp } from '../data/shortcuts.js'
 import { loadAccessibility, saveAccessibility } from '../data/accessibilityApi.js'
+import { browserLanguage, setCurrentLanguage } from '../i18n/index.js'
 import { getSupabase } from '../lib/supabaseConfig.js'
 import { AccessibilityContext, defaultA11y } from './accessibilityContext.js'
 import { useAuth } from './authContext.js'
@@ -18,6 +19,7 @@ function applyToDocument(settings) {
     if (value === defaultA11y[key]) root.removeAttribute(attr)
     else root.setAttribute(attr, String(value))
   }
+  root.lang = settings.language
   root.style.setProperty('--a11y-zoom', settings.textSize / 100)
   const filters = [
     settings.contrast === 'high' && 'contrast(1.35)',
@@ -76,7 +78,9 @@ function useSavedSettings(settings, setSettings) {
 }
 
 export function AccessibilityProvider({ children }) {
-  const [settings, setSettings] = useState(defaultA11y)
+  const [settings, setSettings] = useState(() => ({ ...defaultA11y, language: browserLanguage() }))
+  // Before the children render, so tr() and locale() in helpers they call follow the menu
+  setCurrentLanguage(settings.language)
   const [menuOpen, setMenuOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
 
@@ -97,7 +101,8 @@ export function AccessibilityProvider({ children }) {
   const value = useMemo(() => ({
     settings,
     update: (patch) => setSettings((s) => ({ ...s, ...patch })),
-    reset: () => setSettings(defaultA11y),
+    // Reset turns the accessibility settings off; the language stays
+    reset: () => setSettings((s) => ({ ...defaultA11y, language: s.language })),
     menuOpen,
     openMenu: () => setMenuOpen(true),
     closeMenu: () => setMenuOpen(false),

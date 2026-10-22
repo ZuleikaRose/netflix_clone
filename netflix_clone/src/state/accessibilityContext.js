@@ -24,6 +24,8 @@ export const defaultA11y = {
   captionSize: 'medium',
   captionLanguage: 'en',
   audioDescription: false,
+  // The interface language (src/i18n): the page itself, not the captions
+  language: 'en',
 }
 
 // Settings with a fixed set of values, shown as radio chips in the menu
@@ -37,6 +39,7 @@ export const a11yChoices = {
   captionSize: { label: 'Caption size', options: [['medium', 'Medium'], ['large', 'Large'], ['xlarge', 'Extra large']] },
   // A third value is the option's language, for screen readers
   captionLanguage: { label: 'Caption language', options: [['en', 'English', 'en'], ['es', 'Español', 'es']] },
+  language: { label: 'Language', options: [['en', 'English', 'en'], ['es', 'Español', 'es']] },
 }
 
 // On/off settings, grouped as they appear in the menu

@@ -61,6 +61,8 @@ export function AccessibilityPanel() {
       </header>
 
       <div className="a11y-body">
+        <Choice name="language" value={settings.language} onChange={update} />
+
         <section aria-labelledby="a11y-profiles">
           <h3 id="a11y-profiles">Profiles</h3>
           <div className="profile-grid">
