@@ -1,3 +1,5 @@
+import { emptyUsage, toUsage } from './screenTime.js'
+
 // A signed-in user's library in Supabase, in the shapes LibraryProvider keeps in state. RLS limits every query to the
 // user's own rows; user_id is still sent because PostgREST needs a filter on UPDATE and DELETE. Watch list, favorites,
 // reminders, watch progress and game scores belong to one profile (`profileId`); ratings, reports and the rest are
@@ -155,6 +157,13 @@ export function libraryApi(supabase, userId, profileId) {
     loadHistory: () => profiles('viewing_history', 'id, title_id, episode, watched_on, watched_at')
       .order('watched_at', { ascending: false }).limit(HISTORY_LIMIT).then(unwrap)
       .then((rows) => rows.map((r) => ({ id: r.id, titleId: r.title_id, episode: r.episode, day: r.watched_on, at: new Date(r.watched_at) }))),
+    // Screen time (profiles with a daily limit): the day's usage, counted and extended only through the functions
+    loadScreenTime: (day) => profiles('screen_time', 'day, seconds, extra_seconds').eq('day', day).maybeSingle().then(unwrap)
+      .then((row) => (row ? toUsage(row) : emptyUsage(day))),
+    addScreenTime: (day, seconds) => supabase.rpc('add_screen_time', { p_profile: profileId, p_day: day, p_seconds: seconds })
+      .then(unwrap).then(toUsage),
+    addExtraScreenTime: (day, minutes, password) => supabase
+      .rpc('add_extra_screen_time', { p_profile: profileId, p_day: day, p_minutes: minutes, p_password: password }).then(unwrap).then(toUsage),
     // Year in Review: the year's history summed up by public.year_in_review() (shape in data/yearInReview.js)
     loadYear: (year) => supabase.rpc('year_in_review', { p_profile: profileId, p_year: year }).then(unwrap),
     hideFromHistory: (id) => supabase.from('viewing_history').delete().eq('user_id', userId).eq('id', id).then(unwrap),

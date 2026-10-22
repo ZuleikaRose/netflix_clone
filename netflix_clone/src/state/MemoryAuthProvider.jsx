@@ -192,7 +192,7 @@ export function MemoryAuthProvider({ children }) {
         if (user.profiles.length >= MAX_PROFILES) return `An account can have at most ${MAX_PROFILES} profiles.`
         const problem = profileNameProblem(profile.name, user.profiles)
         if (problem) return problem
-        patchUser({ profiles: [...user.profiles, { ...profile, id: newProfileId(), name: profile.name.trim(), locked: false }] })
+        patchUser({ profiles: [...user.profiles, { ...profile, id: newProfileId(), name: profile.name.trim(), locked: false, dailyLimit: null }] })
         return null
       },
       async editProfile(id, patch) {
@@ -219,6 +219,11 @@ export function MemoryAuthProvider({ children }) {
         if (pin === null) delete pins[id]
         else pins[id] = { pin, failed: 0, lockedUntil: 0 }
         patchUser({ pins, profiles: user.profiles.map((p) => (p.id === id ? { ...p, locked: pin !== null } : p)) })
+        return null
+      },
+      async setScreenTimeLimit(id, minutes, password) {
+        if (user.password !== password) return 'Your password is incorrect.'
+        patchUser({ profiles: user.profiles.map((p) => (p.id === id ? { ...p, dailyLimit: minutes } : p)) })
         return null
       },
       async unlockProfile(id, pin) {
