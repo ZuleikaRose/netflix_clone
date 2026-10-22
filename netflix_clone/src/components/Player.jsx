@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { THUMBS, captionsCredit, chapterAt, clipFor, clipSources, thumbAt } from '../data/clips.js'
+import { THUMBS, captionLanguage, captionsCredit, chapterAt, clipFor, clipSources, thumbAt } from '../data/clips.js'
 import { episodeCode, episodeCount, findEpisode } from '../data/episodes.js'
 import { readStored, writeStored } from '../lib/supabaseConfig.js'
 import { useAccessibility } from '../state/accessibilityContext.js'
@@ -71,7 +71,8 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
     return startEpisode && saved?.episode !== startEpisode ? null : saved
   })
   const clip = clipFor(title.id)
-  const sources = clipSources(clip)
+  const language = captionLanguage(settings.captionLanguage)
+  const sources = clipSources(clip, language.code)
   const playerRef = useRef(null)
   const videoRef = useRef(null)
   const [episode, setEpisode] = useState(() => Math.min(Math.max(1, startEpisode ?? resumeFrom?.episode ?? 1), lastEpisode || 1))
@@ -156,13 +157,19 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
     }, VOLUME_SAVE_DELAY_MS)
   }
 
+  // A new caption language swaps the <track> (keyed by language), so pick up the new one
+  const languageCode = language.code
   useEffect(() => {
-    const track = videoRef.current.textTracks[0]
+    const track = videoRef.current.textTracks.getTrackById(`captions-${languageCode}`)
+    if (!track) return undefined
     track.mode = 'hidden'
     const showCue = () => setCaption([...(track.activeCues ?? [])].map(cueText).join('\n'))
     track.addEventListener('cuechange', showCue)
-    return () => track.removeEventListener('cuechange', showCue)
-  }, [])
+    return () => {
+      track.removeEventListener('cuechange', showCue)
+      track.mode = 'disabled'
+    }
+  }, [languageCode])
 
   useEffect(() => {
     timeUp.current = screenTime.timeUp
@@ -379,7 +386,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
         >
           <source src={sources.webm} type="video/webm" />
           <source src={sources.mp4} type="video/mp4" />
-          <track kind="captions" src={sources.captions} srcLang="en" label="English" />
+          <track key={language.code} id={`captions-${language.code}`} kind="captions" src={sources.captions} srcLang={language.code} label={language.label} />
         </video>
         <p className="player-status" role="status">{status}{muted && ' · Muted'}</p>
         <p className="player-chapter">Chapter: {chapter.name}</p>
@@ -388,7 +395,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
         )}
         <button type="button" className="icon-button player-close" aria-label="Close player" onClick={onClose}><Icon name="close" /></button>
 
-        {settings.captions && caption && !ended && <p className={`captions caption-${settings.captionSize}`}>{caption}</p>}
+        {settings.captions && caption && !ended && <p className={`captions caption-${settings.captionSize}`} lang={language.code}>{caption}</p>}
         {skip && !screenTime.timeUp && <button type="button" className="skip-button" aria-keyshortcuts="S" onClick={skipAhead}>{skip.label}</button>}
 
         {screenTime.timeUp && (
@@ -465,7 +472,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
       </section>
       <p className="clip-credit">
         Sample clip: <a href={clip.sourceUrl} target="_blank" rel="noreferrer">{clip.film}</a> ({clip.year}, {clip.excerpt}) by the {clip.makers},{' '}
-        <a href={clip.licenseUrl} target="_blank" rel="noreferrer">{clip.license}</a>. English captions from {captionsCredit.source},{' '}
+        <a href={clip.licenseUrl} target="_blank" rel="noreferrer">{clip.license}</a>. {language.code === 'en' ? 'English captions from' : 'Spanish captions translated from'} {captionsCredit.source},{' '}
         <a href={captionsCredit.licenseUrl} target="_blank" rel="noreferrer">{captionsCredit.license}</a>.
       </p>
     </>

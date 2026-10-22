@@ -1,6 +1,7 @@
 // Real sample clips (public/media) from the Blender Foundation's open movies, which are Creative Commons licensed.
 // Each is a short excerpt re-encoded at 360p as WebM (VP9/Opus) and MP4 (H.264/AAC). Its English captions come from
-// Wikimedia Commons subtitles (CC BY-SA 4.0), with times shifted to the start of the excerpt.
+// Wikimedia Commons subtitles (CC BY-SA 4.0), with times shifted to the start of the excerpt; the Spanish captions are
+// this app's translation of them, with the same times and licence.
 // The catalog's titles are fictional, so each one plays one of these clips as its sample.
 // Each clip also has (times in seconds):
 // - recap and intro: [start, end] for TV shows, which offer Skip Recap (from the second episode) and Skip Intro while
@@ -62,6 +63,13 @@ export const chapterAt = (clip, seconds) => clip.chapters.findLast((c) => c.star
 
 export const captionsCredit = { license: 'CC BY-SA 4.0', licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/', source: 'Wikimedia Commons subtitles' }
 
+// Caption languages (public/media/<clip>.<code>.vtt); the accessibility menu's Caption language picks one
+export const captionLanguages = [
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Español' },
+]
+export const captionLanguage = (code) => captionLanguages.find((l) => l.code === code) ?? captionLanguages[0]
+
 const clipByTitle = {
   'behind-the-glass': 'sintel',
   'night-shift': 'tears-of-steel',
@@ -76,9 +84,9 @@ const clipByTitle = {
 
 export const clipFor = (titleId) => clips.find((c) => c.id === (clipByTitle[titleId] ?? 'sintel'))
 
-export const clipSources = (clip) => ({
+export const clipSources = (clip, language = 'en') => ({
   webm: `/media/${clip.id}.webm`,
   mp4: `/media/${clip.id}.mp4`,
-  captions: `/media/${clip.id}.en.vtt`,
+  captions: `/media/${clip.id}.${captionLanguage(language).code}.vtt`,
   thumbs: `/media/${clip.id}.thumbs.jpg`,
 })

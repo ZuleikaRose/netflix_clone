@@ -1,9 +1,9 @@
--- Screen-time limits, run by `supabase test db` (pgTAP) against the seeded local database. Everything runs in one
+-- Screen-time limits and the caption language, run by `supabase test db` (pgTAP) against the seeded local database. Everything runs in one
 -- transaction and is rolled back.
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(16);
 
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
 \set jordan '''a1e00000-0000-4000-8000-000000000002'''
@@ -12,6 +12,11 @@ select id as jordan_profile from public.profiles where user_id = :jordan \gset
 
 -- Seed users have no password; give Alex one
 update auth.users set encrypted_password = extensions.crypt('Brand-new-pass-42', extensions.gen_salt('bf')) where id = :alex;
+
+-- Caption language ------------------------------------------------------------------------------------------------
+select col_default_is('public', 'accessibility_settings', 'caption_language', 'en'::character varying,
+  'captions are in English unless a member picks Spanish');
+select col_has_check('public', 'accessibility_settings', 'caption_language', 'only English and Spanish captions exist');
 
 set local role authenticated;
 select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated","aal":"aal1"}', to_json(:alex::text)), true);

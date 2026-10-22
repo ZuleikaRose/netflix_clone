@@ -22,6 +22,7 @@ export const defaultA11y = {
   stopAnimations: false,
   captions: false,
   captionSize: 'medium',
+  captionLanguage: 'en',
 }
 
 // Settings with a fixed set of values, shown as radio chips in the menu
@@ -33,6 +34,8 @@ export const a11yChoices = {
   contrast: { label: 'Contrast', options: [['default', 'Default'], ['high', 'High']] },
   saturation: { label: 'Color', options: [['default', 'Default'], ['low', 'Low saturation'], ['mono', 'Monochrome']] },
   captionSize: { label: 'Caption size', options: [['medium', 'Medium'], ['large', 'Large'], ['xlarge', 'Extra large']] },
+  // A third value is the option's language, for screen readers
+  captionLanguage: { label: 'Caption language', options: [['en', 'English', 'en'], ['es', 'Español', 'es']] },
 }
 
 // On/off settings, grouped as they appear in the menu

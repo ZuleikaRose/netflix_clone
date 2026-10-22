@@ -11,10 +11,10 @@ function Choice({ name, value, onChange }) {
     <fieldset className="choice-group">
       <legend>{label}</legend>
       <div className="choice-options">
-        {options.map(([optionValue, optionLabel]) => (
+        {options.map(([optionValue, optionLabel, lang]) => (
           <label key={optionValue} className="choice">
             <input type="radio" name={`${id}-${name}`} checked={value === optionValue} onChange={() => onChange({ [name]: optionValue })} />
-            <span>{optionLabel}</span>
+            <span lang={lang}>{optionLabel}</span>
           </label>
         ))}
       </div>
@@ -93,6 +93,7 @@ export function AccessibilityPanel() {
           <h3 id="a11y-media">Video &amp; motion</h3>
           {switches('media')}
           <Choice name="captionSize" value={settings.captionSize} onChange={update} />
+          <Choice name="captionLanguage" value={settings.captionLanguage} onChange={update} />
           {/* Autoplay belongs to the signed-in profile, so it's the same switch as in Account settings */}
           {user && (
             <>

@@ -292,6 +292,15 @@ test.describe('video player', () => {
     await menu(page).getByRole('radio', { name: 'Extra large' }).check()
     await page.keyboard.press('Escape')
     await expect(captions).toHaveClass(/caption-xlarge/)
+
+    // Spanish captions, from the menu's Caption language
+    await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
+    await menu(page).getByRole('radio', { name: 'Español' }).check()
+    await page.keyboard.press('Escape')
+    await seek(page).fill('3')
+    await expect(captions).toHaveText('Esta espada tiene un pasado oscuro.')
+    await expect(captions).toHaveAttribute('lang', 'es')
+    await expect(page.getByText(/Spanish captions translated from Wikimedia Commons subtitles/)).toBeVisible()
   })
 
   test('autoplay next episode counts down, and waits when turned off', async ({ page }) => {
