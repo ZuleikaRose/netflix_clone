@@ -48,7 +48,13 @@ Without it, the demo account lives in memory and the TMDB sections don't appear.
 - **Make it work for you:** an accessibility menu on every page with one-tap profiles and settings for text size, readable and dyslexia-friendly fonts, spacing, contrast, color, link and heading highlights, focus outline, big cursor, reading guide, hiding images, stopping animations and captions. Members' settings are saved and come back at sign-in.
 - **Get help:** support hub with live chat, FAQs, feedback, issue reporting with ticket numbers from the database (and support's replies, which you can answer), technical requirements and a maintenance banner. Support staff work the tickets on a support dashboard.
 - **Save money and earn:** promo codes that discount your plan (checked on the server), and an **Affiliate Program** with a referral dashboard, tiered commissions and marketing materials; clicks and sign-ups on your link are counted.
-- **Buy us a coffee:** a round coffee button at the bottom right of every page opens a donation page: pick $5, $10, $25, $50 or any amount from $1 to $10,000 and pay once by card through Stripe. You get a thank-you with the amount, or a plain explanation if the card is declined, and "Try again" after a dropped connection never charges twice. Card numbers go straight to Stripe and never reach the app.
+- **Buy us a coffee:** a round coffee button at the bottom right of every page opens a donation page: pick $5, $10, $25, $50 or any amount from $1 to $10,000 and pay once by card through Stripe. You get a thank-you with the amount, or a plain explanation if the card is declined, and "Try again" after a dropped connection never charges twice. Card numbers go straight to Stripe and never reach the app. The donation page lists your past donations, and Stripe emails a receipt.
+- **Surprise me:** a button on Home and Search opens a random title your profile can watch.
+- **Keyboard shortcuts:** press **?** on any page to see every shortcut.
+- **Screen-time limits:** give a profile (say, a Kids profile) a daily limit with the account password; the player stops when it's used up, and only the account password allows more time.
+- **Spanish captions:** choose Caption language → Español in the accessibility menu.
+- **Offline downloads:** download a title from its page and watch it with no connection (My App → Downloads).
+- **Report a review:** flag another member's review; the support team keeps or removes it from the support dashboard.
 - **Read the legal pages:** Legal & Privacy hub, Terms of Service, Privacy Policy, Accessibility Policy and a Do Not Sell opt-out.
 - **Play:** six small games built from the catalog, with your best scores saved: Poster Match (memory), Plot Twist (guess the title from its synopsis), Timeline (put titles in release order), Cast Call (match an actor to their title), Higher or Lower (which title is more popular, as a streak) and Title Scramble (unscramble a title, with an optional hint). Each game has a top-ten leaderboard of members who chose to show their first name and best score (off by default).
 
@@ -98,7 +104,7 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 
 ## Quality checks
 
-- **274 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present). The donation tests pay with Stripe's test cards (4242… succeeds, 4000…0002 is declined) on the dev project.
+- **288 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present). The donation tests pay with Stripe's test cards (4242… succeeds, 4000…0002 is declined) on the dev project.
 - **Accessibility:** an axe-core WCAG 2.2 AA audit of every page and key interactive state (including the accessibility menu, the player with captions, the delete-account form and the password reset pages), plus checks for 44px touch targets, visible keyboard focus, and focus never hidden behind the sticky bars.
 - **Database:** pgTAP tests of the access rules (including saved TMDB titles, the player volume, watch progress, opt-in leaderboards and donations), triggers, cleanup job, rate limiter and indexes. Every foreign key is indexed, and Supabase's Index Advisor is installed on both projects.
 - **CI** runs lint, build, the Playwright suite and the pgTAP tests on GitHub Actions; `main` requires both to pass.
