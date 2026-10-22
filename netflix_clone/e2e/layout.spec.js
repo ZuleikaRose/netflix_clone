@@ -1,5 +1,5 @@
 import { expect, test } from './test.js'
-import { navigateInApp, signInAsDemo } from './helpers.js'
+import { navigateInApp, signInAsDemo, tabBar } from './helpers.js'
 
 const routes = [
   '/', '/title/behind-the-glass', '/tmdb/show/1399', '/tmdb/person/6384', '/people/Mara%20Quinn', '/search', '/new', '/my-netflix', '/watchlist', '/favorites', '/account', '/profiles', '/support-dashboard', '/notifications', '/history', '/year-in-review', '/what-to-watch', '/donate', '/lists', '/party/0000000000', '/shared/0000000000000000', '/games', '/games/memory', '/games/trivia', '/games/timeline', '/games/cast', '/games/higher-lower', '/games/scramble',
@@ -59,4 +59,20 @@ test('keyboard focus is visible and follows a logical order on Home', async ({ p
   expect(order).toEqual(['Home', 'Accessibility menu', 'Search', 'Notifications', 'My App profile'])
   const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)
   expect(outline).toBe('solid')
+})
+
+test.describe('tall desktop window', () => {
+  test.use({ viewport: { width: 1440, height: 1200 } })
+
+  test('the tab bar sits at the bottom of the phone frame on every tab, even on short pages', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The phone frame is desktop only')
+    await signInAsDemo(page)
+    const frame = await page.locator('.phone').boundingBox()
+    for (const route of ['/', '/games', '/new', '/my-netflix', '/favorites']) {
+      await navigateInApp(page, route)
+      await expect(tabBar(page)).toBeVisible()
+      const bar = await tabBar(page).boundingBox()
+      expect(Math.round(bar.y + bar.height), `tab bar on ${route}`).toBe(Math.round(frame.y + frame.height - 1))
+    }
+  })
 })
