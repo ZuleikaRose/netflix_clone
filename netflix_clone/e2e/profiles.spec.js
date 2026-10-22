@@ -243,3 +243,44 @@ test('a daily screen-time limit stops the player until a grown-up allows more ti
   await player.getByRole('button', { name: 'Play', exact: true }).click()
   await expect(player.getByRole('status').filter({ hasText: 'After Dark' })).toHaveText('Now playing · After Dark')
 })
+
+test('Screen time sums up the last 7 days', async ({ page }) => {
+  // A fixed afternoon, so "Today" and yesterday's label are known
+  const monday = new Date(2026, 9, 19, 15, 0)
+  await page.clock.install({ time: monday })
+  const accountPassword = await demoPassword(page)
+  const openScreenTime = async () => {
+    await navigateInApp(page, '/profiles')
+    await page.getByRole('button', { name: 'Manage profiles' }).click()
+    await page.getByRole('button', { name: 'Edit Alex' }).click()
+    return page.getByRole('region', { name: 'Screen time' })
+  }
+  let screenTime = await openScreenTime()
+  // Without a limit nothing is counted, so there's no summary yet
+  await expect(screenTime.getByRole('heading', { name: 'Last 7 days' })).toHaveCount(0)
+  await screenTime.getByRole('combobox', { name: 'Daily limit' }).selectOption('30')
+  await screenTime.getByLabel('Account password').fill(accountPassword)
+  await screenTime.getByRole('button', { name: 'Save daily limit' }).click()
+  await expect(screenTime.getByRole('heading', { name: 'Last 7 days' })).toBeVisible()
+  await expect(screenTime).toContainText('Nothing watched yet.')
+
+  await navigateInApp(page, '/title/after-dark')
+  await page.getByRole('button', { name: /^\s*(Resume|Play)$/ }).click()
+  const player = page.getByRole('region', { name: /Video player/ })
+  await expect(player.getByRole('status').filter({ hasText: 'After Dark' })).toHaveText('Now playing · After Dark')
+  await page.clock.runFor(10 * 60_000)
+  await player.getByRole('button', { name: 'Close player' }).click()
+
+  screenTime = await openScreenTime()
+  const days = screenTime.getByRole('list', { name: 'Time watched each day' }).getByRole('listitem')
+  await expect(days).toHaveCount(7)
+  await expect(days.first()).toHaveText(/Today\s*10 minutes/)
+  await expect(screenTime).toContainText('10 minutes in total, about 1 minute a day.')
+
+  // The next day: today starts from nothing, and Monday keeps its 10 minutes
+  await page.clock.setSystemTime(new Date(2026, 9, 20, 9, 0))
+  await navigateInApp(page, '/account')
+  screenTime = await openScreenTime()
+  await expect(days.first()).toHaveText(/Today\s*None/)
+  await expect(days.nth(1)).toHaveText(/Mon, Oct 19\s*10 minutes/)
+})

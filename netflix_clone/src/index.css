@@ -285,6 +285,14 @@ textarea { resize: vertical; }
 .review-list .helpful-button[aria-pressed="true"] { color: #fff; font-weight: 600; }
 .review-helpful-count { font-size: 12px; }
 .review-sort { margin: 12px 0 0; }
+.screen-week { display: grid; gap: 8px; margin-top: 16px; }
+.screen-week h3 { margin: 0; font-size: 15px; }
+.screen-week p { margin: 0; }
+.screen-week ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.screen-week li { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 2px 10px; }
+.screen-week-bar { height: 8px; border-radius: 4px; background: #2a2a2a; overflow: hidden; }
+.screen-week-bar span { display: block; height: 100%; border-radius: 4px; background: #bcbcbc; }
+.screen-week-time { grid-column: 2; color: #bcbcbc; }
 /* Report a review (components/Reviews.jsx) */
 .report-form { display: grid; gap: 10px; margin-top: 8px; padding: 12px; border: 1px solid #333; border-radius: 6px; }
 .report-form label[for] { font-size: 13px; font-weight: 600; }

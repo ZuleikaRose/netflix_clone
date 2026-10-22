@@ -8,8 +8,8 @@ import { ProfileAvatar } from '../components/ProfileAvatar.jsx'
 import { MAX_PROFILES, MAX_PROFILE_NAME, PIN_PATTERN, avatarColors, maturityChoices, profileNameProblem } from '../data/profiles.js'
 import { useAuth } from '../state/authContext.js'
 import { useProfile } from '../state/profileContext.js'
-import { LIMIT_CHOICES, formatMinutes } from '../data/screenTime.js'
-import { useScreenTime } from '../state/useScreenTime.js'
+import { LIMIT_CHOICES, dayLabel, formatMinutes, formatWatched } from '../data/screenTime.js'
+import { useScreenTime, useScreenTimeWeek } from '../state/useScreenTime.js'
 import { focusFirstError } from './formUtils.js'
 
 // Adds a profile (no `profile`) or edits one; deleting needs a second, explicit press
@@ -245,11 +245,46 @@ function ScreenTimeForm({ profile }) {
         )}
       </form>
       <p className="save-status" role="status">{status && <><span aria-hidden="true">✓</span> {status}</>}</p>
+      <ScreenTimeWeek profile={profile} />
     </section>
   )
 }
 
-// "Who's watching?": pick a profile, or manage them (add, rename, recolour, change the maturity rating, delete)
+// The profile's last seven days, newest first: time watched each day (a bar against the daily limit) and in total.
+// Only profiles with a limit count their time, so a profile without one shows nothing until it gets a limit.
+function ScreenTimeWeek({ profile }) {
+  const week = useScreenTimeWeek(profile)
+  if (!profile.dailyLimit && !week?.some((u) => u.seconds > 0)) return null
+  if (!week) return <p className="muted">Loading the last 7 days…</p>
+
+  const today = week.at(-1).day
+  const total = week.reduce((sum, u) => sum + u.seconds, 0)
+  // Bars are measured against the limit, or the longest day if that was longer (extra time allowed)
+  const scale = Math.max((profile.dailyLimit ?? 0) * 60, ...week.map((u) => u.seconds), 1)
+  return (
+    <div className="screen-week">
+      <h3>Last 7 days</h3>
+      <p className="muted">
+        {total ? `${formatWatched(total)} in total, about ${total / 7 >= 30 ? formatWatched(total / 7) : 'under a minute'} a day.` : 'Nothing watched yet.'}
+      </p>
+      <ul aria-label="Time watched each day">
+        {[...week].reverse().map((u) => (
+          <li key={u.day}>
+            <span className="screen-week-day">{dayLabel(u.day, today)}</span>
+            <span className="screen-week-bar" aria-hidden="true">
+              <span style={{ width: `${Math.min(100, (u.seconds / scale) * 100)}%` }} />
+            </span>
+            <span className="screen-week-time">
+              {formatWatched(u.seconds)}{u.extraSeconds > 0 && `, ${formatMinutes(u.extraSeconds / 60)} extra allowed`}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// "Who's watching?: pick a profile, or manage them (add, rename, recolour, change the maturity rating, delete)
 export function Profiles() {
   const { profiles, chooseProfile, isUnlocked } = useProfile()
   const navigate = useNavigate()

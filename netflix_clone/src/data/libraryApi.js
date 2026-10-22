@@ -160,6 +160,9 @@ export function libraryApi(supabase, userId, profileId) {
     // Screen time (profiles with a daily limit): the day's usage, counted and extended only through the functions
     loadScreenTime: (day) => profiles('screen_time', 'day, seconds, extra_seconds').eq('day', day).maybeSingle().then(unwrap)
       .then((row) => (row ? toUsage(row) : emptyUsage(day))),
+    // The week's usage, oldest first, for the summary in Profiles
+    loadScreenTimeSince: (day) => profiles('screen_time', 'day, seconds, extra_seconds').gte('day', day).order('day')
+      .then(unwrap).then((rows) => rows.map(toUsage)),
     addScreenTime: (day, seconds) => supabase.rpc('add_screen_time', { p_profile: profileId, p_day: day, p_seconds: seconds })
       .then(unwrap).then(toUsage),
     addExtraScreenTime: (day, minutes, password) => supabase
