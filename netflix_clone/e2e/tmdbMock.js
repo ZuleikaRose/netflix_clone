@@ -40,6 +40,8 @@ const details = {
     seasonList: [{ number: 1, name: 'Season 1', episodes: 2, year: 2011 }, { number: 2, name: 'Season 2', episodes: 1, year: 2012 }],
   },
 }
+// Every listed title has a page too (Surprise me can open any of them), without a trailer or streaming services
+for (const t of Object.values(lists).flat()) details[`${t.type}:${t.tmdbId}`] ??= { ...t, trailer: null, providers: null }
 const episode = (number, name, airDate) => ({ number, name, overview: `${name} overview.`, airDate, runtime: '58m', still: '/favicon.svg', rating: 8 })
 const seasons = {
   '1399:1': { number: 1, name: 'Season 1', overview: null, episodes: [episode(1, 'Winter Is Coming', '2011-04-17'), episode(2, 'The Kingsroad', '2011-04-24')] },

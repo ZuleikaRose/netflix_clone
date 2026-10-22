@@ -5,6 +5,7 @@ import { PosterCard } from '../components/PosterCard.jsx'
 import { SearchBox } from '../components/SearchBox.jsx'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
 import { suggestionsFor } from '../data/searchSuggestions.js'
+import { listedTitles } from '../data/tmdbApi.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useSimilarTitles } from '../state/useSimilarTitles.js'
@@ -28,8 +29,6 @@ const hasGenre = (title, genre) => title.genres.some((g) => g === genre || g.spl
 
 // Without a query, Search browses every movie and TV show in TMDB's lists (new, trending and popular), once each
 // Every TMDB list title once, except films not out yet (those are New & Hot's Coming Soon)
-const allListed = (lists) => [...new Map(Object.entries(lists).filter(([name]) => name !== 'upcomingMovies')
-  .flatMap(([, titles]) => titles).map((t) => [t.id, t])).values()]
 
 export function Search() {
   // Query state lives in the URL so results survive Back/Forward and can be shared
@@ -60,7 +59,7 @@ export function Search() {
   const results = refine(catalog.filter((t) => !needle || [t.title, ...t.cast, ...t.genres].some((s) => s.toLowerCase().includes(needle))))
   const tmdb = useTmdbSearch(q)
   const tmdbLists = useTmdbLists()
-  const tmdbFound = needle ? tmdb.results : tmdbLists && allListed(tmdbLists)
+  const tmdbFound = needle ? tmdb.results : tmdbLists && listedTitles(tmdbLists)
   // TMDB list and search items have no certification ('NR'), so restricted profiles don't see them
   const tmdbResults = tmdbFound ? refine(tmdbFound.filter(isAllowed)) : []
   const tmdbSearching = Boolean(needle) && tmdb.searching

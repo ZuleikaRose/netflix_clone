@@ -283,7 +283,10 @@ after editing.
   `receipt_email` to the member's address, except for demo accounts (`app_metadata.demo`); Stripe sends no receipts in
   test mode.
 - **Surprise me**: `components/SurpriseButton.jsx` on Home (follows the TV Shows / Movies chip) and Search (follows
-  Type) opens a random catalog title the profile may watch (`data/surprise.js`: never Not for me, never the last pick).
+  Type) opens a random title the profile may watch (`data/surprise.js`: never Not for me, never the last pick): the
+  catalog's, plus the movies and TV shows in TMDB's lists (`listedTitles()` in `data/tmdbApi.js`, without Coming Soon;
+  restricted profiles get only those certified within their setting). Without TMDB it picks from the catalog alone.
+  `e2e/tmdbMock.js` gives every listed title a page, so any pick opens.
 - **Keyboard shortcuts help**: `?` on any page (not while typing) opens `components/ShortcutsDialog.jsx`, also from
   the accessibility menu and the Accessibility Policy. The list is `data/shortcuts.js`: change it with the handlers
   (Player's `shortcuts`, SearchBox).
