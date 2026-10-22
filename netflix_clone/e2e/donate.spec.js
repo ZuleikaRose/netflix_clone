@@ -32,6 +32,7 @@ test.describe('donations on the in-memory build', () => {
     await expect(page).toHaveURL(/\/donate$/)
     await expect(page.getByText('Donations aren’t available in this version of the app.')).toBeVisible()
     await expect(page.getByRole('button', { name: /^Donate/ })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Your donations' })).toHaveCount(0)
     expect(stripeRequests).toEqual([])
   })
 })
@@ -78,6 +79,8 @@ test.describe('donations with Supabase and Stripe', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Make a donation' })).toBeVisible()
     await expect(page.getByRole('group', { name: 'Amount' }).getByRole('radio', { name: '$10' })).toBeChecked()
     await expect(page.locator('.card-input iframe[name^="__privateStripeFrame"]')).toHaveCount(1)
+    // A new demo account has no donations yet
+    await expect(page.getByRole('region', { name: 'Your donations' })).toContainText('You haven’t made a donation yet.')
     await expect(page.getByRole('group', { name: 'Card details' })).toBeVisible()
 
     // Validated on submit: the other amount, then the card
@@ -157,6 +160,11 @@ test.describe('donations with Supabase and Stripe', () => {
     expect(response.status(), `process-donation answered ${response.status()}: ${await response.text()}`).toBe(200)
     await expect(page.getByRole('heading', { name: 'Thank you for your $10.00 donation' })).toBeVisible({ timeout: 30_000 })
     await expect(page.getByRole('heading', { name: 'Thank you for your $10.00 donation' })).toBeFocused()
+    // Demo accounts have made-up addresses, so no emailed receipt
+    await expect(page.getByText('It will appear on your card statement.')).toBeVisible()
+    // The webhook records it a moment later, and Your donations picks it up
+    const history = page.getByRole('region', { name: 'Your donations' })
+    await expect(history.getByRole('listitem').filter({ hasText: '$10.00' }).filter({ hasText: 'Paid' }).first()).toBeVisible({ timeout: 20_000 })
     await page.getByRole('button', { name: 'Make another donation' }).click()
 
     await fillCard('4000 0000 0000 0002')
