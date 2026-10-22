@@ -102,7 +102,8 @@ together.
   coffee") and turns darker there. Keyboard focus scrolls clear of it.
 * **Donate page:** a settings card with the amount as pill radio choices ($5, $10, $25, $50, Other amount), the Stripe
   card field styled like our inputs (`#1a1a1a`, white text, orange when invalid), and a full-width accent "Donate
-  $10.00" button. The result replaces the form: a focused "Thank you for your $10.00 donation" heading, or an alert
+  $10.00" button. The result replaces the form: a focused "Thank you for your $10.00 donation" heading (or "Your
+  $10.00 donation is being processed" in the same card while the bank confirms it), or an alert
   box ("Your donation didn't go through" / "We couldn't reach the payment service" with Try again). Stripe's error
   codes are never shown. Below it, Your donations: one row per donation with the amount in bold, the date in muted
   grey and "Paid" in green (`#46d369`) or "Didn't go through" in the error orange.

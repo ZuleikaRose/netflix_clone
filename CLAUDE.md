@@ -52,9 +52,13 @@ Both run all 24 migrations (through `20261024020000_review_reports`), non_transa
 functions, with `assistant`, `process-donation` and `stripe-webhook` (production caught up 2026-10-22). `assistant`
 needs the `ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
 The donation functions need two function variables per project:
-`STRIPE_SECRET_KEY` (a test-mode key on dev; without it process-donation answers 503) and `STRIPE_WEBHOOK_SECRET`,
-the signing value of the Stripe webhook endpoint that points at `<project>.supabase.co/functions/v1/stripe-webhook`
+`STRIPE_SECRET_KEY` (a test-mode key on dev, a live key on production; without it process-donation answers 503)
+and `STRIPE_WEBHOOK_SECRET`, the signing value of the Stripe webhook endpoint that points at
+`<project>.supabase.co/functions/v1/stripe-webhook`
 (events `payment_intent.succeeded` and `payment_intent.payment_failed`). Never put either value in the repo.
+Production takes live payments in the **Demo_Netflix_Clone** Stripe account (live webhook endpoint registered;
+first live $1.00 donation recorded 2026-10-22); dev uses the same account in test mode. The live `pk_live_` key is
+set only in the front-end repo's `.env.production.local` (and must be in the host's settings once it's hosted).
 `apply_migration` stamps the current time as the version: afterwards set it to the file's version in
 `supabase_migrations.schema_migrations`, and apply one migration per second or less often, or two get the same stamp
 and the second fails on the duplicate version.

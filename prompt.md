@@ -137,5 +137,17 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
 31. Apply the changes to the production Supabase project: migrations 21–24, non_transactional 009–010 and the
     `process-donation` and `stripe-webhook` functions.
 
-Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and for donations on production
-the two Stripe function settings and a Stripe webhook endpoint pointing at production's `stripe-webhook`.
+32. Put only the front end in its own repo: https://github.com/ZuleikaRose/netflix_clone_front_end (first named
+    "front-end", then "front_end"), kept locally next to this repo.
+33. The three-phase Stripe donation prompt (a Supabase agent, a UI agent, then a supervisor agent). Both phases were
+    already built, so the supervisor reviewed them against its own requirements: every check passed (request and
+    response match, Stripe.js confirms the card, signed webhook, one row per payment, members read only their own
+    rows, no secret keys in the front end). Then "please fix all 3": a declined card tried again reuses the same
+    PaymentIntent, a changed amount after a dropped connection checks the first payment before starting another,
+    and a payment still processing says so (PR #18).
+34. Take live payments on production: the live publishable key in the front-end repo, the live Stripe keys and a
+    live webhook endpoint on the production project; a live $1.00 test donation was recorded.
+35. Include TMDB's movies and TV shows in Surprise me (PR #19, and the front-end repo).
+
+Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel) and CAPTCHA on sign-up
+and sign-in.
