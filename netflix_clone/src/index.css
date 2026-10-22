@@ -279,6 +279,12 @@ textarea { resize: vertical; }
 .review-list p { margin: 0 0 4px; }
 .review-list .text-button { min-width: 44px; font-size: 13px; font-weight: 400; color: #bcbcbc; }
 .review-reported { margin: 4px 0 0; font-size: 12px; }
+.review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; }
+.review-actions .report-form { flex-basis: 100%; }
+.review-list .helpful-button { gap: 6px; text-decoration: none; }
+.review-list .helpful-button[aria-pressed="true"] { color: #fff; font-weight: 600; }
+.review-helpful-count { font-size: 12px; }
+.review-sort { margin: 12px 0 0; }
 /* Report a review (components/Reviews.jsx) */
 .report-form { display: grid; gap: 10px; margin-top: 8px; padding: 12px; border: 1px solid #333; border-radius: 6px; }
 .report-form label[for] { font-size: 13px; font-weight: 600; }

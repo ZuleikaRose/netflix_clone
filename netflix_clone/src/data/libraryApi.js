@@ -207,9 +207,11 @@ export function libraryApi(supabase, userId, profileId) {
 // Public reviews for a title, newest first, as { author, stars, text }
 // `mine`: the signed-in member wrote it (members can report everyone else's)
 export const fetchReviews = (supabase, titleId, userId) => supabase.from('review')
-  .select('id, user_id, author_name, rating, body').eq('title_id', titleId).not('body', 'is', null)
+  .select('id, user_id, author_name, rating, body, helpful_count').eq('title_id', titleId).not('body', 'is', null)
   .order('created_at', { ascending: false }).limit(50).then(unwrap)
-  .then((rows) => rows.map((r) => ({ id: r.id, mine: r.user_id === userId, author: r.author_name, stars: r.rating, text: r.body })))
+  .then((rows) => rows.map((r) => ({
+    id: r.id, mine: r.user_id === userId, author: r.author_name, stars: r.rating, text: r.body, helpful: r.helpful_count,
+  })))
 
 export const postReview = (supabase, userId, titleId, review) => supabase.from('review')
   .insert({ user_id: userId, title_id: titleId, rating: review.stars, body: review.text }).select('id').single().then(unwrap)

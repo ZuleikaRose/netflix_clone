@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { helpfulLabel, reviewOrders, sortReviews } from '../data/helpfulVotes.js'
 import { MAX_REPORT_DETAILS, reportReasons } from '../data/reviewReports.js'
 import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
@@ -66,12 +67,35 @@ function ReportReview({ review, report }) {
   )
 }
 
+// "Helpful" under another member's review: a toggle (pressed once voted) with the count; your own review shows the count
+function HelpfulVote({ review, toggleHelpful }) {
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+  if (review.mine) return review.helpful > 0 ? <p className="muted review-helpful-count">{helpfulLabel(review.helpful)}</p> : null
+
+  const vote = async () => {
+    setBusy(true)
+    setError(await toggleHelpful(review))
+    setBusy(false)
+  }
+  return (
+    <>
+      <button type="button" className="text-button helpful-button" aria-pressed={review.votedHelpful} disabled={busy} onClick={vote}
+        aria-label={`Helpful: ${review.author}’s review, ${helpfulLabel(review.helpful)}`}>
+        <span aria-hidden="true">👍</span> Helpful{review.helpful > 0 && <span aria-hidden="true"> ({review.helpful})</span>}
+      </button>
+      {error && <p className="form-alert" role="alert">{error}</p>}
+    </>
+  )
+}
+
 // Ratings & Reviews for a catalog or TMDB title. `beforeSave` (optional) runs before the first rating or review is
 // saved and resolves to false when the title can't be stored (a TMDB title must be a `titles` row first).
 export function Reviews({ title, beforeSave }) {
   const { ratings, rate } = useLibrary()
   const { user } = useAuth()
-  const { reviews, addReview, report } = useReviews(title)
+  const { reviews, addReview, report, toggleHelpful } = useReviews(title)
+  const [order, setOrder] = useState('helpful')
   const [draft, setDraft] = useState('')
   const [error, setError] = useState(null)
   const myRating = ratings[title.id] ?? 0
@@ -104,15 +128,28 @@ export function Reviews({ title, beforeSave }) {
       {reviews.length === 0
         ? <p className="muted">No reviews yet — be the first.</p>
         : (
-          <ul className="review-list">
-            {reviews.map((r) => (
-              <li key={r.id}>
-                <p><b>{r.author}</b>{r.stars && <span className="review-stars" aria-label={`${r.stars} out of 5 stars`}>{'★'.repeat(r.stars)}</span>}</p>
-                <p>{r.text}</p>
-                {!r.mine && <ReportReview review={r} report={report} />}
-              </li>
-            ))}
-          </ul>
+          <>
+            {reviews.length > 1 && (
+              <div className="field review-sort">
+                <label htmlFor="review-order">Sort reviews</label>
+                <select id="review-order" value={order} onChange={(e) => { const { value } = e.target; setOrder(value) }}>
+                  {reviewOrders.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            )}
+            <ul className="review-list">
+              {sortReviews(reviews, order).map((r) => (
+                <li key={r.id}>
+                  <p><b>{r.author}</b>{r.stars && <span className="review-stars" aria-label={`${r.stars} out of 5 stars`}>{'★'.repeat(r.stars)}</span>}</p>
+                  <p>{r.text}</p>
+                  <div className="review-actions">
+                    <HelpfulVote review={r} toggleHelpful={toggleHelpful} />
+                    {!r.mine && <ReportReview review={r} report={report} />}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
     </section>
   )

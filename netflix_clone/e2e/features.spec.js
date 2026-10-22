@@ -460,3 +460,32 @@ test.describe('surprise me', () => {
     await expect(page.getByRole('heading', { name: 'Fight Club' })).toBeVisible()
   })
 })
+
+test.describe('helpful reviews', () => {
+  test('members mark another member’s review helpful, and reviews sort by most helpful or newest', async ({ page }) => {
+    await navigateInApp(page, '/title/behind-the-glass')
+    const reviews = page.getByRole('region', { name: 'Ratings & Reviews' })
+    await reviews.getByLabel('Write a review').fill('Great soundtrack.')
+    await reviews.getByRole('button', { name: 'Post review' }).click()
+    const items = reviews.getByRole('listitem')
+    // Nobody has voted yet: newest first, and your own review has no Helpful button
+    await expect(items.first()).toContainText('Great soundtrack.')
+    await expect(items.filter({ hasText: 'Great soundtrack.' }).getByRole('button', { name: /^Helpful/ })).toHaveCount(0)
+
+    const helpful = reviews.getByRole('button', { name: /^Helpful: Jordan’s review/ })
+    await expect(helpful).toHaveAttribute('aria-pressed', 'false')
+    await helpful.click()
+    await expect(helpful).toHaveAttribute('aria-pressed', 'true')
+    await expect(helpful).toHaveAccessibleName('Helpful: Jordan’s review, 1 person found this helpful')
+    await expect(helpful).toHaveText(/Helpful \(1\)/)
+    // Most helpful (the default) now puts Jordan's first; Newest puts yours first again
+    await expect(items.first()).toContainText('Every episode ends on a hook.')
+    await reviews.getByLabel('Sort reviews').selectOption('Newest')
+    await expect(items.first()).toContainText('Great soundtrack.')
+
+    // Tapping again takes the vote back
+    await helpful.click()
+    await expect(helpful).toHaveAttribute('aria-pressed', 'false')
+    await expect(helpful).toHaveAccessibleName('Helpful: Jordan’s review, 0 people found this helpful')
+  })
+})
