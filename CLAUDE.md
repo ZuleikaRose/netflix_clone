@@ -48,12 +48,10 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Both run all 20 migrations (through `20261023040000_second_step_for_definer_functions`), non_transactional 001–008
-and the same 8 functions, with `assistant` (production caught up 2026-10-21). `assistant` needs the
-`ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
-Dev is ahead: it also runs migrations 21–24 (`20261023050000_donations`, `20261024000000_screen_time`,
-`20261024010000_caption_language`, `20261024020000_review_reports`), non_transactional 009–010 and the functions
-`process-donation` and `stripe-webhook` (10 functions); production doesn't have them yet. They need two function variables per project:
+Both run all 24 migrations (through `20261024020000_review_reports`), non_transactional 001–010 and the same 10
+functions, with `assistant`, `process-donation` and `stripe-webhook` (production caught up 2026-10-22). `assistant`
+needs the `ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
+The donation functions need two function variables per project:
 `STRIPE_SECRET_KEY` (a test-mode key on dev; without it process-donation answers 503) and `STRIPE_WEBHOOK_SECRET`,
 the signing value of the Stripe webhook endpoint that points at `<project>.supabase.co/functions/v1/stripe-webhook`
 (events `payment_intent.succeeded` and `payment_intent.payment_failed`). Never put either value in the repo.

@@ -134,6 +134,8 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
 30. Fix My App so the tab bar (Home, Games, New & Hot, My App) sits where it does on the other tabs (on desktop it rose
     on short pages in a tall window).
 
-Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and donations and the eight
-features on production (migrations 21–24, non_transactional 009–010, both Stripe functions, the two Stripe function
-settings and a Stripe webhook endpoint for production).
+31. Apply the changes to the production Supabase project: migrations 21–24, non_transactional 009–010 and the
+    `process-donation` and `stripe-webhook` functions.
+
+Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and for donations on production
+the two Stripe function settings and a Stripe webhook endpoint pointing at production's `stripe-webhook`.

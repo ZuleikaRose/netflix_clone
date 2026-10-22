@@ -21,7 +21,7 @@ defaults:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25 # the full Playwright suite (288 tests, two builds) takes 11–15 minutes
     steps:
       - uses: actions/checkout@v4
 
