@@ -19,6 +19,7 @@ export const fetchDonationMonths = (supabase) => supabase.rpc('staff_donation_mo
 export const fetchRecentDonations = (supabase, status) => supabase.rpc('staff_recent_donations', { p_status: status }).then(unwrap)
   .then((rows) => rows.map((r) => ({
     id: r.id, amount: r.amount, status: r.status, at: new Date(r.created_at), member: r.member_name, paymentId: r.stripe_payment_intent_id,
+    monthly: r.monthly,
   })))
 
 // The payment in the Stripe Dashboard (test-mode keys open the test data), where staff can refund it
@@ -40,11 +41,11 @@ export function sampleDonations(now = new Date()) {
   const thisMonth = (minutes) => new Date(Math.min(now.getTime(), Date.UTC(year, monthIndex, 1, 0, minutes)))
   const lastMonth = (day) => new Date(Date.UTC(year, monthIndex - 1, day, 12))
   return [
-    { id: 'sample-1', amount: 1000, status: 'succeeded', at: thisMonth(3), member: 'Jordan', paymentId: null },
+    { id: 'sample-1', amount: 1000, status: 'succeeded', at: thisMonth(3), member: 'Jordan', paymentId: null, monthly: true },
     { id: 'sample-2', amount: 500, status: 'failed', at: thisMonth(2), member: 'Sam', paymentId: null },
     { id: 'sample-3', amount: 2500, status: 'succeeded', at: thisMonth(1), member: 'Priya', paymentId: null },
     { id: 'sample-4', amount: 5000, status: 'succeeded', at: lastMonth(20), member: 'Sam', paymentId: null },
-    { id: 'sample-5', amount: 1000, status: 'succeeded', at: lastMonth(12), member: 'Jordan', paymentId: null },
+    { id: 'sample-5', amount: 1000, status: 'succeeded', at: lastMonth(12), member: 'Jordan', paymentId: null, monthly: true },
   ]
 }
 

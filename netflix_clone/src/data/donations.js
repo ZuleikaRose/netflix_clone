@@ -1,7 +1,8 @@
 import { authBackend } from '../lib/supabaseConfig.js'
 
-// One-time donations (/donate): the process-donation Edge Function creates a Stripe PaymentIntent and returns its
-// client_secret; Stripe.js confirms it with the card, so card numbers never reach this app or the function.
+// Donations (/donate): one-time ones through the process-donation Edge Function (a Stripe PaymentIntent) and monthly
+// ones through monthly-donation (a Stripe subscription, whose first invoice has a PaymentIntent). Either returns a
+// client_secret that Stripe.js confirms with the card, so card numbers never reach this app or the functions.
 
 // Only the publishable key (pk_…) belongs here: every VITE_ value reaches the browser
 export const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || null
@@ -80,11 +81,32 @@ export function paymentError(error) {
 // reports the outcome, so a donation can take a few seconds to appear.
 export const DONATION_HISTORY_LIMIT = 20
 export async function loadDonations(supabase) {
-  const { data, error } = await supabase.from('donations').select('id, amount, status, created_at')
+  const { data, error } = await supabase.from('donations').select('id, amount, status, created_at, monthly_donation_id')
     .order('created_at', { ascending: false }).limit(DONATION_HISTORY_LIMIT)
   if (error) throw error
-  return data.map((d) => ({ id: d.id, cents: d.amount, status: d.status, createdAt: new Date(d.created_at) }))
+  return data.map((d) => ({
+    id: d.id, cents: d.amount, status: d.status, createdAt: new Date(d.created_at), monthly: Boolean(d.monthly_donation_id),
+  }))
 }
+// The webhook records a donation (and starts a monthly one) a moment after Stripe confirms it: look again after these
+// delays (ms)
+export const RECHECK_AFTER_MS = [2000, 5000, 10000]
+
+// Monthly donations (migration ..._monthly_donations): the monthly-donation Edge Function starts and cancels a Stripe
+// subscription; stripe-webhook marks it active once a payment goes through. The member's running one, or null.
+export async function loadMonthlyDonation(supabase) {
+  const { data, error } = await supabase.from('monthly_donations').select('id, amount, status, current_period_end')
+    .in('status', ['active', 'past_due']).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (error) throw error
+  return data && {
+    id: data.id, cents: data.amount, status: data.status,
+    nextPayment: data.current_period_end ? new Date(data.current_period_end) : null,
+  }
+}
+export const DONATION_FREQUENCIES = [
+  { value: 'once', label: 'One time' },
+  { value: 'monthly', label: 'Monthly' },
+]
 
 const day = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 export const formatDonationDate = (date) => day.format(date)

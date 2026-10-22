@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react'
-import { DONATION_HISTORY_LIMIT, formatDonationDate, formatUsd, loadDonations } from '../../data/donations.js'
+import { DONATION_HISTORY_LIMIT, RECHECK_AFTER_MS, formatDonationDate, formatUsd, loadDonations } from '../../data/donations.js'
 import { getSupabase } from '../../lib/supabaseConfig.js'
-
-// The webhook records a donation a moment after Stripe confirms it: look again after these delays (ms)
-const RECHECK_AFTER = [2000, 5000, 10000]
 
 // "Your donations" on /donate: amount, date and whether each went through. `donated` changes after every successful
 // donation, which starts the rechecks.
@@ -18,7 +15,7 @@ export function DonationHistory({ donated }) {
       () => { if (!ignore) setError(true) },
     )
     refresh()
-    const timers = donated ? RECHECK_AFTER.map((ms) => setTimeout(refresh, ms)) : []
+    const timers = donated ? RECHECK_AFTER_MS.map((ms) => setTimeout(refresh, ms)) : []
     return () => { ignore = true; timers.forEach(clearTimeout) }
   }, [donated])
 
@@ -34,7 +31,7 @@ export function DonationHistory({ donated }) {
             <li key={d.id}>
               <span>
                 <b>{formatUsd(d.cents)}</b>
-                <span className="muted">{formatDonationDate(d.createdAt)}</span>
+                <span className="muted">{formatDonationDate(d.createdAt)}{d.monthly && ' · Monthly'}</span>
               </span>
               <span className={d.status === 'succeeded' ? 'donation-status' : 'donation-status failed'}>
                 {d.status === 'succeeded' ? 'Paid' : 'Didn’t go through'}

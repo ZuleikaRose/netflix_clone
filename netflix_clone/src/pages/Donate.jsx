@@ -1,6 +1,8 @@
 import { Suspense, lazy, useState } from 'react'
+import { MonthlyDonation } from '../components/MonthlyDonation.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { NETWORK_MESSAGE, donationsAvailable } from '../data/donations.js'
+import { useMonthlyDonation } from '../state/useMonthlyDonation.js'
 import { DonationHistory } from './donate/DonationHistory.jsx'
 
 // Shown if the form's chunk can't be downloaded (offline, or a new deploy replaced the file), instead of a blank app
@@ -17,23 +19,26 @@ function DonateFormUnavailable() {
 // The Stripe form is its own chunk, loaded only when donations are available (Supabase + a publishable key)
 const DonateForm = lazy(() => import('./donate/DonateForm.jsx').catch(() => ({ default: DonateFormUnavailable })))
 
-// /donate: a one-time card donation through Stripe (signed-in members). See data/donations.js.
+// /donate: a one-time or monthly card donation through Stripe (signed-in members), the member's monthly donation (to
+// cancel) and their past donations. See data/donations.js.
 export function Donate() {
   // Counts successful donations, so the history looks for the new row
   const [donated, setDonated] = useState(0)
+  const monthly = useMonthlyDonation(donated)
   return (
     <>
       <PageHeader title="Make a donation" back />
       <div className="settings donate">
         <p className="muted donate-intro">
-          Enjoying the app? A one-time donation helps keep it running. Choose an amount and pay securely by card; nothing
-          is charged again later.
+          Enjoying the app? A donation helps keep it running. Give once, or every month until you cancel; pay securely by
+          card.
         </p>
         {donationsAvailable
           ? (
             <>
+              <MonthlyDonation state={monthly} />
               <Suspense fallback={<p className="muted" role="status">Loading the secure payment form…</p>}>
-                <DonateForm onDonated={() => setDonated((n) => n + 1)} />
+                <DonateForm onDonated={() => setDonated((n) => n + 1)} hasMonthly={Boolean(monthly.monthly)} />
               </Suspense>
               <DonationHistory donated={donated} />
             </>

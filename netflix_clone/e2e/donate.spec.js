@@ -157,12 +157,14 @@ test.describe('donations with Supabase and Stripe', () => {
   // Mocks process-donation (one intent per call, from `ids`) and Stripe's confirm and retrieve calls for those intents.
   // `confirmWith(id, n)` answers the nth confirmation of an intent (a route.fulfill options object, or 'abort');
   // `statusOf(id)` is what retrieving it says. Returns the amounts the function was asked for.
-  async function mockDonation({ ids, confirmWith, statusOf = () => 'requires_payment_method' }) {
+  // `url`: the function to stand in for (process-donation unless given); `bodies` collects what it was sent
+  async function mockDonation({ ids, confirmWith, statusOf = () => 'requires_payment_method', url = functionUrl, bodies = [] }) {
     const requested = []
     const confirms = {}
-    await page.route(functionUrl, (route) => {
+    await page.route(url, (route) => {
       if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors })
       const id = ids[requested.length]
+      bodies.push(route.request().postDataJSON())
       requested.push(route.request().postDataJSON().amount)
       return route.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: JSON.stringify({ client_secret: `${id}_secret_e2e` }) })
     })
@@ -175,8 +177,8 @@ test.describe('donations with Supabase and Stripe', () => {
     })
     return requested
   }
-  async function unmockDonation() {
-    await page.unroute(functionUrl)
+  async function unmockDonation(url = functionUrl) {
+    await page.unroute(url)
     await page.unroute(/https:\/\/api\.stripe\.com\/v1\/payment_intents\/pi_3E2e\w+/)
   }
   const declined = stripeReply({ error: { type: 'card_error', code: 'card_declined', decline_code: 'generic_decline', message: 'Your card was declined.' } }, 402)
@@ -238,6 +240,24 @@ test.describe('donations with Supabase and Stripe', () => {
     await page.getByRole('button', { name: 'Make another donation' }).click()
   })
 
+  test('Monthly starts a monthly donation through its own function', async () => {
+    const monthlyUrl = '**/functions/v1/monthly-donation'
+    const bodies = []
+    await mockDonation({ ids: ['pi_3E2eDonationMonthly01'], url: monthlyUrl, bodies, confirmWith: (id) => stripeReply(fakeIntent(id, 'succeeded')) })
+    const often = page.getByRole('group', { name: 'How often' })
+    await expect(often.getByRole('radio', { name: 'One time' })).toBeChecked()
+    await often.getByRole('radio', { name: 'Monthly' }).check()
+    await expect(page.getByText('Charged today and on the same day each month until you cancel')).toBeVisible()
+    await fillCard('4242 4242 4242 4242')
+    await page.getByRole('button', { name: 'Donate $10.00 a month' }).click()
+    await expect(page.getByRole('heading', { name: 'Thank you for giving $10.00 a month' })).toBeVisible()
+    expect(bodies).toEqual([expect.objectContaining({ action: 'start', amount: 1000 })])
+    await unmockDonation(monthlyUrl)
+    await page.getByRole('button', { name: 'Make another donation' }).click()
+    // Back to one time
+    await expect(often.getByRole('radio', { name: 'One time' })).toBeChecked()
+  })
+
   test('a test card donates $10.00, and a declined card says so in plain words', async () => {
     test.setTimeout(90_000)
     // The real function with Stripe in test mode. It answers 503 until it can read the Stripe API key on the dev project.
@@ -262,5 +282,35 @@ test.describe('donations with Supabase and Stripe', () => {
     await donateButton().click()
     await expect(page.getByRole('alert')).toContainText('Your card was declined. Please try a different card.', { timeout: 30_000 })
     await expectNoRawCodes()
+  })
+
+  test('a test card gives $10.00 a month until it’s cancelled', async () => {
+    test.setTimeout(90_000)
+    // The real monthly-donation function: a Stripe subscription in test mode, made active by the webhook
+    await page.getByRole('group', { name: 'How often' }).getByRole('radio', { name: 'Monthly' }).check()
+    await fillCard('4242 4242 4242 4242')
+    const answered = page.waitForResponse((r) => r.url().includes('/functions/v1/monthly-donation') && r.request().method() === 'POST')
+    await page.getByRole('button', { name: 'Donate $10.00 a month' }).click()
+    const response = await answered
+    if (response.status() === 503) test.skip(true, 'The Stripe API key is not stored on the dev project yet')
+    expect(response.status(), `monthly-donation answered ${response.status()}: ${await response.text()}`).toBe(200)
+    await expect(page.getByRole('heading', { name: 'Thank you for giving $10.00 a month' })).toBeVisible({ timeout: 30_000 })
+
+    // The webhook makes it active and records the first payment
+    const monthly = page.getByRole('region', { name: 'Your monthly donation' })
+    await expect(monthly).toContainText('You give $10.00 a month.', { timeout: 20_000 })
+    await expect(monthly).toContainText('Demo accounts give once this way: it won’t renew next month.')
+    const history = page.getByRole('region', { name: 'Your donations' })
+    await expect(history.getByRole('listitem').filter({ hasText: 'Monthly' }).filter({ hasText: 'Paid' }).first()).toBeVisible({ timeout: 20_000 })
+    // Only one at a time: the form offers one-time donations only
+    await page.getByRole('button', { name: 'Make another donation' }).click()
+    await expect(page.getByRole('group', { name: 'How often' })).toHaveCount(0)
+
+    await monthly.getByRole('button', { name: 'Cancel monthly donation' }).click()
+    await monthly.getByRole('button', { name: 'Keep it' }).click()
+    await monthly.getByRole('button', { name: 'Cancel monthly donation' }).click()
+    await monthly.getByRole('button', { name: 'Yes, stop it' }).click()
+    await expect(monthly.getByRole('status')).toHaveText('Your monthly donation is cancelled. No more payments will be taken.')
+    await expect(page.getByRole('group', { name: 'How often' })).toBeVisible()
   })
 })

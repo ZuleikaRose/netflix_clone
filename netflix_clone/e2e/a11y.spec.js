@@ -118,7 +118,8 @@ test('interactive states meet WCAG 2.2 AA', async ({ page }) => {
   await page.keyboard.press('Escape')
 
   await navigateInApp(page, '/title/night-shift?play=1')
-  await expect(page.getByLabel('Seek')).not.toHaveAttribute('max', '0')
+  // The clip's length arrives with its metadata, which can take a while when the whole suite loads clips at once
+  await expect(page.getByLabel('Seek')).not.toHaveAttribute('max', '0', { timeout: 20_000 })
   await page.getByRole('button', { name: 'Closed captions' }).click()
   await page.getByLabel('Seek').fill('5')
   await expect(page.locator('.captions')).toBeVisible()

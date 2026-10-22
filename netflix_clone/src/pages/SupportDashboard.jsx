@@ -123,7 +123,7 @@ function DonationsView() {
               <li key={d.id}>
                 <span>
                   <b>{formatUsd(d.amount)}</b>
-                  <span className="muted">{d.member} · {formatDonationDate(d.at)}</span>
+                  <span className="muted">{d.member} · {formatDonationDate(d.at)}{d.monthly && ' · Monthly'}</span>
                   {url && (
                     <a href={url} target="_blank" rel="noreferrer">
                       Open in Stripe<span className="sr-only"> (new tab): {formatUsd(d.amount)} from {d.member}</span>

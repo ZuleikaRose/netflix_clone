@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Field } from '../components/Field.jsx'
 import { GrownUpGate } from '../components/GrownUpGate.jsx'
+import { MonthlyDonation } from '../components/MonthlyDonation.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { PlanPicker } from '../components/PlanPicker.jsx'
 import { useAccessibility } from '../state/accessibilityContext.js'
@@ -10,6 +11,7 @@ import { findPlan } from '../data/plans.js'
 import { maturityChoices } from '../data/profiles.js'
 import { useProfile } from '../state/profileContext.js'
 import { usePwa } from '../state/usePwa.js'
+import { useMonthlyDonation } from '../state/useMonthlyDonation.js'
 import { promptInstall } from '../lib/pwa.js'
 import { discountedPrice, findPromotion } from '../data/promotions.js'
 import { EMAIL_PATTERN, PASSWORD_HINT, passwordProblem, useAuth } from '../state/authContext.js'
@@ -52,6 +54,12 @@ function InstallCard() {
           : <p className="muted">{ios ? 'To install: tap Share, then Add to Home Screen.' : 'To install, use your browser’s menu: Install app, or Add to Home Screen.'}</p>}
     </section>
   )
+}
+
+// A running monthly donation, with Cancel (nothing shows without one, or in the in-memory build)
+function AccountMonthlyDonation() {
+  const state = useMonthlyDonation()
+  return <MonthlyDonation state={state} />
 }
 
 function Status({ message }) {
@@ -225,6 +233,8 @@ export function Account() {
             <Link to="/year-in-review" className="ghost-cta">Year in Review</Link>
             <p className="muted">More choices: <Link to="/info/do-not-sell" className="inline-link">Do Not Sell My Information</Link> · <Link to="/info/privacy" className="inline-link">Privacy Policy</Link></p>
           </section>
+
+          <AccountMonthlyDonation />
 
           <nav className="settings-card link-list" aria-label="Help">
             <Link to="/info/support">Customer Support</Link>
