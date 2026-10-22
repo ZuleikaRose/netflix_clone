@@ -274,8 +274,11 @@ after editing.
   no insert/update/delete grants or policies, and not even the service role deletes. 20/hour per member, 60/hour per
   IP. Database rules in `supabase/tests/database/donations.test.sql`. The page only needs `VITE_STRIPE_PUBLISHABLE_KEY`
   (a `pk_test_` key on dev; without it, or in memory mode, /donate says donations aren't available and Stripe.js never
-  loads). A "Try again" after a dropped confirmation reuses the same PaymentIntent (`retrievePaymentIntent`), so it
-  can't charge twice. The round coffee link (`.donate-fab`, "Donate: buy us a coffee") sits inside `.bottom-nav`,
+  loads). The form remembers the PaymentIntent of an attempt that didn't succeed (declined, or no answer) and asks
+  Stripe about it (`retrievePaymentIntent`) before anything else: if it went through after all, that's the donation,
+  whatever amount is chosen now; the same amount confirms it again (one intent and one row, even after a decline); a
+  new amount gets a new intent. So no retry can charge twice. `processing` shows "being processed", not a failure.
+  The round coffee link (`.donate-fab`, "Donate: buy us a coffee") sits inside `.bottom-nav`,
   absolutely positioned above it, so it is pinned to the phone frame and covered by the tab bar's axe audit; the
   bottom `scroll-padding` leaves room for it. `donate.spec.js` pays with Stripe test cards 4242… and 4000…0002 on :4174.
 - **Donation history and receipts**: /donate lists the member's donations (`DonationHistory`, read straight from
