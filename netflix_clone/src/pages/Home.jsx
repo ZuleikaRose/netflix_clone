@@ -16,6 +16,7 @@ import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useProfile } from '../state/profileContext.js'
 import { ProfileAvatar } from '../components/ProfileAvatar.jsx'
+import { SurpriseButton } from '../components/SurpriseButton.jsx'
 import { useStoreTitle } from '../state/useStoreTitle.js'
 import { useTmdbLists, useTmdbRecommendations } from '../state/useTmdb.js'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
@@ -178,6 +179,9 @@ export function Home() {
       </section>}
 
       <div className="content">
+        {/* A random title for the profile (following the TV Shows / Movies chip) */}
+        {titles.length > 0 && <div className="surprise-row"><SurpriseButton type={type} /></div>}
+
         {continueWatching.length > 0 && (
           <Row title={`Continue Watching for ${profile.name}`}>
             {continueWatching.map((t) => (

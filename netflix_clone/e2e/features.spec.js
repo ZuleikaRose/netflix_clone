@@ -1,5 +1,7 @@
 import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo, tabBar } from './helpers.js'
+import { catalog } from '../src/data/catalog.js'
+import { pickSurprise } from '../src/data/surprise.js'
 
 // Features added from the updated user journey (app_outline/user_journey.md)
 
@@ -412,5 +414,30 @@ test.describe('viewing history and privacy', () => {
     await navigateInApp(page, '/history')
     await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible()
     await expect(page.getByLabel('Delete old history automatically')).toHaveValue('90')
+  })
+})
+
+test.describe('surprise me', () => {
+  test('picks a title the profile can watch, never one marked Not for me nor the same one twice', () => {
+    const [a, b] = catalog
+    const first = () => 0
+    expect(pickSurprise([a, b], { [a.id]: 'dislike' }, { random: first })).toBe(b)
+    expect(pickSurprise([a, b], {}, { previous: a.id, random: first })).toBe(b)
+    expect(pickSurprise([a], {}, { previous: a.id })).toBe(a) // the only one left
+    expect(pickSurprise([a], { [a.id]: 'dislike' })).toBeNull()
+    expect(pickSurprise(catalog, {}, { type: 'movie', random: first }).type).toBe('movie')
+  })
+
+  test('Home and Search open a random title, following the Movies filter', async ({ page }) => {
+    await page.getByRole('button', { name: 'Movies', exact: true }).click()
+    await page.getByRole('button', { name: 'Surprise me' }).click()
+    await expect(page).toHaveURL(/\/title\//)
+    await expect(page.locator('.eyebrow')).toContainText('FILM')
+    const firstPick = page.url()
+
+    await navigateInApp(page, '/search?type=show')
+    await page.getByRole('button', { name: 'Surprise me' }).click()
+    await expect(page.locator('.eyebrow')).toContainText('SERIES')
+    expect(page.url()).not.toBe(firstPick)
   })
 })

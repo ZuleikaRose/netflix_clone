@@ -726,6 +726,10 @@ kbd { display: inline-block; min-width: 28px; padding: 3px 7px; border: 1px soli
 .assistant-by { margin: 0; color: #bcbcbc; font-size: 13px; }
 .assistant-privacy { margin: 0; font-size: 13px; line-height: 1.5; }
 .assistant-link { display: inline-flex; align-items: center; min-height: 44px; color: #fff; font-size: 14px; text-decoration: underline; }
+/* Surprise me (components/SurpriseButton.jsx): above Home's rows, beside Search's assistant link */
+.surprise-row { padding: 12px 17px 0; }
+.surprise-button { width: auto; padding: 0 16px; }
+.search-helpers { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .filters a.chip { display: inline-flex; align-items: center; text-decoration: none; }
 
 /* Accessibility menu settings, set as data-a11y-* attributes on <html> by AccessibilityProvider */
