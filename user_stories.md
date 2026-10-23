@@ -26,7 +26,7 @@ These stories are what the Supabase database stores (see `schema.sql`, `drawsql.
 18. As a user, I want to adjust text size, font, spacing, contrast and color, and turn on reading and navigation aids from an accessibility menu, so that the app works for how I see, read and move; as a member, I want these settings saved so that they come back when I sign in.
 19. As a user, I want one-tap accessibility profiles (seizure safe, low vision, ADHD friendly, dyslexia friendly, keyboard navigation, deaf and hard of hearing) so that I can set up several settings at once.
 20. As a user, I want to read an Accessibility Policy linked from the footer so that I know what the app supports and how to report a problem.
-21. As a viewer, I want to watch real video with controls (play, pause, seek, skip 10 seconds, mute, volume, speed, previous and next episode, full screen) that work with a keyboard so that I can watch comfortably.
+21. As a viewer, I want to watch real video with controls (play, pause, seek, skip 10 seconds, mute, volume, speed, previous and next episode, full screen) that work with a keyboard, and dragging the progress bar to the end to finish the title (saved in my history like watching to the end), so that I can watch comfortably.
 22. As a deaf or hard-of-hearing viewer, I want to turn closed captions on and choose their size so that I can follow along.
 23. As a user, I want to turn autoplaying previews and next episodes on or off, and have them stay off when I ask for reduced motion, so that video doesn't start without my say.
 24. As a user, I want to delete my account from a danger zone once my subscription is cancelled, by typing my email and entering my password to confirm, so that I can leave the service; deleting only removes my access.
