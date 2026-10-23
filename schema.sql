@@ -48,6 +48,14 @@
 -- - ..._caption_language: accessibility_settings gains caption_language ('en' or 'es').
 -- - ..._review_reports: new table review_reports (a member's report of another member's review, with a copy of it);
 --   staff read them through staff_review_reports() and keep or remove the review with staff_resolve_review().
+-- 2026-10-25 (six more features):
+-- - ..._helpful_reviews: review gains helpful_count (kept by triggers); new table review_helpful_votes (one "helpful"
+--   per member per review, never their own).
+-- - ..._staff_donations: staff_donation_months() and staff_recent_donations() for the support dashboard (no tables).
+-- - ..._audio_description: accessibility_settings gains audio_description.
+-- - ..._monthly_donations: new table monthly_donations (a Stripe subscription per member, started and cancelled by
+--   the monthly-donation function, kept in step by stripe-webhook); donations gains monthly_donation_id.
+-- - ..._interface_language: accessibility_settings gains language ('en' or 'es'), the interface language.
 
 CREATE SEQUENCE ticket_number_seq START 48400;
 
@@ -172,6 +180,7 @@ CREATE TABLE review (
   rating smallint CHECK (rating BETWEEN 1 AND 5), -- star rating; a rating alone has no body
   body text,
   author_name varchar NOT NULL DEFAULT '', -- set from the author's account by a trigger, so it can't be faked
+  helpful_count integer NOT NULL DEFAULT 0 CHECK (helpful_count >= 0), -- "helpful" votes, kept by triggers
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -293,6 +302,8 @@ CREATE TABLE accessibility_settings (
   captions boolean NOT NULL DEFAULT false,
   caption_size varchar NOT NULL DEFAULT 'medium' CHECK (caption_size IN ('medium', 'large', 'xlarge')),
   caption_language varchar NOT NULL DEFAULT 'en' CHECK (caption_language IN ('en', 'es')),
+  audio_description boolean NOT NULL DEFAULT false,
+  language varchar NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'es')), -- the interface language
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -398,14 +409,31 @@ CREATE TABLE title_reactions (
   FOREIGN KEY (profile_id, user_id) REFERENCES profiles (id, user_id) ON DELETE CASCADE
 );
 
--- One-time donations through Stripe, in cents (USD). Written only by the stripe-webhook function (service role), one
--- row per PaymentIntent; a failed donation can become 'succeeded' when the card is retried, never the reverse
+-- Monthly donations: one Stripe subscription each, in cents a month (USD). Written only by the monthly-donation and
+-- stripe-webhook functions (service role); members read their own; at most one live ('incomplete', 'active' or
+-- 'past_due') per member
+CREATE TABLE monthly_donations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  amount integer NOT NULL CHECK (amount BETWEEN 100 AND 1000000),
+  stripe_customer_id text NOT NULL,
+  stripe_subscription_id text NOT NULL UNIQUE,
+  status text NOT NULL DEFAULT 'incomplete' CHECK (status IN ('incomplete', 'active', 'past_due', 'canceled')),
+  current_period_end timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  canceled_at timestamptz
+);
+
+-- Donations through Stripe, in cents (USD): one-time ones, and each month's payment of a monthly donation. Written
+-- only by the stripe-webhook function (service role), one row per PaymentIntent; a failed donation can become
+-- 'succeeded' when the card is retried, never the reverse
 CREATE TABLE donations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
   amount integer NOT NULL CHECK (amount > 0 AND amount <= 1000000),
   stripe_payment_intent_id text NOT NULL UNIQUE,
   status text NOT NULL CHECK (status IN ('succeeded', 'failed')),
+  monthly_donation_id uuid REFERENCES monthly_donations (id) ON DELETE SET NULL, -- null for one-time donations
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -438,4 +466,13 @@ CREATE TABLE review_reports (
   created_at timestamptz NOT NULL DEFAULT now(),
   resolved_at timestamptz,
   UNIQUE (review_id, user_id)
+);
+
+-- A member's "helpful" vote on another member's review: one per member per review, never their own. Triggers keep
+-- review.helpful_count in step; members read only their own votes.
+CREATE TABLE review_helpful_votes (
+  review_id uuid NOT NULL REFERENCES review (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES netflix_tables (id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (review_id, user_id)
 );
