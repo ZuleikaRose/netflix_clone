@@ -13,6 +13,7 @@ export default {
   'Close player': 'Cerrar el reproductor',
   'Skip Recap': 'Saltar resumen',
   'Skip Intro': 'Saltar intro',
+  'Skip Outro': 'Saltar créditos',
   'Playback finished': 'Reproducción terminada',
   '{episode} starts in {seconds}s': '{episode} empieza en {seconds} s',
   'Play now': 'Reproducir ahora',

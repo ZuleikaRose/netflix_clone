@@ -6,6 +6,8 @@
 // Each clip also has (times in seconds):
 // - recap and intro: [start, end] for TV shows, which offer Skip Recap (from the second episode) and Skip Intro while
 //   they play. Episodes are simulated with the same clip, so these mark stretches of it rather than a real recap.
+// - outro: [start, end], the closing stretch of every title (movies too), which offers Skip Outro while it plays; it
+//   runs to the end of the clip, and skipping it finishes the title. Simulated the same way: the clip's last 6 seconds.
 // - chapters: [{ start, name }], first at 0, shown as marks on the seek bar and named next to the time
 export const clips = [
   {
@@ -19,6 +21,7 @@ export const clips = [
     sourceUrl: 'https://commons.wikimedia.org/wiki/File:Sintel_movie_4K.webm',
     recap: [0, 6.5],
     intro: [6.5, 12.5],
+    outro: [46, 52],
     chapters: [{ start: 0, name: 'The blade' }, { start: 12.5, name: 'The stranger' }, { start: 29, name: 'The quest' }, { start: 43, name: 'Alone' }],
   },
   {
@@ -32,6 +35,7 @@ export const clips = [
     sourceUrl: 'https://commons.wikimedia.org/wiki/File:Tears_of_Steel_1080p.webm',
     recap: [0, 4.8],
     intro: [4.8, 10.6],
+    outro: [39, 45],
     chapters: [{ start: 0, name: 'The bridge' }, { start: 22.5, name: 'We’re done' }, { start: 29, name: 'Memory synced' }, { start: 40, name: 'Pretty freaky' }],
   },
   {
@@ -45,6 +49,7 @@ export const clips = [
     sourceUrl: 'https://commons.wikimedia.org/wiki/File:Elephants_Dream_(2006).webm',
     recap: [0, 5],
     intro: [5, 15.5],
+    outro: [51, 57],
     chapters: [{ start: 0, name: 'The machine' }, { start: 15.5, name: 'Watch out!' }, { start: 33, name: 'Are you hurt?' }, { start: 49, name: 'What’s next?' }],
   },
 ]

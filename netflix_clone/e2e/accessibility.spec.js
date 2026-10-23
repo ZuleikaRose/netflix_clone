@@ -184,6 +184,53 @@ test.describe('video player', () => {
     await expect(page.getByRole('button', { name: 'Skip Intro' })).toBeVisible()
   })
 
+  test('every title offers Skip Outro at the end, which finishes it, and a show then counts down to the next episode', async ({ page }) => {
+    // A movie: no recap or intro, but the outro (51–57 s in this clip) can be skipped, straight to the end screen
+    await openPlayer(page, 'after-dark')
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    await seek(page).fill('8')
+    await expect(page.getByRole('button', { name: 'Skip Intro' })).toHaveCount(0)
+    await seek(page).fill('30')
+    await expect(page.getByRole('button', { name: 'Skip Outro' })).toHaveCount(0)
+    await seek(page).fill('52')
+    await page.getByRole('button', { name: 'Skip Outro' }).click()
+    const end = page.getByRole('group', { name: 'Playback finished' })
+    await expect(end).toContainText('Finished')
+    await expect(end.getByRole('button', { name: 'Replay' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Skip Outro' })).toHaveCount(0)
+
+    // A show (outro 39–45 s): S skips it too, and Autoplay next episode counts down
+    await page.getByRole('button', { name: 'Close player' }).click()
+    await navigateInApp(page, '/title/night-shift')
+    await page.getByRole('button', { name: /^\s*(Resume|Play)$/ }).click()
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    await seek(page).fill('40')
+    await page.getByRole('button', { name: 'Closed captions' }).focus()
+    await page.keyboard.press('s')
+    await expect(page.getByText(/S1:E2 Crossings starts in \ds/)).toBeVisible()
+  })
+
+  test('full screen turns the video sideways on a phone, and leaves a desktop as it is', async ({ page }, testInfo) => {
+    // Headless browsers have no screen to turn, so record what the player asks for instead
+    await page.addInitScript(() => {
+      window.orientationCalls = []
+      ScreenOrientation.prototype.lock = function lock(orientation) {
+        window.orientationCalls.push(`lock ${orientation}`)
+        return Promise.resolve()
+      }
+      ScreenOrientation.prototype.unlock = function unlock() { window.orientationCalls.push('unlock') }
+    })
+    const calls = () => page.evaluate(() => window.orientationCalls)
+    const phone = testInfo.project.name === 'mobile'
+    await openPlayer(page, 'after-dark')
+    await page.getByRole('button', { name: 'Full screen' }).click()
+    await expect(page.getByRole('button', { name: 'Exit full screen' })).toBeVisible()
+    await expect.poll(calls).toEqual(phone ? ['lock landscape'] : [])
+    await page.getByRole('button', { name: 'Exit full screen' }).click()
+    await expect(page.getByRole('button', { name: 'Full screen' })).toBeVisible()
+    await expect.poll(calls).toEqual(phone ? ['lock landscape', 'unlock'] : [])
+  })
+
   test('the seek bar shows chapters and previews the frame under the pointer', async ({ page }) => {
     await openPlayer(page, 'after-dark')
     await page.getByRole('button', { name: 'Pause', exact: true }).click()
