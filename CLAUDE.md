@@ -70,11 +70,14 @@ and `STRIPE_WEBHOOK_SECRET`, the signing value of the Stripe webhook endpoint th
 Production takes live payments in the **Demo_Netflix_Clone** Stripe account (live webhook endpoint registered;
 first live $1.00 donation recorded 2026-10-22); dev uses the same account in test mode. The live `pk_live_` key is
 set only in the front-end repo's `.env.production.local` (and must be in the host's settings once it's hosted).
-**Hosting**: Vercel builds the front-end repo (project `zuleika-llc/front-end`) on every pull request (a preview)
-and every merge to `main`, at `front-end-zuleika-llc.vercel.app`. Vercel Deployment Protection is on, so every
-address asks for a Vercel team sign-in: the site isn't public yet. Not yet checked (needs `vercel login`): which
-address is production, any custom domain, and whether the project's environment variables hold the Supabase and
-live Stripe values (`.env.production.local` isn't in git, so a Vercel build only has them if they're set there).
+**Hosting**: Vercel (team `zuleika-llc`, Hobby plan, project `front-end`) builds the front-end repo on every pull
+request (a preview) and every merge to `main` (production). The live site is **https://front-end-sepia-rho.vercel.app**
+(public; no custom domain). Standard Deployment Protection keeps everything else behind a Vercel team sign-in: the
+team address `front-end-zuleika-llc.vercel.app`, each deployment's own address and the previews. The project's
+environment variables (Production and Preview) are `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
+`VITE_AUTH_BACKEND` and `VITE_STRIPE_PUBLISHABLE_KEY`; production's build uses the production project, Supabase
+Auth and the live Stripe key (checked 2026-10-23). `.env.production.local` isn't in git, so change them in Vercel
+too (`vercel env ls --scope zuleika-llc --project front-end`).
 `apply_migration` stamps the current time as the version: afterwards set it to the file's version in
 `supabase_migrations.schema_migrations`, and apply one migration per second or less often, or two get the same stamp
 and the second fails on the duplicate version.
