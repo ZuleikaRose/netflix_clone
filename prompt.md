@@ -152,9 +152,10 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     cancelled on /donate or in Account), a weekly screen-time summary for parents, helpful votes on reviews, audio
     description in the player (written for each clip, read aloud by the browser), the whole interface in Spanish (four
     agents translated their own areas in parallel, with a shared glossary and a coverage check) and a donations view on
-    the support dashboard. Migrations and functions went to the dev project only.
+    the support dashboard. The migrations and indexes went to dev, then production; the monthly-donation function and
+    the updated stripe-webhook and delete-account functions are on dev only for now.
 
 Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), CAPTCHA on sign-up and
-sign-in, and the six features on production: migrations 25–29, non_transactional 011–012, the monthly-donation function,
-the updated stripe-webhook and delete-account functions, and four more events on the live Stripe webhook
+sign-in, and monthly donations on production: the monthly-donation function, the updated stripe-webhook and delete-account
+functions, and four more events on the live Stripe webhook
 (invoice.paid, invoice.payment_failed, customer.subscription.updated, customer.subscription.deleted).

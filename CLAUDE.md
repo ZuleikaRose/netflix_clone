@@ -51,11 +51,11 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Dev runs all 29 migrations (through `20261025040000_interface_language`), non_transactional 001–012 and 11 functions
-(with `monthly-donation`, and the monthly versions of `stripe-webhook` and `delete-account`). Production runs 24
-migrations (through `20261024020000_review_reports`), non_transactional 001–010 and 10 functions (caught up
-2026-10-22) until the six features of 2026-10-25 are applied there; its live Stripe webhook then needs
-`invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` and `customer.subscription.deleted` too.
+Both run all 29 migrations (through `20261025040000_interface_language`) and non_transactional 001–012 (production
+caught up 2026-10-23). Dev has 11 functions (with `monthly-donation`, and the monthly versions of `stripe-webhook`
+and `delete-account`); production still has the earlier 10 until monthly donations go live there, and its live
+Stripe webhook then needs `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` and
+`customer.subscription.deleted` too.
 `assistant`
 needs the `ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
 The donation functions need two function variables per project:
