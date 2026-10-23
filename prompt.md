@@ -171,6 +171,8 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     monthly donations on production again". A $1.00 one-time donation (Once was still selected) and then a $1.00
     monthly one from a real account: the subscription row, the linked first payment and the cancellation were all
     recorded, and every webhook event was accepted.
+40. "Please do automatic tests for the front-end repo": its own CI (front-end PR #4), the same lint, build and
+    Playwright job as this repo's; the first run passed (237 passed, 75 Supabase specs skipped).
 
-Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), CAPTCHA on sign-up and
-sign-in, and CI for the front-end repo (it has only Vercel's builds).
+Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), and CAPTCHA on sign-up
+and sign-in.
