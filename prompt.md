@@ -167,8 +167,10 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     (3) The flaky audio-description test: it seeked to 17 s, just before the Spanish cue (17.2 s), so it relied on
     the video playing on, which a title description read during the language switch could hold up. It now waits
     for the Spanish cues and seeks into the cue; 50 runs in a row passed.
+39. The live webhook got the four monthly events and a new signing value on production; "please try to test
+    monthly donations on production again". A $1.00 one-time donation (Once was still selected) and then a $1.00
+    monthly one from a real account: the subscription row, the linked first payment and the cancellation were all
+    recorded, and every webhook event was accepted.
 
 Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), CAPTCHA on sign-up and
-sign-in, and monthly donations on production: four more events on the live Stripe webhook
-(invoice.paid, invoice.payment_failed, customer.subscription.updated, customer.subscription.deleted); the functions
-are already deployed there.
+sign-in, and CI for the front-end repo (it has only Vercel's builds).
