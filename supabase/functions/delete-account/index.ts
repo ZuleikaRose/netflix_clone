@@ -1,7 +1,30 @@
 // POST /functions/v1/delete-account { password } (signed in) → { ok: true }
 // Removes the caller's access: needs a cancelled membership and the current password. The account and its data stay
-// until a data removal ticket is handled, so this bans the user instead of deleting them.
+// until a data removal ticket is handled, so this bans the user instead of deleting them. A running monthly donation
+// is stopped first (needs STRIPE_SECRET_KEY), so a closed account is never charged again.
+import Stripe from 'npm:stripe@23.0.0'
 import { admin, callerFrom, json, publicClient, serve } from '../_shared/supabase.ts'
+
+const apiKey = Deno.env.get('STRIPE_SECRET_KEY')
+const stripe = apiKey ? new Stripe(apiKey, { httpClient: Stripe.createFetchHttpClient(), maxNetworkRetries: 2 }) : null
+
+async function stopMonthlyDonations(userId: string) {
+  const { data, error } = await admin.from('monthly_donations').select('id, stripe_subscription_id')
+    .eq('user_id', userId).neq('status', 'canceled')
+  if (error) throw error
+  for (const row of data ?? []) {
+    if (!stripe) throw new Error('STRIPE_SECRET_KEY is not set')
+    try {
+      await stripe.subscriptions.cancel(row.stripe_subscription_id)
+    } catch (cancelError) {
+      // Already cancelled in Stripe: only our row is out of date
+      if ((cancelError as { code?: string }).code !== 'resource_missing') throw cancelError
+    }
+    const { error: updateError } = await admin.from('monthly_donations')
+      .update({ status: 'canceled', canceled_at: new Date().toISOString() }).eq('id', row.id)
+    if (updateError) throw updateError
+  }
+}
 
 serve(async (req, body) => {
   const caller = await callerFrom(req)
@@ -21,6 +44,13 @@ serve(async (req, body) => {
   const { error: passwordError } = await checker.auth.signInWithPassword({ email: user.email!, password })
   if (passwordError) return json({ error: 'Your password is incorrect.' }, 403)
   await checker.auth.signOut()
+
+  try {
+    await stopMonthlyDonations(user.id)
+  } catch (stopError) {
+    console.error('delete-account: stopping the monthly donation failed', stopError)
+    return json({ error: 'Your monthly donation couldn’t be stopped, so your account is still open. Please try again.' }, 502)
+  }
 
   const { error: updateError } = await admin.from('netflix_tables')
     .update({ access_removed_at: new Date().toISOString() }).eq('id', user.id)

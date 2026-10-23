@@ -3,6 +3,7 @@ import { Leaderboard } from '../components/Leaderboard.jsx'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
+import { useT } from '../state/useT.js'
 import { CastCall } from './games/CastCall.jsx'
 import { HigherLower } from './games/HigherLower.jsx'
 import { MemoryMatch } from './games/MemoryMatch.jsx'
@@ -24,6 +25,7 @@ const games = {
 }
 
 export function Games() {
+  const t = useT()
   const { gameId } = useParams()
   const { titles } = useCatalog()
   const { bestScores } = useLibrary()
@@ -33,13 +35,13 @@ export function Games() {
     if (!game) return <NotFound />
     return (
       <>
-        <PageHeader title={game.name} back />
+        <PageHeader title={t(game.name)} back />
         {game.canPlay(titles)
           ? <><game.Component titles={titles} /><Leaderboard game={gameId} better={game.better ?? 'high'} scoreLabel={game.scoreLabel} /></>
           : (
             <div className="empty">
-              <p>Not enough titles for this game with the current maturity setting.</p>
-              <Link to="/account" className="play wide">Change in Account</Link>
+              <p>{t('Not enough titles for this game with the current maturity setting.')}</p>
+              <Link to="/account" className="play wide">{t('Change in Account')}</Link>
             </div>
           )}
       </>
@@ -48,16 +50,16 @@ export function Games() {
 
   return (
     <>
-      <PageHeader title="Games" />
+      <PageHeader title={t('Games')} />
       <div className="settings">
-        <p className="auth-copy">Quick games built from the shows and movies you love. Included with your membership.</p>
+        <p className="auth-copy">{t('Quick games built from the shows and movies you love. Included with your membership.')}</p>
         {Object.entries(games).map(([id, g]) => (
           <Link key={id} to={`/games/${id}`} className="game-card">
             <span className="game-art" aria-hidden="true">{g.art}</span>
             <span className="game-copy">
-              <b>{g.name}</b>
-              <span className="muted">{g.blurb}</span>
-              {bestScores[id] !== undefined && <span className="game-best">Best: {bestScores[id]} {g.scoreLabel}</span>}
+              <b>{t(g.name)}</b>
+              <span className="muted">{t(g.blurb)}</span>
+              {bestScores[id] !== undefined && <span className="game-best">{t('Best: {score} {label}', { score: bestScores[id], label: t(g.scoreLabel) })}</span>}
             </span>
           </Link>
         ))}

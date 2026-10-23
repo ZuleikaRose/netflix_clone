@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useT } from '../../state/useT.js'
 
 const speeds = [
   { quality: 'SD (480p)', mbps: 1 },
@@ -13,6 +14,7 @@ const devices = [
   ['TVs & streaming sticks', 'Smart TVs from 2019 or newer'],
 ]
 
+// English labels and values, shown in the interface language
 function checkDevice() {
   // navigator.connection is Chromium-only; report "unknown" elsewhere rather than guessing
   const downlink = navigator.connection?.downlink
@@ -27,32 +29,33 @@ function checkDevice() {
 }
 
 export function TechRequirements() {
+  const t = useT()
   const [results, setResults] = useState(null)
 
   return (
     <div className="settings">
       <section className="settings-card" aria-labelledby="speed-heading">
-        <h2 id="speed-heading">Recommended internet speeds</h2>
+        <h2 id="speed-heading">{t('Recommended internet speeds')}</h2>
         <table className="spec-table">
-          <thead><tr><th scope="col">Quality</th><th scope="col">Minimum</th></tr></thead>
-          <tbody>{speeds.map((s) => <tr key={s.quality}><th scope="row">{s.quality}</th><td>{s.mbps} Mbps</td></tr>)}</tbody>
+          <thead><tr><th scope="col">{t('Quality')}</th><th scope="col">{t('Minimum')}</th></tr></thead>
+          <tbody>{speeds.map((s) => <tr key={s.quality}><th scope="row">{t(s.quality)}</th><td>{s.mbps} Mbps</td></tr>)}</tbody>
         </table>
       </section>
 
       <section className="settings-card" aria-labelledby="device-heading">
-        <h2 id="device-heading">Supported devices</h2>
-        <dl className="spec-list">{devices.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+        <h2 id="device-heading">{t('Supported devices')}</h2>
+        <dl className="spec-list">{devices.map(([k, v]) => <div key={k}><dt>{t(k)}</dt><dd>{t(v)}</dd></div>)}</dl>
       </section>
 
       <section className="settings-card" aria-labelledby="check-heading">
-        <h2 id="check-heading">Check this device</h2>
-        <button type="button" className="cta" onClick={() => setResults(checkDevice())}>{results ? 'Check again' : 'Run check'}</button>
+        <h2 id="check-heading">{t('Check this device')}</h2>
+        <button type="button" className="cta" onClick={() => setResults(checkDevice())}>{results ? t('Check again') : t('Run check')}</button>
         {results && (
           <ul className="check-results" aria-live="polite">
             {results.map(([label, value, ok]) => (
               <li key={label}>
                 <span className={ok === null ? 'pill' : ok ? 'pill ok' : 'pill bad'} aria-hidden="true">{ok === null ? '?' : ok ? '✓' : '!'}</span>
-                <span>{label}</span><b>{value}</b>
+                <span>{t(label)}</span><b>{t(value)}</b>
               </li>
             ))}
           </ul>

@@ -1,5 +1,6 @@
 import { authBackend, getSupabase } from '../lib/supabaseConfig.js'
 import { callFunction } from './accountApi.js'
+import { tr } from '../i18n/index.js'
 
 // "What should I watch?". With Supabase the `assistant` Edge Function asks Claude (supabase/functions/assistant);
 // without it, or when that isn't available, matchWords() picks titles whose genres, moods and words fit the request.
@@ -49,7 +50,7 @@ export function matchWords(request, titles) {
     let score = 0
     for (const g of t.genres) {
       const hit = (genreWords[g] ?? [g.toLowerCase()]).find((w) => words.includes(w))
-      if (hit) { score += 3; reasons.push(g.toLowerCase()) }
+      if (hit) { score += 3; reasons.push(tr(g).toLowerCase()) }
     }
     for (const m of t.mood ?? []) {
       if (words.includes(m.toLowerCase())) { score += 2; reasons.push(m.toLowerCase()) }
@@ -62,17 +63,17 @@ export function matchWords(request, titles) {
     if (wantsShow) score += t.type === 'show' ? 2 : -5
     if (wantsMovie) score += t.type === 'movie' ? 2 : -5
     if (maxMinutes !== null) {
-      if (t.type === 'movie' && minutesOf(t.runtime) <= maxMinutes) { score += 2; reasons.push(`${t.runtime} long`) }
+      if (t.type === 'movie' && minutesOf(t.runtime) <= maxMinutes) { score += 2; reasons.push(tr('{runtime} long', { runtime: t.runtime })) }
       else score -= 5
     }
     return { t, score, reasons: [...new Set(reasons)] }
   })
   const picks = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score || b.t.popularity - a.t.popularity)
     .slice(0, MAX_PICKS)
-    .map(({ t, reasons }) => ({ id: t.id, reason: reasons.length ? `Matches ${reasons.join(', ')}.` : `Fits the words in your request.` }))
+    .map(({ t, reasons }) => ({ id: t.id, reason: reasons.length ? tr('Matches {reasons}.', { reasons: reasons.join(', ') }) : tr('Fits the words in your request.') }))
   return {
     picks,
-    note: picks.length ? 'Picked by matching your words to each title’s genres and mood.' : 'Nothing matched those words. Try a genre or a mood, like “funny” or “tense”.',
+    note: picks.length ? tr('Picked by matching your words to each title’s genres and mood.') : tr('Nothing matched those words. Try a genre or a mood, like “funny” or “tense”.'),
     by: 'words',
   }
 }

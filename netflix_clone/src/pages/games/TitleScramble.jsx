@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Field } from '../../components/Field.jsx'
 import { useLibrary } from '../../state/libraryContext.js'
+import { useT } from '../../state/useT.js'
 import { shuffle } from './shuffle.js'
 
 const ROUNDS = 5
@@ -22,6 +23,7 @@ function scramble(title) {
 const makeRounds = (titles) => shuffle(titles).slice(0, ROUNDS).map((answer) => ({ answer, letters: scramble(answer.title) }))
 
 export function TitleScramble({ titles }) {
+  const t = useT()
   const { bestScores, recordScore } = useLibrary()
   const [rounds, setRounds] = useState(() => makeRounds(titles))
   const [index, setIndex] = useState(0)
@@ -56,7 +58,7 @@ export function TitleScramble({ titles }) {
       setError(null)
       setOutcome('missed')
     } else {
-      setError(`Not quite. ${left} ${left === 1 ? 'guess' : 'guesses'} left.`)
+      setError(left === 1 ? 'Not quite. 1 guess left.' : { text: 'Not quite. {left} guesses left.', left })
       form.current.querySelector('input').focus()
     }
   }
@@ -89,10 +91,10 @@ export function TitleScramble({ titles }) {
       <div className="settings">
         <section className="settings-card thanks" role="status">
           <p className="big-check" aria-hidden="true">{score}</p>
-          <h2>You scored {score} of {maxScore}</h2>
-          <p className="muted">Best: {bestScores.scramble ?? score}</p>
+          <h2>{t('You scored {score} of {total}', { score, total: maxScore })}</h2>
+          <p className="muted">{t('Best: {score}', { score: bestScores.scramble ?? score })}</p>
         </section>
-        <button type="button" className="cta" onClick={restart}>Play again</button>
+        <button type="button" className="cta" onClick={restart}>{t('Play again')}</button>
       </div>
     )
   }
@@ -100,39 +102,41 @@ export function TitleScramble({ titles }) {
   return (
     <div className="settings">
       <div className="game-bar">
-        <p>Round <b>{index + 1}</b> of {rounds.length}</p>
-        <p className="muted">Score: {score}</p>
+        <p>{t('Round')} <b>{index + 1}</b> {t('of {total}', { total: rounds.length })}</p>
+        <p className="muted">{t('Score: {score}', { score })}</p>
       </div>
 
       <section className="settings-card" aria-labelledby="scramble-q">
-        <h2 id="scramble-q">Unscramble the title</h2>
+        <h2 id="scramble-q">{t('Unscramble the title')}</h2>
         <p className="scramble-letters" aria-hidden="true">{round.letters}</p>
-        <p className="sr-only">Scrambled letters: {round.letters.split(' ').map((w) => w.split('').join(' ')).join(', then ')}</p>
-        <p className="muted">2 points, or 1 with a hint. {GUESSES} guesses per title.</p>
+        <p className="sr-only">{t('Scrambled letters: {letters}', { letters: round.letters.split(' ').map((w) => w.split('').join(' ')).join(t(', then ')) })}</p>
+        <p className="muted">{t('2 points, or 1 with a hint. {guesses} guesses per title.', { guesses: GUESSES })}</p>
 
         {hinted && (
           <p className="scramble-hint">
-            <span className="sr-only">Hint: </span>
-            {round.answer.type === 'show' ? 'A series' : 'A film'} from {round.answer.year} · {round.answer.genres.join(', ')}
+            <span className="sr-only">{t('Hint:')} </span>
+            {round.answer.type === 'show'
+              ? t('A series from {year}', { year: round.answer.year })
+              : t('A film from {year}', { year: round.answer.year })} · {round.answer.genres.join(', ')}
           </p>
         )}
 
         {!outcome && (
           <form ref={form} className="scramble-form" onSubmit={submit} noValidate>
-            <Field label="Your answer" value={guess} error={error} autoComplete="off" onChange={(e) => setGuess(e.target.value)} />
+            <Field label={t('Your answer')} value={guess} error={typeof error === 'string' ? t(error) : error && t(error.text, error)} autoComplete="off" onChange={(e) => setGuess(e.target.value)} />
             <div className="hl-actions">
-              <button type="submit" className="cta">Guess</button>
-              {!hinted && <button type="button" className="ghost-cta" onClick={() => setHinted(true)}>Show a hint</button>}
+              <button type="submit" className="cta">{t('Guess')}</button>
+              {!hinted && <button type="button" className="ghost-cta" onClick={() => setHinted(true)}>{t('Show a hint')}</button>}
             </div>
           </form>
         )}
         <p className="save-status answer-feedback" role="status">
           {outcome === 'solved' && `✓ ${round.answer.title}! +${hinted ? POINTS.hinted : POINTS.clean}`}
-          {outcome === 'missed' && `✗ Out of guesses. It was ${round.answer.title}.`}
+          {outcome === 'missed' && t('✗ Out of guesses. It was {title}.', { title: round.answer.title })}
         </p>
       </section>
 
-      {outcome && <button type="button" className="cta" onClick={goToNextRound} autoFocus>{index + 1 === rounds.length ? 'See score' : 'Next title'}</button>}
+      {outcome && <button type="button" className="cta" onClick={goToNextRound} autoFocus>{index + 1 === rounds.length ? t('See score') : t('Next title')}</button>}
     </div>
   )
 }

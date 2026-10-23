@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { tr } from '../i18n/index.js'
 import { defaultBilling } from '../data/billing.js'
 import { findPlan } from '../data/plans.js'
 import { MAX_PIN_ATTEMPTS, MAX_PROFILES, PIN_LOCKOUT_MINUTES, newProfileId, pinMessages, profileNameProblem } from '../data/profiles.js'
@@ -174,7 +175,7 @@ export function MemoryAuthProvider({ children }) {
       async applyPromo(code) {
         const promo = findPromotion(code)
         if (!promo) return 'That code isn’t valid. Check the spelling and try again.'
-        if (promo.plan && promo.plan !== user.plan) return `${promo.code} only works with the ${findPlan(promo.plan).name} plan.`
+        if (promo.plan && promo.plan !== user.plan) return tr('{code} only works with the {plan} plan.', { code: promo.code, plan: tr(findPlan(promo.plan).name) })
         patchUser({ promo: promo.code })
         return null
       },
@@ -189,7 +190,7 @@ export function MemoryAuthProvider({ children }) {
       },
       // Profiles: same rules as the database (unique names, at most five, at least one)
       async addProfile(profile) {
-        if (user.profiles.length >= MAX_PROFILES) return `An account can have at most ${MAX_PROFILES} profiles.`
+        if (user.profiles.length >= MAX_PROFILES) return tr('An account can have at most {count} profiles.', { count: MAX_PROFILES })
         const problem = profileNameProblem(profile.name, user.profiles)
         if (problem) return problem
         patchUser({ profiles: [...user.profiles, { ...profile, id: newProfileId(), name: profile.name.trim(), locked: false, dailyLimit: null }] })

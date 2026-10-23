@@ -137,5 +137,25 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
 31. Apply the changes to the production Supabase project: migrations 21–24, non_transactional 009–010 and the
     `process-donation` and `stripe-webhook` functions.
 
-Still to do: custom SMTP for Auth emails, hosting, CAPTCHA on sign-up and sign-in, and for donations on production
-the two Stripe function settings and a Stripe webhook endpoint pointing at production's `stripe-webhook`.
+32. Put only the front end in its own repo: https://github.com/ZuleikaRose/netflix_clone_front_end (first named
+    "front-end", then "front_end"), kept locally next to this repo.
+33. The three-phase Stripe donation prompt (a Supabase agent, a UI agent, then a supervisor agent). Both phases were
+    already built, so the supervisor reviewed them against its own requirements: every check passed (request and
+    response match, Stripe.js confirms the card, signed webhook, one row per payment, members read only their own
+    rows, no secret keys in the front end). Then "please fix all 3": a declined card tried again reuses the same
+    PaymentIntent, a changed amount after a dropped connection checks the first payment before starting another,
+    and a payment still processing says so (PR #18).
+34. Take live payments on production: the live publishable key in the front-end repo, the live Stripe keys and a
+    live webhook endpoint on the production project; a live $1.00 test donation was recorded.
+35. Include TMDB's movies and TV shows in Surprise me (PR #19, and the front-end repo).
+36. "What new features can we do?", then "please do 4, 7, 8, 9, 10, and 11": monthly donations (Stripe subscriptions,
+    cancelled on /donate or in Account), a weekly screen-time summary for parents, helpful votes on reviews, audio
+    description in the player (written for each clip, read aloud by the browser), the whole interface in Spanish (four
+    agents translated their own areas in parallel, with a shared glossary and a coverage check) and a donations view on
+    the support dashboard. The migrations and indexes went to dev, then production; the monthly-donation function and
+    the updated stripe-webhook and delete-account functions are on dev only for now.
+
+Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), CAPTCHA on sign-up and
+sign-in, and monthly donations on production: the monthly-donation function, the updated stripe-webhook and delete-account
+functions, and four more events on the live Stripe webhook
+(invoice.paid, invoice.payment_failed, customer.subscription.updated, customer.subscription.deleted).

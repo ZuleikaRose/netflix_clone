@@ -21,6 +21,8 @@ netflix_clone/        The Vite app — run all npm commands here
                       AccessibilityProvider (accessibility menu settings)
   src/pages/          One file per route; info/, games/ and account/ hold sub-pages
   src/components/     Layout (phone frame, tab bar, footer), PageHeader, Field, Player, Preview, AccessibilityPanel, hooks
+  src/i18n/           Spanish interface: index.js (English text is the key; tr(), locale()), es/<area>.js dictionaries
+  scripts/            i18n-check.mjs (run by npm run lint), pwa-icons.mjs, thumbnails.mjs
   e2e/                Playwright specs, serve.js (static server), ports.js (ports + dev project config)
   public/             manifest.webmanifest, sw.js (service worker), icons/ (drawn by scripts/pwa-icons.mjs), media/
   .env.example        Copy to .env.development.local (dev project) and .env.production.local (production); git-ignored
@@ -29,17 +31,18 @@ supabase/             Supabase CLI project (config.toml); MCP config in supabase
                       saved TMDB titles, watch progress and leaderboards, profiles, support dashboard, notifications,
                       viewing history, custom lists, watch parties (Realtime RLS), better search (pg_trgm), thumbs
                       ratings, Year in Review, profile locks, two-step sign-in (restrictive policies, devices), donations,
-                      screen-time limits, caption language, reported reviews
+                      screen-time limits, caption language, reported reviews, helpful votes, staff donations view,
+                      audio description, monthly donations, interface language
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
                       (Index Advisor is installed on both projects: dashboard → Query Performance suggests missing ones)
   functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb, assistant,
-                      process-donation, stripe-webhook (+ _shared/:
+                      process-donation, monthly-donation, stripe-webhook (+ _shared/:
                       clients, CORS, caller check, per-IP rate limits via public.hit_rate_limit); hello and multiply are
                       standalone public test endpoints
   seeds/              Development test data (6 example.com users, rows in every table); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
   diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
-schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 32 public tables)
+schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 34 public tables)
 user_stories.md       What the database stores, one story per thing the app remembers
 prompt.md             The original build prompt and the Supabase-phase prompts
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
@@ -48,13 +51,22 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
-Both run all 24 migrations (through `20261024020000_review_reports`), non_transactional 001–010 and the same 10
-functions, with `assistant`, `process-donation` and `stripe-webhook` (production caught up 2026-10-22). `assistant`
+Both run all 29 migrations (through `20261025040000_interface_language`) and non_transactional 001–012 (production
+caught up 2026-10-23). Dev has 11 functions (with `monthly-donation`, and the monthly versions of `stripe-webhook`
+and `delete-account`); production still has the earlier 10 until monthly donations go live there, and its live
+Stripe webhook then needs `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` and
+`customer.subscription.deleted` too.
+`assistant`
 needs the `ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
 The donation functions need two function variables per project:
-`STRIPE_SECRET_KEY` (a test-mode key on dev; without it process-donation answers 503) and `STRIPE_WEBHOOK_SECRET`,
-the signing value of the Stripe webhook endpoint that points at `<project>.supabase.co/functions/v1/stripe-webhook`
-(events `payment_intent.succeeded` and `payment_intent.payment_failed`). Never put either value in the repo.
+`STRIPE_SECRET_KEY` (a test-mode key on dev, a live key on production; without it process-donation answers 503)
+and `STRIPE_WEBHOOK_SECRET`, the signing value of the Stripe webhook endpoint that points at
+`<project>.supabase.co/functions/v1/stripe-webhook`
+(events `payment_intent.succeeded` and `payment_intent.payment_failed`, plus the four `invoice.*` /
+`customer.subscription.*` events for monthly donations on dev). Never put either value in the repo.
+Production takes live payments in the **Demo_Netflix_Clone** Stripe account (live webhook endpoint registered;
+first live $1.00 donation recorded 2026-10-22); dev uses the same account in test mode. The live `pk_live_` key is
+set only in the front-end repo's `.env.production.local` (and must be in the host's settings once it's hosted).
 `apply_migration` stamps the current time as the version: afterwards set it to the file's version in
 `supabase_migrations.schema_migrations`, and apply one migration per second or less often, or two get the same stamp
 and the second fails on the duplicate version.
@@ -110,7 +122,7 @@ locally (it isn't installed in this WSL distro, so CI is where these run today).
 | (extra) What should I watch? (assistant) | `/what-to-watch` | `pages/Assistant.jsx`, `data/assistant.js`, `supabase/functions/assistant` |
 | (extra) Security (two-step sign-in, devices) | in `/account` | `pages/account/Security.jsx`, `data/totp.js`, `data/devices.js` |
 | (extra) Downloads (offline) | `/downloads` (linked from My App; "Download to watch offline" on catalog title pages) | `pages/Downloads.jsx`, `components/DownloadButton.jsx`, `data/downloads.js`, `state/useDownloads.js`, `public/sw.js` |
-| (extra) Donate (one-time, Stripe) | `/donate` (linked from Account → Help and the round coffee button above the tab bar on every page) | `pages/Donate.jsx`, `pages/donate/DonateForm.jsx` (lazy), `data/donations.js`, `lib/stripe.js`, `supabase/functions/process-donation` |
+| (extra) Donate (one-time or monthly, Stripe) | `/donate` (linked from Account → Help and the round coffee button above the tab bar on every page); Your monthly donation also in `/account` | `pages/Donate.jsx`, `pages/donate/DonateForm.jsx` (lazy), `components/MonthlyDonation.jsx`, `state/useMonthlyDonation.js`, `data/donations.js`, `lib/stripe.js`, `supabase/functions/process-donation`, `monthly-donation` |
 
 When the outline changes: diff `app_outline/user_journey.md` (`git diff --word-diff`), map each change to this
 table, add or extend the page, add `/info/<slug>` pages to `data/infoPages.js` (that also adds the footer link)
@@ -286,7 +298,10 @@ after editing.
   `receipt_email` to the member's address, except for demo accounts (`app_metadata.demo`); Stripe sends no receipts in
   test mode.
 - **Surprise me**: `components/SurpriseButton.jsx` on Home (follows the TV Shows / Movies chip) and Search (follows
-  Type) opens a random catalog title the profile may watch (`data/surprise.js`: never Not for me, never the last pick).
+  Type) opens a random title the profile may watch (`data/surprise.js`: never Not for me, never the last pick): the
+  catalog's, plus the movies and TV shows in TMDB's lists (`listedTitles()` in `data/tmdbApi.js`, without Coming Soon;
+  restricted profiles get only those certified within their setting). Without TMDB it picks from the catalog alone.
+  `e2e/tmdbMock.js` gives every listed title a page, so any pick opens.
 - **Keyboard shortcuts help**: `?` on any page (not while typing) opens `components/ShortcutsDialog.jsx`, also from
   the accessibility menu and the Accessibility Policy. The list is `data/shortcuts.js`: change it with the handlers
   (Player's `shortcuts`, SearchBox).
@@ -308,6 +323,40 @@ after editing.
   refuses your own; one per member per review). The support dashboard's Reported reviews view uses
   `staff_review_reports()` / `staff_resolve_review()` (keep, or delete the review; reports stay marked Removed). In
   memory the sample reviews can be reported and the demo account settles them (`data/reviewReports.js`).
+- **Helpful votes**: `review_helpful_votes` (one per member per review; a trigger refuses your own review) and
+  `review.helpful_count`, kept by triggers only (a guard trigger refuses direct changes). `components/Reviews.jsx` shows
+  Helpful (`aria-pressed`) under others' reviews and Sort reviews (Most helpful, Newest; `data/helpfulVotes.js`). A
+  duplicate vote (23505, another tab) counts as done. In memory the votes live for the page load.
+- **Weekly screen time**: Profiles → Edit → Screen time lists the last 7 days for a limited profile
+  (`useScreenTimeWeek()` in `state/useScreenTime.js`, `lastSevenDays()` / `weekOf()` in `data/screenTime.js`, read
+  with `loadScreenTimeSince()`), with bars against the limit, the total and the daily average. `screen_time` rows older
+  than a week are deleted nightly, so 7 days is all there is.
+- **Staff donations**: the support dashboard's Donations view reads `staff_donation_months(p_months)` (totals,
+  paid and failed counts per month) and `staff_recent_donations(p_status)` (with a `monthly` flag), both
+  security definer with the staff and `second_step_done()` checks; each row links to the payment in Stripe
+  (`stripePaymentUrl()`, test or live dashboard). Members still read only their own donations. In memory it shows
+  `sampleDonations()` (`data/staffDonations.js`).
+- **Audio description**: `audioDescription` in the accessibility menu (saved as
+  `accessibility_settings.audio_description`), the player's AD button or the D key. The Player loads
+  `public/media/<clip>.<lang>.descriptions.vtt` as a `kind="descriptions"` track in the caption language and
+  `state/useAudioDescription.js` reads each cue with `speechSynthesis`, pausing the video while it speaks (extended
+  description). Downloads include the description files. Tests stub `speechSynthesis`.
+- **Monthly donations** (Stripe subscriptions, USD): `monthly-donation` (signed in) with `{ action: 'start', amount,
+  user_id }` creates a subscription and returns the first invoice's payment for Stripe.js to confirm (the same card
+  form as one-time donations); `{ action: 'cancel' }` cancels it at once. One live monthly donation per member (a
+  unique partial index; an unpaid one is replaced on a new start). `monthly_donations` mirrors the subscription and is
+  written only by the functions: `stripe-webhook` records each paid or failed invoice as a `donations` row with
+  `monthly_donation_id` and keeps the status in step (`customer.subscription.updated` / `.deleted`). Demo accounts'
+  subscriptions get `cancel_at_period_end` (never charged twice), and `delete-account` stops a member's monthly
+  donation before removing access. Members read only their own row. "Your monthly donation" (amount, next payment,
+  Cancel with a confirm step) is on /donate and in Account; the history marks monthly payments.
+- **Spanish interface**: `language` ('en' | 'es') in the accessibility menu (saved as
+  `accessibility_settings.language`; a Spanish browser starts in Spanish; Reset keeps it). English text is the key:
+  components call `useT()` (`t('Text {name}', { name })`), helpers and data files `tr()`, dates and numbers `locale()`
+  (`src/i18n/index.js`); dictionaries are `src/i18n/es/<area>.js`. A missing text falls back to English.
+  `AccessibilityProvider` sets the language during render and `<html lang>`. `scripts/i18n-check.mjs` (part of
+  `npm run lint`) fails on a `t()`/`tr()` text with no Spanish entry. Titles, synopses, reviews and the legal
+  documents stay in English; label tests by role and exact name, as Spanish labels differ.
 - **Phone frame**: on desktop `.phone` is a flex column and `.page` grows, so the footer and sticky tab bar sit at the
   frame's bottom on short pages too (`layout.spec.js` checks it in a tall window).
 - **Form state**: update with functional setters and read `e.target.value` before them
@@ -353,6 +402,11 @@ after editing.
   Spanish captions in `accessibility.spec.js`; screen-time limits in `profiles.spec.js` (Playwright's fake clock);
   downloads in `pwa.spec.js`; reported reviews in `support.spec.js`; database rules in
   `supabase/tests/database/eight_features.test.sql`.
+- The six after that: helpful votes in `features.spec.js`; the weekly screen time in `profiles.spec.js` (fake clock);
+  the Donations view in `support.spec.js`; audio description in `accessibility.spec.js` (speech stubbed, waiting for
+  the track's cues); monthly donations in `donate.spec.js` (mocked, plus a real test-mode start and cancel on :4174);
+  the Spanish interface in `i18n.spec.js` (including an `es-MX` browser); database rules in
+  `supabase/tests/database/six_features.test.sql`.
 - Header buttons are matched by exact name in tests (`'Accessibility menu', exact: true`), since "Close accessibility
   menu" also contains it.
 

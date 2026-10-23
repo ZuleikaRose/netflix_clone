@@ -8,17 +8,20 @@ import { invitePath, joinParty } from '../data/partyApi.js'
 import { useProfile } from '../state/profileContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { usePartyChannel } from '../state/usePartyChannel.js'
+import { useT } from '../state/useT.js'
+import { tr } from '../i18n/index.js'
 
 const MAX_CHAT = 100
 const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 
 // What a member did, for the activity line ("Sam paused at 1:05")
 function describeSync({ by, playing, time, episode }, previousEpisode) {
-  if (episode && episode !== previousEpisode) return `${by} started episode ${episode}`
-  return `${by} ${playing ? 'played' : 'paused'} at ${clock(time)}`
+  if (episode && episode !== previousEpisode) return tr('{name} started episode {episode}', { name: by, episode })
+  return playing ? tr('{name} played at {time}', { name: by, time: clock(time) }) : tr('{name} paused at {time}', { name: by, time: clock(time) })
 }
 
 function Chat({ messages, onSend }) {
+  const t = useT()
   const [draft, setDraft] = useState('')
   const submit = (e) => {
     e.preventDefault()
@@ -28,23 +31,24 @@ function Chat({ messages, onSend }) {
   }
   return (
     <section className="settings-card" aria-labelledby="party-chat-heading">
-      <h2 id="party-chat-heading">Chat</h2>
+      <h2 id="party-chat-heading">{t('Chat')}</h2>
       {messages.length === 0
-        ? <p className="muted">Say hi. Messages aren’t saved: they’re gone when the party ends.</p>
+        ? <p className="muted">{t('Say hi. Messages aren’t saved: they’re gone when the party ends.')}</p>
         : (
-          <ol className="party-chat" aria-live="polite" aria-label="Party chat">
+          <ol className="party-chat" aria-live="polite" aria-label={t('Party chat')}>
             {messages.map((m) => <li key={m.id}><b>{m.name}</b> {m.text}</li>)}
           </ol>
         )}
       <form className="party-chat-form" onSubmit={submit}>
-        <Field label="Message" value={draft} maxLength={300} onChange={(e) => setDraft(e.target.value)} autoComplete="off" />
-        <button type="submit" className="cta" disabled={!draft.trim()}>Send</button>
+        <Field label={t('Message')} value={draft} maxLength={300} onChange={(e) => setDraft(e.target.value)} autoComplete="off" />
+        <button type="submit" className="cta" disabled={!draft.trim()}>{t('Send')}</button>
       </form>
     </section>
   )
 }
 
 function Party({ party, title }) {
+  const t = useT()
   const navigate = useNavigate()
   const { profile } = useProfile()
   const [tabId] = useState(() => crypto.randomUUID())
@@ -93,33 +97,33 @@ function Party({ party, title }) {
 
   return (
     <>
-      <PageHeader title="Watch party" back />
+      <PageHeader title={t('Watch party')} back />
       <Player title={title} party onUserAction={shareState} controlRef={control} onClose={() => navigate(`/title/${title.id}`)} />
       <div className="settings party">
         <section className="settings-card" aria-labelledby="party-heading">
           <h2 id="party-heading">{title.title}</h2>
           <p className="muted">
-            {party.host ? `Hosted by ${party.host}. ` : ''}Play, pause and skip happen for everyone. Starts paused: press play when you’re all here.
+            {party.host ? `${t('Hosted by {name}.', { name: party.host })} ` : ''}{t('Play, pause and skip happen for everyone. Starts paused: press play when you’re all here.')}
           </p>
           <p className="party-activity" role="status">{activity}</p>
-          {channel.status === 'failed' && <p className="form-alert" role="alert">The party connection was lost. Reload the page to rejoin.</p>}
+          {channel.status === 'failed' && <p className="form-alert" role="alert">{t('The party connection was lost. Reload the page to rejoin.')}</p>}
         </section>
 
         <section className="settings-card" aria-labelledby="party-people-heading">
-          <h2 id="party-people-heading">Watching now ({channel.people.length})</h2>
+          <h2 id="party-people-heading">{t('Watching now ({count})', { count: channel.people.length })}</h2>
           <ul className="party-people">
-            {channel.people.map((p) => <li key={p.id}>{p.name}{p.id === me.id && <span className="muted"> (you)</span>}</li>)}
+            {channel.people.map((p) => <li key={p.id}>{p.name}{p.id === me.id && <span className="muted"> ({t('you')})</span>}</li>)}
           </ul>
-          <Field label="Invite link" value={link} readOnly onFocus={(e) => e.target.select()} />
-          <button type="button" className="ghost-cta" onClick={() => copy('invite', link)}>Copy invite link</button>
+          <Field label={t('Invite link')} value={link} readOnly onFocus={(e) => e.target.select()} />
+          <button type="button" className="ghost-cta" onClick={() => copy('invite', link)}>{t('Copy invite link')}</button>
           <p className="save-status" role="status">
-            {copied?.ok && <><span aria-hidden="true">✓</span> Link copied</>}
-            {copied && !copied.ok && 'Couldn’t copy: select the link above and copy it yourself.'}
+            {copied?.ok && <><span aria-hidden="true">✓</span> {t('Link copied')}</>}
+            {copied && !copied.ok && t('Couldn’t copy: select the link above and copy it yourself.')}
           </p>
         </section>
 
         <Chat messages={messages} onSend={sendChat} />
-        <Link to={`/title/${title.id}`} className="ghost-cta">Leave the party</Link>
+        <Link to={`/title/${title.id}`} className="ghost-cta">{t('Leave the party')}</Link>
       </div>
     </>
   )
@@ -127,6 +131,7 @@ function Party({ party, title }) {
 
 // /party/:code: a watch party. Joins it (adding this member with Supabase), then shows the shared player.
 export function WatchParty() {
+  const t = useT()
   const { code } = useParams()
   const [params] = useSearchParams()
   const titleFromLink = params.get('t')
@@ -144,14 +149,15 @@ export function WatchParty() {
   const ready = joined.code === code
   const title = joined.party ? findTitle(joined.party.titleId) : null
   if (!ready || joined.error || !title || !isAllowed(title)) {
-    const message = !ready ? 'Joining the watch party…'
-      : joined.error ?? (!title ? 'This watch party’s title isn’t available.' : `${title.title} is above this profile’s maturity setting.`)
+    const message = !ready ? t('Joining the watch party…')
+      : joined.error != null ? t(joined.error)
+        : !title ? t('This watch party’s title isn’t available.') : t('{title} is above this profile’s maturity setting.', { title: title.title })
     return (
       <>
-        <PageHeader title="Watch party" back />
+        <PageHeader title={t('Watch party')} back />
         <div className="empty" role={ready ? 'alert' : 'status'}>
           <p>{message}</p>
-          {ready && <Link to="/" className="play wide">Go Home</Link>}
+          {ready && <Link to="/" className="play wide">{t('Go Home')}</Link>}
         </div>
       </>
     )

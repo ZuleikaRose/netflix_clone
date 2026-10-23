@@ -88,5 +88,7 @@ export const clipSources = (clip, language = 'en') => ({
   webm: `/media/${clip.id}.webm`,
   mp4: `/media/${clip.id}.mp4`,
   captions: `/media/${clip.id}.${captionLanguage(language).code}.vtt`,
+  // Audio description, written for this app: read aloud by the browser (Player.jsx)
+  descriptions: `/media/${clip.id}.${captionLanguage(language).code}.descriptions.vtt`,
   thumbs: `/media/${clip.id}.thumbs.jpg`,
 })

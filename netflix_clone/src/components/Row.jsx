@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from './Icon.jsx'
 import { useMotionAllowed } from '../state/useMotionAllowed.js'
+import { useT } from '../state/useT.js'
 
 // Share of the visible width each arrow scrolls, so the next page keeps a little of the last one in view
 const PAGE = 0.85
@@ -11,6 +12,7 @@ const CLICK_STREAK_MS = 700
 // (desktop mice can't scroll sideways). A button at the row's end is marked unavailable but keeps focus, and both
 // hide when every title already fits.
 export function Row({ title, className = '', children }) {
+  const t = useT()
   const rail = useRef(null)
   const target = useRef({ left: null, timer: null })
   const [edges, setEdges] = useState({ atStart: true, atEnd: true })
@@ -58,9 +60,9 @@ export function Row({ title, className = '', children }) {
         <h2>{title}</h2>
         {scrollable && (
           <div className="row-arrows">
-            <button type="button" className="row-arrow" aria-label={`Scroll ${title} left`} aria-disabled={edges.atStart}
+            <button type="button" className="row-arrow" aria-label={t('Scroll {title} left', { title })} aria-disabled={edges.atStart}
               onClick={() => !edges.atStart && page(-1)}><Icon name="back" /></button>
-            <button type="button" className="row-arrow" aria-label={`Scroll ${title} right`} aria-disabled={edges.atEnd}
+            <button type="button" className="row-arrow" aria-label={t('Scroll {title} right', { title })} aria-disabled={edges.atEnd}
               onClick={() => !edges.atEnd && page(1)}><Icon name="chevron" /></button>
           </div>
         )}

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { localDay } from '../data/notifications.js'
-import { EXTRA_MINUTES, SAVE_EVERY_SECONDS, emptyUsage, secondsLeft } from '../data/screenTime.js'
+import { EXTRA_MINUTES, SAVE_EVERY_SECONDS, emptyUsage, lastSevenDays, secondsLeft, weekOf } from '../data/screenTime.js'
 import { useAuth } from './authContext.js'
 import { useProfile } from './profileContext.js'
 
-// In memory, usage is kept per session, profile and day for the rest of the page load
+// In memory, usage is kept per session, profile and day (`${session}:${profileId}:${day}`) for the rest of the page load
 const memoryUsage = new Map()
 
 const warn = (error) => {
@@ -21,8 +21,8 @@ export function useScreenTime() {
   const remote = useMemo(() => (profile && limit ? libraryFor?.(profile.id) ?? null : null), [libraryFor, profile, limit])
   const memoryKey = `${session}:${profile?.id}`
   const [usage, setUsage] = useState(() => {
-    const kept = memoryUsage.get(memoryKey)
-    return kept?.day === localDay(new Date()) ? kept : emptyUsage(localDay(new Date()))
+    const today = localDay(new Date())
+    return memoryUsage.get(`${memoryKey}:${today}`) ?? emptyUsage(today)
   })
   const pending = useRef(0)
   const [loaded, setLoaded] = useState(!remote)
@@ -42,7 +42,7 @@ export function useScreenTime() {
   }, [remote])
 
   useEffect(() => {
-    if (!remote) memoryUsage.set(memoryKey, usage)
+    if (!remote) memoryUsage.set(`${memoryKey}:${usage.day}`, usage)
   }, [remote, memoryKey, usage])
 
   const flush = useCallback(() => {
@@ -93,4 +93,29 @@ export function useScreenTime() {
     addSeconds,
     allowMoreTime,
   }
+}
+
+// Any profile's usage for each of the last seven days (oldest first), for the summary in Profiles; null while loading.
+// With Supabase it's read from screen_time (RLS: the account's own profiles); in memory, from this page load's counts.
+export function useScreenTimeWeek(profile) {
+  const { libraryFor, session } = useAuth()
+  const days = lastSevenDays()
+  const from = days[0]
+  const remote = useMemo(() => libraryFor?.(profile.id) ?? null, [libraryFor, profile.id])
+  const key = `${profile.id}:${from}`
+  const [loaded, setLoaded] = useState({ key: null, usages: [] })
+
+  useEffect(() => {
+    if (!remote) return undefined
+    let ignore = false
+    remote.loadScreenTimeSince(from).then((usages) => { if (!ignore) setLoaded({ key, usages }) }, (error) => {
+      warn(error)
+      // Shown as a week with nothing recorded rather than loading forever
+      if (!ignore) setLoaded({ key, usages: [] })
+    })
+    return () => { ignore = true }
+  }, [remote, from, key])
+
+  if (!remote) return weekOf(days, days.map((day) => memoryUsage.get(`${session}:${profile.id}:${day}`)).filter(Boolean))
+  return loaded.key === key ? weekOf(days, loaded.usages) : null
 }

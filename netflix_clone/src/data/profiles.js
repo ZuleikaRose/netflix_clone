@@ -1,3 +1,5 @@
+import { tr } from '../i18n/index.js'
+
 // Profiles: up to five per account, each with its own name, avatar colour and maturity rating (and its own lists,
 // Continue Watching and game scores). The same limits are enforced by public.profiles in the database.
 
@@ -23,9 +25,9 @@ export const maturityChoices = [
 // An error message for a profile name, or null; `others` are the account's other profiles
 export function profileNameProblem(name, others) {
   const trimmed = name.trim()
-  if (!trimmed) return 'Please enter a name.'
-  if (trimmed.length > MAX_PROFILE_NAME) return `Names can be up to ${MAX_PROFILE_NAME} characters.`
-  if (others.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) return 'Another profile already has this name.'
+  if (!trimmed) return tr('Please enter a name.')
+  if (trimmed.length > MAX_PROFILE_NAME) return tr('Names can be up to {count} characters.', { count: MAX_PROFILE_NAME })
+  if (others.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) return tr('Another profile already has this name.')
   return null
 }
 

@@ -34,6 +34,10 @@ export async function fetchTmdbLists() {
   return Object.fromEntries(Object.entries(data).map(([name, titles]) => [name, titles.map(withPath)]))
 }
 
+// Every title in TMDB's lists, once each, without Coming Soon (not out yet): Search's list with no query, Surprise me
+export const listedTitles = (lists) => [...new Map(Object.entries(lists).filter(([name]) => name !== 'upcomingMovies')
+  .flatMap(([, titles]) => titles).map((t) => [t.id, t])).values()]
+
 // Movies and TV shows matching the query, or null when TMDB can't be reached
 export async function searchTmdb(query) {
   const data = await askTmdb({ action: 'search', query })

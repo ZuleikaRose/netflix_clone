@@ -279,6 +279,20 @@ textarea { resize: vertical; }
 .review-list p { margin: 0 0 4px; }
 .review-list .text-button { min-width: 44px; font-size: 13px; font-weight: 400; color: #bcbcbc; }
 .review-reported { margin: 4px 0 0; font-size: 12px; }
+.review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; }
+.review-actions .report-form { flex-basis: 100%; }
+.review-list .helpful-button { gap: 6px; text-decoration: none; }
+.review-list .helpful-button[aria-pressed="true"] { color: #fff; font-weight: 600; }
+.review-helpful-count { font-size: 12px; }
+.review-sort { margin: 12px 0 0; }
+.screen-week { display: grid; gap: 8px; margin-top: 16px; }
+.screen-week h3 { margin: 0; font-size: 15px; }
+.screen-week p { margin: 0; }
+.screen-week ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.screen-week li { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 2px 10px; }
+.screen-week-bar { height: 8px; border-radius: 4px; background: #2a2a2a; overflow: hidden; }
+.screen-week-bar span { display: block; height: 100%; border-radius: 4px; background: #bcbcbc; }
+.screen-week-time { grid-column: 2; color: #bcbcbc; }
 /* Report a review (components/Reviews.jsx) */
 .report-form { display: grid; gap: 10px; margin-top: 8px; padding: 12px; border: 1px solid #333; border-radius: 6px; }
 .report-form label[for] { font-size: 13px; font-weight: 600; }
@@ -705,7 +719,13 @@ kbd { display: inline-block; min-width: 28px; padding: 3px 7px; border: 1px soli
 /* Picture-in-picture sits beside Close: the controls row has no room left at phone width */
 .player-pip { position: absolute; top: 2px; right: 50px; }
 .player-pip[aria-pressed="true"] { color: #111; background: #fff; border-radius: 8px; }
-.player:has(.player-pip) :is(.player-status, .player-chapter) { right: 104px; }
+.player-ad { position: absolute; top: 2px; right: 50px; }
+.player:has(.player-pip) .player-ad { right: 96px; }
+.player-ad[aria-pressed="true"] { color: #111; background: #fff; border-radius: 8px; }
+.ad-mark { padding: 1px 4px; border: 2px solid currentColor; border-radius: 4px; font-size: 11px; font-weight: 800; letter-spacing: .5px; line-height: 1.2; }
+.player-ad[aria-pressed="true"] .ad-mark { border-color: transparent; }
+.player :is(.player-status, .player-chapter) { right: 104px; }
+.player:has(.player-pip) :is(.player-status, .player-chapter) { right: 150px; }
 
 /* ---------- Year in Review ---------- */
 .year-hero h2 { font-size: 22px; }
@@ -799,6 +819,11 @@ html[data-a11y-stop-animations] *, html[data-a11y-stop-animations] *::before, ht
 .download-row p { margin: 0; }
 .donation-status { flex: none; color: #46d369; font-size: 13px; font-weight: 600; }
 .donation-status.failed { color: var(--error); }
+.staff-donations a { display: inline-flex; align-items: center; min-height: 44px; color: #fff; font-size: 13px; }
+.donation-months { width: 100%; border-collapse: collapse; font-size: 13px; }
+.donation-months th, .donation-months td { padding: 8px 4px; border-bottom: 1px solid #2a2a2a; text-align: right; }
+.donation-months :is(th, td):first-child { text-align: left; }
+.donation-months thead th { color: #bcbcbc; font-weight: 600; }
 .session-restoring { margin: 0; padding: 48px 16px; color: #bcbcbc; font-size: 15px; text-align: center; }
 .auth-body .demo-credentials { margin-top: 12px; }
 .credit-list p { margin: 0; }

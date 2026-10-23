@@ -1,5 +1,6 @@
 import { Icon } from './Icon.jsx'
 import { usePreview } from './usePreview.js'
+import { useT } from '../state/useT.js'
 
 // Artwork and play/pause toggle for a title preview; state comes from usePreview
 export function PreviewArt({ title, preview }) {
@@ -7,10 +8,11 @@ export function PreviewArt({ title, preview }) {
 }
 
 export function PreviewToggle({ title, preview, className = '' }) {
+  const t = useT()
   if (!preview.motionAllowed) return null
   return (
-    <button type="button" className={`preview-toggle ${className}`} aria-label={`${preview.playing ? 'Pause' : 'Play'} preview of ${title.title}`} onClick={preview.toggle}>
-      <Icon name={preview.playing ? 'pause' : 'play'} /><span aria-hidden="true">Preview</span>
+    <button type="button" className={`preview-toggle ${className}`} aria-label={preview.playing ? t('Pause preview of {title}', { title: title.title }) : t('Play preview of {title}', { title: title.title })} onClick={preview.toggle}>
+      <Icon name={preview.playing ? 'pause' : 'play'} /><span aria-hidden="true">{t('Preview')}</span>
     </button>
   )
 }

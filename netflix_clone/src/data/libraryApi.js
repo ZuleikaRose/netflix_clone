@@ -160,6 +160,9 @@ export function libraryApi(supabase, userId, profileId) {
     // Screen time (profiles with a daily limit): the day's usage, counted and extended only through the functions
     loadScreenTime: (day) => profiles('screen_time', 'day, seconds, extra_seconds').eq('day', day).maybeSingle().then(unwrap)
       .then((row) => (row ? toUsage(row) : emptyUsage(day))),
+    // The week's usage, oldest first, for the summary in Profiles
+    loadScreenTimeSince: (day) => profiles('screen_time', 'day, seconds, extra_seconds').gte('day', day).order('day')
+      .then(unwrap).then((rows) => rows.map(toUsage)),
     addScreenTime: (day, seconds) => supabase.rpc('add_screen_time', { p_profile: profileId, p_day: day, p_seconds: seconds })
       .then(unwrap).then(toUsage),
     addExtraScreenTime: (day, minutes, password) => supabase
@@ -207,9 +210,11 @@ export function libraryApi(supabase, userId, profileId) {
 // Public reviews for a title, newest first, as { author, stars, text }
 // `mine`: the signed-in member wrote it (members can report everyone else's)
 export const fetchReviews = (supabase, titleId, userId) => supabase.from('review')
-  .select('id, user_id, author_name, rating, body').eq('title_id', titleId).not('body', 'is', null)
+  .select('id, user_id, author_name, rating, body, helpful_count').eq('title_id', titleId).not('body', 'is', null)
   .order('created_at', { ascending: false }).limit(50).then(unwrap)
-  .then((rows) => rows.map((r) => ({ id: r.id, mine: r.user_id === userId, author: r.author_name, stars: r.rating, text: r.body })))
+  .then((rows) => rows.map((r) => ({
+    id: r.id, mine: r.user_id === userId, author: r.author_name, stars: r.rating, text: r.body, helpful: r.helpful_count,
+  })))
 
 export const postReview = (supabase, userId, titleId, review) => supabase.from('review')
   .insert({ user_id: userId, title_id: titleId, rating: review.stars, body: review.text }).select('id').single().then(unwrap)

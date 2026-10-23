@@ -11,7 +11,7 @@ select plan(20);
 -- The table ---------------------------------------------------------------------------------------------------------
 select has_table('public', 'donations', 'donations has a table');
 select columns_are('public', 'donations',
-  array['id', 'user_id', 'amount', 'stripe_payment_intent_id', 'status', 'created_at'], 'donations has its columns');
+  array['id', 'user_id', 'amount', 'stripe_payment_intent_id', 'status', 'created_at', 'monthly_donation_id'], 'donations has its columns');
 select col_is_unique('public', 'donations', 'stripe_payment_intent_id', 'one row per Stripe PaymentIntent');
 select ok((select relrowsecurity from pg_class where oid = 'public.donations'::regclass), 'donations has RLS on');
 select policies_are('public', 'donations', array['Users read their own rows', 'Two-step sign-in finished'],

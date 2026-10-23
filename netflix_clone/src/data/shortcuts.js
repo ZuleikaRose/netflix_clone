@@ -20,6 +20,7 @@ export const shortcutGroups = [
       [['↑', 'or', '↓'], 'Volume up or down by 10%'],
       [['M'], 'Mute or unmute'],
       [['C'], 'Captions on or off'],
+      [['D'], 'Audio description on or off'],
       [['S'], 'Skip the recap or intro'],
       [['I'], 'Picture-in-picture (where the browser supports it)'],
       [['F'], 'Full screen'],
