@@ -154,6 +154,12 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     agents translated their own areas in parallel, with a shared glossary and a coverage check) and a donations view on
     the support dashboard. The migrations and indexes went to dev, then production; the monthly-donation function and
     the updated stripe-webhook and delete-account functions are on dev only for now.
+37. Fix, test and merge the pull requests; update schema.sql, drawsql.png, the docs and Supabase; then the README.
+    PR #20's database job failed because `donations.test.sql` didn't list the new `monthly_donation_id` column; with
+    that fixed both jobs passed and PR #20 was merged (it also closed PR #19). The front-end repo got the six
+    features as its PR #2 (lint, build and the Playwright suite passed; Vercel built a preview) and was merged.
+    schema.sql, drawsql.png and both Supabase projects already matched the migrations (34 tables, all 29 migrations
+    on dev and production), so none of them changed.
 
 Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), CAPTCHA on sign-up and
 sign-in, and monthly donations on production: the monthly-donation function, the updated stripe-webhook and delete-account

@@ -379,6 +379,8 @@ after editing.
 ## Testing
 
 - Every change should keep `npm run lint`, `npm run test:e2e` and the pgTAP tests green; CI runs all three.
+- The pgTAP tests pin each table's exact columns (`columns_are`): a migration that adds a column must add it to that
+  table's test too, or the `database` job fails with "Extra columns" (as `donations.monthly_donation_id` did).
 - Tests sign in once with `signInAsDemo()` and move with `navigateInApp()` (client-side), because a reload logs out on
   the in-memory build (the Supabase build stays signed in; `supabase-auth.spec.js` checks that).
 - Most specs run on the in-memory build (:4173). `e2e/supabase.spec.js` (REST catalog) and `e2e/supabase-auth.spec.js`

@@ -98,7 +98,7 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 
 | Path | What it is |
 | --- | --- |
-| [`netflix_clone/`](netflix_clone/) | The Vite app: source, Playwright tests, configs (also published on its own as [netflix_clone_front_end](https://github.com/ZuleikaRose/netflix_clone_front_end), set up for Vercel) |
+| [`netflix_clone/`](netflix_clone/) | The Vite app: source, Playwright tests, configs (also published on its own as [netflix_clone_front_end](https://github.com/ZuleikaRose/netflix_clone_front_end), set up for Vercel and kept in step with this folder, six new features included) |
 | [`supabase/`](supabase/) | Supabase CLI project: migrations, `non_transactional/` index files, Edge Functions, seeds, pgTAP tests |
 | [`app_outline/`](app_outline/) | Requirements: [`user_journey.md`](app_outline/user_journey.md), per-page folders, [`style_guide.md`](app_outline/style_guide.md), Figma wireframe export |
 | [`user_stories.md`](user_stories.md) | What the database stores, one user story per thing the app remembers |
@@ -112,7 +112,7 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 - **312 Playwright tests:** every journey runs at phone (390×844) and desktop (1280×800) sizes, against an in-memory build and a Supabase build (the Supabase tests run when `.env.development.local` is present). The donation tests pay with Stripe's test cards (4242… succeeds, 4000…0002 is declined) on the dev project, and start and cancel a test-mode monthly donation. The Spanish interface has its own tests, and `npm run lint` checks that every interface text has a Spanish translation.
 - **Accessibility:** an axe-core WCAG 2.2 AA audit of every page and key interactive state (including the accessibility menu, the player with captions, the delete-account form and the password reset pages), plus checks for 44px touch targets, visible keyboard focus, and focus never hidden behind the sticky bars.
 - **Database:** pgTAP tests of the access rules (including saved TMDB titles, the player volume, watch progress, opt-in leaderboards, donations, monthly donations and helpful votes), triggers, cleanup job, rate limiter and indexes. Every foreign key is indexed, and Supabase's Index Advisor is installed on both projects.
-- **CI** runs lint, build, the Playwright suite and the pgTAP tests on GitHub Actions; `main` requires both to pass.
+- **CI** runs lint, build, the Playwright suite and the pgTAP tests on GitHub Actions; `main` requires both to pass. The front-end repo has no Actions of its own: run lint, build and the Playwright suite there before merging (Vercel builds a preview of each pull request).
 
 ## Notes
 
