@@ -3,3 +3,5 @@
 .obsidian/
 node_modules/
 .playwright-mcp/
+# Local Claude tool setup (MCP servers), here and in supabase/
+.mcp.json
