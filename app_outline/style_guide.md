@@ -76,7 +76,8 @@ together.
   member can dismiss.
 * **Player:** black stage, large controls (play/pause, seek, skip 10 seconds, mute with a 64px volume slider, speed,
   previous/next episode for shows in a row of their own above the controls,
-  full screen, CC), captions drawn on a dark box in three sizes, credits under the video.
+  full screen, CC), captions drawn on a dark box in three sizes, credits under the video. Skip Recap, Skip Intro and
+  Skip Outro share one button style over the video. Full screen on a phone or tablet turns the video to landscape.
 * **Leaderboards:** a settings card under each game: a numbered list (44px rows, place in muted grey, the member's own
   row in gold `#f5c518` with "(you)"), then the "Show me on leaderboards" switch. First names only; off by default.
 * **Profiles:** "Who's watching?" shows a 2-column grid of square avatars (blue, red, yellow, green, purple tiles with

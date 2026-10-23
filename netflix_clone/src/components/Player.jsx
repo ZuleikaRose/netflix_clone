@@ -56,6 +56,10 @@ function saveWatched(w) {
 
 const cueText = (cue) => cue.text.replace(/<[^>]+>/g, '')
 
+// A phone or tablet: the browser says it's mobile, or a touch screen is the main way to point (not a laptop that
+// happens to have one)
+const isMobileDevice = () => navigator.userAgentData?.mobile === true || window.matchMedia?.('(pointer: coarse)').matches === true
+
 // startEpisode (shows): play that episode from the start, unless it's the one the viewer stopped in.
 // Watch parties: `party` turns off starting by itself, resuming and the next-episode countdown (everyone moves
 // together); onUserAction(state) reports the viewer's own play, pause, seek and episode changes, and controlRef gets
@@ -102,11 +106,13 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
   const isShow = title.type === 'show'
   const finale = isShow && episode >= lastEpisode
   const countingDown = ended && isShow && !finale && !party && user.preferences.autoplayNext && !stayHere
-  // Skip Recap (a show's second episode on) or Skip Intro while that stretch plays; the end of it to jump to
+  // Skip Recap (a show's second episode on) or Skip Intro while that stretch plays, and Skip Outro at the end of any
+  // title; the end of it to jump to. Skipping the outro finishes the title (`finish`).
   const inRange = ([start, end]) => time >= start && time < end - 0.5
-  const skip = ended || !isShow ? null
-    : episode > 1 && inRange(clip.recap) ? { label: 'Skip Recap', to: clip.recap[1] }
-      : inRange(clip.intro) ? { label: 'Skip Intro', to: clip.intro[1] } : null
+  const skip = ended ? null
+    : isShow && episode > 1 && inRange(clip.recap) ? { label: 'Skip Recap', to: clip.recap[1] }
+      : isShow && inRange(clip.intro) ? { label: 'Skip Intro', to: clip.intro[1] }
+        : inRange(clip.outro) ? { label: 'Skip Outro', finish: true } : null
   const chapter = chapterAt(clip, time)
   const canPictureInPicture = Boolean(document.pictureInPictureEnabled)
   const describe = (n) => {
@@ -223,8 +229,20 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
     }
   }, [])
 
+  // On a phone or tablet, full screen also turns the video sideways: the screen is locked to landscape until full
+  // screen ends. Browsers that can't lock the orientation (iPhone Safari, desktops) refuse, and nothing changes.
   useEffect(() => {
-    const sync = () => setFullscreen(document.fullscreenElement === playerRef.current)
+    let locked = false
+    const sync = () => {
+      const on = document.fullscreenElement === playerRef.current
+      setFullscreen(on)
+      if (on && isMobileDevice()) {
+        screen.orientation?.lock?.('landscape').then(() => { locked = true }, () => {})
+      } else if (!on && locked) {
+        locked = false
+        try { screen.orientation.unlock() } catch { /* already unlocked with full screen */ }
+      }
+    }
     document.addEventListener('fullscreenchange', sync)
     return () => document.removeEventListener('fullscreenchange', sync)
   }, [])
@@ -343,7 +361,19 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
     const request = document.pictureInPictureElement ? document.exitPictureInPicture() : videoRef.current.requestPictureInPicture()
     request.catch(() => {})
   }
-  const skipAhead = () => { if (skip) seekTo(skip.to) }
+  // Skipping the outro goes straight to the end screen (and a show's next-episode countdown), as reaching the end does
+  const finishNow = () => {
+    const video = videoRef.current
+    video.pause()
+    moveTo(video.duration || duration)
+    setEnded(true)
+    recordFinished()
+    report({ playing: false })
+  }
+  const skipAhead = () => {
+    if (skip?.finish) finishNow()
+    else if (skip) seekTo(skip.to)
+  }
   const previewAt = (e) => {
     const box = e.currentTarget.getBoundingClientRect()
     const at = Math.min(1, Math.max(0, (e.clientX - box.left) / box.width))

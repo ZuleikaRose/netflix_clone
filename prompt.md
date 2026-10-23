@@ -173,6 +173,10 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     recorded, and every webhook event was accepted.
 40. "Please do automatic tests for the front-end repo": its own CI (front-end PR #4), the same lint, build and
     Playwright job as this repo's; the first run passed (237 passed, 75 Supabase specs skipped).
+41. "Please add a skip outro feature for videos. When video is full screen it needs to detect a mobile device and
+    rotate the video sideways." Skip Outro for the last 6 seconds of every clip (movies and shows; it finishes the
+    title, so a show's next-episode countdown starts), and full screen on a phone or tablet locks the screen to
+    landscape until full screen ends. Clip lengths checked with ffprobe.
 
 Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), and CAPTCHA on sign-up
 and sign-in.
