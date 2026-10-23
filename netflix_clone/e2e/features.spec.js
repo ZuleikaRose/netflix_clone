@@ -95,6 +95,16 @@ test.describe('homepage', () => {
     await left.click()
     await expect(right).toHaveAttribute('aria-disabled', 'false')
   })
+
+  test('every row, the Top 10 included, scrolls only left and right', async ({ page }) => {
+    const rails = page.locator('.rail')
+    await expect(page.getByRole('heading', { name: 'Top 10 in the U.S. Today' })).toBeVisible()
+    expect(await rails.count()).toBeGreaterThan(1)
+    // Touch, wheel and trackpad can only scroll a row sideways (the Top 10's numbers reach below its cards, which made
+    // it scroll up, down and diagonally too)
+    const scrolls = await rails.evaluateAll((all) => all.map((el) => [getComputedStyle(el).overflowX, getComputedStyle(el).overflowY].join(' ')))
+    expect(new Set(scrolls)).toEqual(new Set(['auto hidden']))
+  })
 })
 
 test.describe('what should I watch?', () => {

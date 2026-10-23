@@ -44,7 +44,9 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .row-section { margin-top: 22px; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 17px; }
 .section-heading h2 { margin: 0 0 12px; font-weight: 400; font-size: 18px; letter-spacing: -.3px; }.section-heading svg { width: 17px; color: #aaa; }
-.rail { display: flex; gap: 9px; overflow-x: auto; padding: 0 17px 8px; scrollbar-width: none; }.rail::-webkit-scrollbar { display: none; }
+/* Rows scroll sideways only: with overflow-x set, overflow-y can't stay visible, so anything taller than the row
+   (the Top 10's big numbers reach 9px below their cards) would otherwise let it scroll up, down and diagonally */
+.rail { display: flex; gap: 9px; overflow-x: auto; overflow-y: hidden; padding: 0 17px 8px; scrollbar-width: none; }.rail::-webkit-scrollbar { display: none; }
 .row-arrows { display: flex; margin: -14px -12px 0 0; }
 .row-arrow { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; color: #fff; background: transparent; cursor: pointer; }
 .row-arrow:hover:not([aria-disabled="true"]) { background: #ffffff1a; }
