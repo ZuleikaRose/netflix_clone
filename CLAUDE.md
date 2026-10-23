@@ -70,6 +70,11 @@ and `STRIPE_WEBHOOK_SECRET`, the signing value of the Stripe webhook endpoint th
 Production takes live payments in the **Demo_Netflix_Clone** Stripe account (live webhook endpoint registered;
 first live $1.00 donation recorded 2026-10-22); dev uses the same account in test mode. The live `pk_live_` key is
 set only in the front-end repo's `.env.production.local` (and must be in the host's settings once it's hosted).
+**Hosting**: Vercel builds the front-end repo (project `zuleika-llc/front-end`) on every pull request (a preview)
+and every merge to `main`, at `front-end-zuleika-llc.vercel.app`. Vercel Deployment Protection is on, so every
+address asks for a Vercel team sign-in: the site isn't public yet. Not yet checked (needs `vercel login`): which
+address is production, any custom domain, and whether the project's environment variables hold the Supabase and
+live Stripe values (`.env.production.local` isn't in git, so a Vercel build only has them if they're set there).
 `apply_migration` stamps the current time as the version: afterwards set it to the file's version in
 `supabase_migrations.schema_migrations`, and apply one migration per second or less often, or two get the same stamp
 and the second fails on the duplicate version.
