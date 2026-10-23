@@ -185,8 +185,10 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     left and right": its numbers reached 9px below the cards, so the row scrolled vertically too; rows now scroll
     sideways only.
 43. Looking for the live site without a Vercel sign-in: the team address `front-end-zuleika-llc.vercel.app` (and
-    each preview) redirects to Vercel's sign-in, because Deployment Protection is on, so the site isn't public yet.
+    each preview) redirects to Vercel's sign-in. That was taken to mean the site wasn't public, which step 44 corrects.
+44. After `vercel login`: the live site is https://front-end-sepia-rho.vercel.app, public (only the team address,
+    deployment addresses and previews need a sign-in), with no custom domain. Production is the build of the
+    front-end repo's latest `main`, made with the production Supabase project, Supabase Auth and the live Stripe key;
+    the $1.00 monthly test donation was made from it.
 
-Still to do: custom SMTP for Auth emails, CAPTCHA on sign-up and sign-in, and the Vercel site: decide whether to make
-production public (Deployment Protection), then, after `vercel login`, check the production address, any custom
-domain and the project's environment variables (the Supabase and live Stripe values).
+Still to do: custom SMTP for Auth emails, and CAPTCHA on sign-up and sign-in.
