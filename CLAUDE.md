@@ -52,10 +52,12 @@ Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkv
 **eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
 non_transactional file and function to dev first, then production, with the same migration version on both.
 Both run all 29 migrations (through `20261025040000_interface_language`) and non_transactional 001–012 (production
-caught up 2026-10-23). Dev has 11 functions (with `monthly-donation`, and the monthly versions of `stripe-webhook`
-and `delete-account`); production still has the earlier 10 until monthly donations go live there, and its live
-Stripe webhook then needs `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` and
-`customer.subscription.deleted` too.
+caught up 2026-10-23). Both have the same 11 functions (with `monthly-donation`, and the monthly versions of
+`stripe-webhook` and `delete-account`; the deployed bundles match). Production's live Stripe webhook still needs
+`invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` and `customer.subscription.deleted` added
+in the Stripe dashboard (the Stripe connector reaches this account in test mode only). Until then a live monthly
+donation's card IS charged, but its row stays `incomplete`, no payment reaches `donations`, and starting again
+cancels that paid subscription and makes a new one.
 `assistant`
 needs the `ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
 The donation functions need two function variables per project:

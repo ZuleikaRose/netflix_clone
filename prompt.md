@@ -160,8 +160,15 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     features as its PR #2 (lint, build and the Playwright suite passed; Vercel built a preview) and was merged.
     schema.sql, drawsql.png and both Supabase projects already matched the migrations (34 tables, all 29 migrations
     on dev and production), so none of them changed.
+38. "please do 1-3": (1) monthly donations on production. The three functions were already there, matching dev
+    exactly; the live Stripe webhook's four new events must be added in the dashboard (the connector is test-mode
+    only for this account). (2) The Vercel Speed Insights PR in the front-end repo: its script exists only on Vercel,
+    so it now loads only in production builds (the e2e builds failed the layout test without that); merged.
+    (3) The flaky audio-description test: it seeked to 17 s, just before the Spanish cue (17.2 s), so it relied on
+    the video playing on, which a title description read during the language switch could hold up. It now waits
+    for the Spanish cues and seeks into the cue; 50 runs in a row passed.
 
 Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), CAPTCHA on sign-up and
-sign-in, and monthly donations on production: the monthly-donation function, the updated stripe-webhook and delete-account
-functions, and four more events on the live Stripe webhook
-(invoice.paid, invoice.payment_failed, customer.subscription.updated, customer.subscription.deleted).
+sign-in, and monthly donations on production: four more events on the live Stripe webhook
+(invoice.paid, invoice.payment_failed, customer.subscription.updated, customer.subscription.deleted); the functions
+are already deployed there.
