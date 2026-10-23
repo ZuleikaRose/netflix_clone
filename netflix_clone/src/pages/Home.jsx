@@ -20,6 +20,7 @@ import { SurpriseButton } from '../components/SurpriseButton.jsx'
 import { useStoreTitle } from '../state/useStoreTitle.js'
 import { useTmdbLists, useTmdbRecommendations } from '../state/useTmdb.js'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
+import { useT } from '../state/useT.js'
 
 const filters = [['TV Shows', 'show'], ['Movies', 'movie']]
 // Rows from TMDB, below the catalog's own rows: [row heading, lists from the tmdb function]. A row built from two
@@ -40,6 +41,7 @@ const interleave = (lists) => Array.from({ length: Math.max(0, ...lists.map((l) 
   .flat().filter(Boolean)
 
 export function Home() {
+  const t = useT()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { profile } = useProfile()
@@ -50,7 +52,7 @@ export function Home() {
   const tmdbLists = useTmdbLists()
   const storeTitle = useStoreTitle()
   const [saveError, setSaveError] = useState(null)
-  useDocumentTitle('Home')
+  useDocumentTitle(t('Home'))
 
   const titles = type ? catalog.filter((t) => t.type === type) : catalog
   // The TV Shows / Movies chips filter TMDB's titles too. The tmdb function looks up each title's US certification,
@@ -85,7 +87,7 @@ export function Home() {
   // My List on the hero: a TMDB title is stored first (lists point at `titles` rows)
   const toggleFeaturedOnList = async () => {
     setSaveError(null)
-    if (!saved && !(await storeTitle(featured))) return setSaveError('Couldn’t save this title. Please try again.')
+    if (!saved && !(await storeTitle(featured))) return setSaveError(t('Couldn’t save this title. Please try again.'))
     toggleMyList(featured.id)
   }
 
@@ -114,67 +116,67 @@ export function Home() {
   return (
     <>
       <header className="topbar">
-        <Link to="/" className="brand" aria-label="Home"><Logo size={34} /></Link>
+        <Link to="/" className="brand" aria-label={t('Home')}><Logo size={34} /></Link>
         <div className="top-actions">
           <AccessibilityButton />
-          <Link to="/search" className="icon-button" aria-label="Search"><Icon name="search" /></Link>
+          <Link to="/search" className="icon-button" aria-label={t('Search')}><Icon name="search" /></Link>
           <NotificationBell />
-          <Link to="/my-netflix" className="avatar-hit" aria-label="My App profile"><ProfileAvatar profile={profile} /></Link>
+          <Link to="/my-netflix" className="avatar-hit" aria-label={t('My App profile')}><ProfileAvatar profile={profile} /></Link>
         </div>
       </header>
 
-      <section className="filters" aria-label="Browse filters">
+      <section className="filters" aria-label={t('Browse filters')}>
         {filters.map(([label, value]) => (
-          <button key={value} className={type === value ? 'chip active' : 'chip'} aria-pressed={type === value} onClick={() => { setType(type === value ? null : value); setSlide(0) }}>{label}</button>
+          <button key={value} className={type === value ? 'chip active' : 'chip'} aria-pressed={type === value} onClick={() => { setType(type === value ? null : value); setSlide(0) }}>{t(label)}</button>
         ))}
-        <button className="chip" onClick={() => navigate('/search')}>Categories <span aria-hidden="true">⌄</span></button>
-        <Link to="/what-to-watch" className="chip">What should I watch?</Link>
+        <button className="chip" onClick={() => navigate('/search')}>{t('Categories')} <span aria-hidden="true">⌄</span></button>
+        <Link to="/what-to-watch" className="chip">{t('What should I watch?')}</Link>
       </section>
 
       {notice && (
-        <aside className="service-banner" role="status" aria-label="Service notice">
-          <p><b>{notice.title}:</b> {notice.message}</p>
-          <button type="button" className="icon-button" aria-label="Dismiss notice" onClick={() => dismissNotice(notice.id)}><Icon name="close" /></button>
+        <aside className="service-banner" role="status" aria-label={t('Service notice')}>
+          <p><b>{t(notice.title)}:</b> {t(notice.message)}</p>
+          <button type="button" className="icon-button" aria-label={t('Dismiss notice')} onClick={() => dismissNotice(notice.id)}><Icon name="close" /></button>
         </aside>
       )}
 
       {!featured && (
         <div className="empty home-empty">
-          <p>Nothing here for this profile’s maturity setting.</p>
-          <Link to="/account" className="play wide">Change in Account</Link>
+          <p>{t('Nothing here for this profile’s maturity setting.')}</p>
+          <Link to="/account" className="play wide">{t('Change in Account')}</Link>
         </div>
       )}
 
-      {featured && <section className="hero" aria-roledescription="carousel" aria-label="Featured titles">
+      {featured && <section className="hero" aria-roledescription="carousel" aria-label={t('Featured titles')}>
         <PreviewArt title={{ ...featured, image: heroImage(featured) }} preview={preview} />
         <div className="hero-shade" />
         <div className="hero-copy">
-          <p className="eyebrow">{featuredIsTmdb ? null : <b>N</b>} {featured.type === 'show' ? 'SERIES' : 'FILM'}{featuredIsTmdb && ' · TMDB'}</p>
+          <p className="eyebrow">{featuredIsTmdb ? null : <b>N</b>} {featured.type === 'show' ? t('SERIES') : t('FILM')}{featuredIsTmdb && ' · TMDB'}</p>
           <h1 className="hero-title">{first}<br />{rest.join(' ')}</h1>
           <p className="meta">{(featuredIsTmdb ? featured.genres.slice(0, 3) : featured.mood).join('  ·  ')}</p>
           <PreviewToggle title={featured} preview={preview} />
           <div className="hero-actions">
             {featuredIsTmdb
               // TMDB titles can't be played here; their page has the trailer and where to watch
-              ? <Link to={featured.path} className="play"><Icon name="info" /> More Info</Link>
-              : <button className="play" onClick={() => navigate(`/title/${featured.id}?play=1`)}><span aria-hidden="true">▶</span> Play</button>}
+              ? <Link to={featured.path} className="play"><Icon name="info" /> {t('More Info')}</Link>
+              : <button className="play" onClick={() => navigate(`/title/${featured.id}?play=1`)}><span aria-hidden="true">▶</span> {t('Play')}</button>}
             <button className={saved ? 'secondary saved' : 'secondary'} aria-pressed={saved} onClick={toggleFeaturedOnList}>
-              <Icon name={saved ? 'check' : 'plus'} /> {saved ? 'Saved' : 'My List'}
+              <Icon name={saved ? 'check' : 'plus'} /> {saved ? t('Saved') : t('My List')}
             </button>
           </div>
           {saveError && <p className="form-alert" role="alert">{saveError}</p>}
           {featuredList.length > 1 && (
             <div className="carousel-controls">
-              <button type="button" className="carousel-arrow" aria-label="Previous featured title" onClick={() => showSlide(current - 1)}><Icon name="back" /></button>
+              <button type="button" className="carousel-arrow" aria-label={t('Previous featured title')} onClick={() => showSlide(current - 1)}><Icon name="back" /></button>
               <div className="carousel-dots">
-                {featuredList.map((t, i) => (
-                  <button key={t.id} type="button" className={i === current ? 'dot-btn active' : 'dot-btn'} aria-label={`Show ${t.title}`} aria-current={i === current} onClick={() => showSlide(i)} />
+                {featuredList.map((item, i) => (
+                  <button key={item.id} type="button" className={i === current ? 'dot-btn active' : 'dot-btn'} aria-label={t('Show {title}', { title: item.title })} aria-current={i === current} onClick={() => showSlide(i)} />
                 ))}
               </div>
-              <button type="button" className="carousel-arrow" aria-label="Next featured title" onClick={() => showSlide(current + 1)}><Icon name="chevron" /></button>
+              <button type="button" className="carousel-arrow" aria-label={t('Next featured title')} onClick={() => showSlide(current + 1)}><Icon name="chevron" /></button>
             </div>
           )}
-          <p className="sr-only" aria-live="polite">Featured {current + 1} of {featuredList.length}: {featured.title}</p>
+          <p className="sr-only" aria-live="polite">{t('Featured {number} of {count}: {title}', { number: current + 1, count: featuredList.length, title: featured.title })}</p>
         </div>
       </section>}
 
@@ -183,25 +185,25 @@ export function Home() {
         {titles.length > 0 && <div className="surprise-row"><SurpriseButton type={type} /></div>}
 
         {continueWatching.length > 0 && (
-          <Row title={`Continue Watching for ${profile.name}`}>
-            {continueWatching.map((t) => (
-              <PosterCard key={t.id} title={t}>
-                <Link to={`/title/${t.id}?play=1`} aria-label={`Resume ${t.title}`} className="resume"><span aria-hidden="true">▶</span></Link>
-                <div className="progress"><span style={{ width: `${progress[t.id].percent}%` }} /></div>
-                {t.type === 'show' && progress[t.id].episode > 1 && <span className="episode-badge">E{progress[t.id].episode}</span>}
+          <Row title={t('Continue Watching for {name}', { name: profile.name })}>
+            {continueWatching.map((item) => (
+              <PosterCard key={item.id} title={item}>
+                <Link to={`/title/${item.id}?play=1`} aria-label={t('Resume {title}', { title: item.title })} className="resume"><span aria-hidden="true">▶</span></Link>
+                <div className="progress"><span style={{ width: `${progress[item.id].percent}%` }} /></div>
+                {item.type === 'show' && progress[item.id].episode > 1 && <span className="episode-badge">E{progress[item.id].episode}</span>}
               </PosterCard>
             ))}
           </Row>
         )}
 
         {becauseYouLiked.length > 0 && (
-          <Row title={`Because You Liked ${seed.title}`}>
+          <Row title={t('Because You Liked {title}', { title: seed.title })}>
             {becauseYouLiked.map((t) => <PosterCard key={t.id} title={t} />)}
           </Row>
         )}
 
         {top10.length > 0 && (
-          <Row title="Top 10 in the U.S. Today" className="ranking">
+          <Row title={t('Top 10 in the U.S. Today')} className="ranking">
             {top10.map((t, i) => (
               <Link to={t.path ?? `/title/${t.id}`} className={i + 1 >= 10 ? 'rank-card two-digits' : 'rank-card'} key={t.id} aria-label={`#${i + 1}: ${t.title}`}>
                 <span aria-hidden="true">{i + 1}</span>
@@ -213,13 +215,13 @@ export function Home() {
         )}
 
         {becauseYouSaved.length > 0 && (
-          <Row title={`Because You Saved ${savedTmdb.title}`}>
+          <Row title={t('Because You Saved {title}', { title: savedTmdb.title })}>
             {becauseYouSaved.map((t) => <PosterCard key={t.id} title={t} />)}
           </Row>
         )}
 
         {tmdbRowsShown.map(([heading, titles]) => (
-          <Row key={heading} title={heading}>
+          <Row key={heading} title={t(heading)}>
             {titles.map((t) => <PosterCard key={t.id} title={t} />)}
           </Row>
         ))}

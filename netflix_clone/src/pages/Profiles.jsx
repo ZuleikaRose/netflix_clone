@@ -8,6 +8,7 @@ import { ProfileAvatar } from '../components/ProfileAvatar.jsx'
 import { MAX_PROFILES, MAX_PROFILE_NAME, PIN_PATTERN, avatarColors, maturityChoices, profileNameProblem } from '../data/profiles.js'
 import { useAuth } from '../state/authContext.js'
 import { useProfile } from '../state/profileContext.js'
+import { useT } from '../state/useT.js'
 import { LIMIT_CHOICES, dayLabel, formatMinutes, formatWatched } from '../data/screenTime.js'
 import { useScreenTime, useScreenTimeWeek } from '../state/useScreenTime.js'
 import { focusFirstError } from './formUtils.js'
@@ -16,6 +17,7 @@ import { focusFirstError } from './formUtils.js'
 function ProfileForm({ profile, others, onDone }) {
   const { addProfile, editProfile, removeProfile } = useAuth()
   const { profile: watching, forgetProfile } = useProfile()
+  const t = useT()
   const [form, setForm] = useState({ name: profile?.name ?? '', avatar: profile?.avatar ?? 'blue', maturity: profile?.maturity ?? 'all' })
   const [error, setError] = useState(null)
   const [saveError, setSaveError] = useState(null)
@@ -32,7 +34,7 @@ function ProfileForm({ profile, others, onDone }) {
     setBusy(true)
     const failed = profile ? await editProfile(profile.id, form) : await addProfile(form)
     setBusy(false)
-    if (failed) return setSaveError(failed)
+    if (failed) return setSaveError(t(failed))
     onDone()
   }
 
@@ -40,44 +42,44 @@ function ProfileForm({ profile, others, onDone }) {
     setBusy(true)
     const failed = await removeProfile(profile.id)
     setBusy(false)
-    if (failed) return setSaveError(failed)
+    if (failed) return setSaveError(t(failed))
     if (watching?.id === profile.id) forgetProfile()
     onDone()
   }
 
   return (
     <form className="settings-card profile-form" onSubmit={submit} noValidate aria-labelledby="profile-form-heading">
-      <h2 id="profile-form-heading">{profile ? `Edit ${profile.name}` : 'Add a profile'}</h2>
-      <Field label="Profile name" value={form.name} maxLength={MAX_PROFILE_NAME} autoComplete="off" error={error}
+      <h2 id="profile-form-heading">{profile ? t('Edit {name}', { name: profile.name }) : t('Add a profile')}</h2>
+      <Field label={t('Profile name')} value={form.name} maxLength={MAX_PROFILE_NAME} autoComplete="off" error={error}
         onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, name: value })) }} />
       <fieldset className="avatar-choices">
-        <legend>Avatar colour</legend>
+        <legend>{t('Avatar colour')}</legend>
         {avatarColors.map((a) => (
           <label key={a.key} className="avatar-choice">
             <input type="radio" name="avatar" value={a.key} checked={form.avatar === a.key} onChange={() => setForm((f) => ({ ...f, avatar: a.key }))} />
-            <ProfileAvatar profile={{ avatar: a.key }} /><span>{a.label}</span>
+            <ProfileAvatar profile={{ avatar: a.key }} /><span>{t(a.label)}</span>
           </label>
         ))}
       </fieldset>
       <label className="select-row">
-        <span className="switch-label">Maturity rating</span>
+        <span className="switch-label">{t('Maturity rating')}</span>
         <select value={form.maturity} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, maturity: value })) }}>
-          {maturityChoices.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+          {maturityChoices.map((m) => <option key={m.value} value={m.value}>{t(m.label)}</option>)}
         </select>
       </label>
       {saveError && <p className="form-alert" role="alert">{saveError}</p>}
-      <button type="submit" className="cta" disabled={busy}>{profile ? 'Save profile' : 'Add profile'}</button>
-      <button type="button" className="ghost-cta" onClick={onDone}>Cancel</button>
+      <button type="submit" className="cta" disabled={busy}>{profile ? t('Save profile') : t('Add profile')}</button>
+      <button type="button" className="ghost-cta" onClick={onDone}>{t('Cancel')}</button>
       {profile && others.length > 0 && (
         confirmDelete
           ? (
-            <div className="profile-delete" role="group" aria-label={`Delete ${profile.name}?`}>
-              <p>Deleting {profile.name} also deletes its watch list, favorites, Continue Watching and game scores.</p>
-              <button type="button" className="cta delete-fill" disabled={busy} onClick={remove}>Yes, delete {profile.name}</button>
-              <button type="button" className="ghost-cta" onClick={() => setConfirmDelete(false)}>Keep profile</button>
+            <div className="profile-delete" role="group" aria-label={t('Delete {name}?', { name: profile.name })}>
+              <p>{t('Deleting {name} also deletes its watch list, favorites, Continue Watching and game scores.', { name: profile.name })}</p>
+              <button type="button" className="cta delete-fill" disabled={busy} onClick={remove}>{t('Yes, delete {name}', { name: profile.name })}</button>
+              <button type="button" className="ghost-cta" onClick={() => setConfirmDelete(false)}>{t('Keep profile')}</button>
             </div>
           )
-          : <button type="button" className="ghost-cta" onClick={() => setConfirmDelete(true)}>Delete profile</button>
+          : <button type="button" className="ghost-cta" onClick={() => setConfirmDelete(true)}>{t('Delete profile')}</button>
       )}
     </form>
   )
@@ -87,6 +89,7 @@ function ProfileForm({ profile, others, onDone }) {
 function PinPrompt({ profile, onUnlocked, onCancel }) {
   const { unlockProfile } = useAuth()
   const { markUnlocked } = useProfile()
+  const t = useT()
   const [pin, setPin] = useState('')
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -94,10 +97,10 @@ function PinPrompt({ profile, onUnlocked, onCancel }) {
   const submit = async (e) => {
     e.preventDefault()
     const form = e.currentTarget
-    let problem = PIN_PATTERN.test(pin) ? null : 'Enter the profile’s four-digit PIN.'
+    let problem = PIN_PATTERN.test(pin) ? null : t('Enter the profile’s four-digit PIN.')
     if (!problem) {
       setBusy(true)
-      problem = await unlockProfile(profile.id, pin)
+      problem = t(await unlockProfile(profile.id, pin))
       setBusy(false)
     }
     setError(problem)
@@ -112,11 +115,11 @@ function PinPrompt({ profile, onUnlocked, onCancel }) {
   return (
     <form className="settings-card pin-prompt" onSubmit={submit} noValidate aria-labelledby="pin-heading">
       <ProfileAvatar profile={profile} large />
-      <h2 id="pin-heading">{profile.name} is locked</h2>
-      <Field label="Profile PIN" type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={pin} autoFocus
+      <h2 id="pin-heading">{t('{name} is locked', { name: profile.name })}</h2>
+      <Field label={t('Profile PIN')} type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={pin} autoFocus
         onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} error={error} />
-      <button type="submit" className="cta" disabled={busy}>Unlock</button>
-      <button type="button" className="ghost-cta" onClick={onCancel}>Cancel</button>
+      <button type="submit" className="cta" disabled={busy}>{t('Unlock')}</button>
+      <button type="button" className="ghost-cta" onClick={onCancel}>{t('Cancel')}</button>
     </form>
   )
 }
@@ -125,6 +128,7 @@ function PinPrompt({ profile, onUnlocked, onCancel }) {
 function ProfileLockForm({ profile }) {
   const { setProfilePin } = useAuth()
   const { markUnlocked } = useProfile()
+  const t = useT()
   const blank = { pin: '', confirm: '', password: '' }
   const [open, setOpen] = useState(null) // null | 'set' | 'remove'
   const [form, setForm] = useState(blank)
@@ -141,50 +145,50 @@ function ProfileLockForm({ profile }) {
     const formElement = e.currentTarget
     const next = {}
     if (open === 'set') {
-      if (!PIN_PATTERN.test(form.pin)) next.pin = 'A PIN is four digits.'
-      else if (form.confirm !== form.pin) next.confirm = 'PINs don’t match.'
+      if (!PIN_PATTERN.test(form.pin)) next.pin = t('A PIN is four digits.')
+      else if (form.confirm !== form.pin) next.confirm = t('PINs don’t match.')
     }
-    if (!form.password) next.password = 'Please enter the account password.'
+    if (!form.password) next.password = t('Please enter the account password.')
     if (!Object.keys(next).length) {
       setBusy(true)
       const failed = await setProfilePin(profile.id, open === 'set' ? form.pin : null, form.password)
       setBusy(false)
-      if (failed) next.password = failed
+      if (failed) next.password = t(failed)
     }
     setErrors(next)
     if (Object.keys(next).length) return focusFirstError(formElement)
     // Locking the profile that's watching shouldn't send this device back to Who's watching
     markUnlocked(profile.id)
-    setStatus(open === 'set' ? `${profile.name} is locked with a PIN` : `PIN removed from ${profile.name}`)
+    setStatus(open === 'set' ? t('{name} is locked with a PIN', { name: profile.name }) : t('PIN removed from {name}', { name: profile.name }))
     setForm(blank)
     setOpen(null)
   }
 
   return (
     <section className="settings-card" aria-labelledby="lock-heading">
-      <h2 id="lock-heading">Profile lock</h2>
-      <p className="muted">{profile.locked ? `${profile.name} needs a four-digit PIN to open.` : `Anyone can open ${profile.name}. Add a PIN to keep it to yourself.`}</p>
+      <h2 id="lock-heading">{t('Profile lock')}</h2>
+      <p className="muted">{profile.locked ? t('{name} needs a four-digit PIN to open.', { name: profile.name }) : t('Anyone can open {name}. Add a PIN to keep it to yourself.', { name: profile.name })}</p>
       {open
         ? (
-          <form className="lock-form" onSubmit={submit} noValidate aria-label={open === 'set' ? 'Set a PIN' : 'Remove the PIN'}>
+          <form className="lock-form" onSubmit={submit} noValidate aria-label={open === 'set' ? t('Set a PIN') : t('Remove the PIN')}>
             {open === 'set' && (
               <>
-                <Field label="New PIN" type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={form.pin}
-                  onChange={updateField('pin', true)} error={errors.pin} hint="Four digits." />
-                <Field label="Confirm PIN" type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={form.confirm}
+                <Field label={t('New PIN')} type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={form.pin}
+                  onChange={updateField('pin', true)} error={errors.pin} hint={t('Four digits.')} />
+                <Field label={t('Confirm PIN')} type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={form.confirm}
                   onChange={updateField('confirm', true)} error={errors.confirm} />
               </>
             )}
-            <Field label="Account password" type="password" autoComplete="current-password" value={form.password}
+            <Field label={t('Account password')} type="password" autoComplete="current-password" value={form.password}
               onChange={updateField('password')} error={errors.password} />
-            <button type="submit" className={open === 'set' ? 'cta' : 'cta delete-fill'} disabled={busy}>{open === 'set' ? 'Save PIN' : 'Remove PIN'}</button>
-            <button type="button" className="ghost-cta" onClick={() => { setOpen(null); setErrors({}); setForm(blank) }}>Cancel</button>
+            <button type="submit" className={open === 'set' ? 'cta' : 'cta delete-fill'} disabled={busy}>{open === 'set' ? t('Save PIN') : t('Remove PIN')}</button>
+            <button type="button" className="ghost-cta" onClick={() => { setOpen(null); setErrors({}); setForm(blank) }}>{t('Cancel')}</button>
           </form>
         )
         : (
           <>
-            <button type="button" className="ghost-cta" onClick={() => { setOpen('set'); setStatus('') }}>{profile.locked ? 'Change PIN' : 'Add a PIN'}</button>
-            {profile.locked && <button type="button" className="ghost-cta" onClick={() => { setOpen('remove'); setStatus('') }}>Remove PIN</button>}
+            <button type="button" className="ghost-cta" onClick={() => { setOpen('set'); setStatus('') }}>{profile.locked ? t('Change PIN') : t('Add a PIN')}</button>
+            {profile.locked && <button type="button" className="ghost-cta" onClick={() => { setOpen('remove'); setStatus('') }}>{t('Remove PIN')}</button>}
           </>
         )}
       <p className="save-status" role="status">{status && <><span aria-hidden="true">✓</span> {status}</>}</p>
@@ -197,6 +201,7 @@ function ScreenTimeForm({ profile }) {
   const { setScreenTimeLimit } = useAuth()
   const { profile: watching } = useProfile()
   const { usedSeconds } = useScreenTime()
+  const t = useT()
   const [minutes, setMinutes] = useState(profile.dailyLimit ? String(profile.dailyLimit) : '')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
@@ -207,40 +212,40 @@ function ScreenTimeForm({ profile }) {
   const submit = async (e) => {
     e.preventDefault()
     const form = e.currentTarget
-    let problem = password ? null : 'Please enter the account password.'
+    let problem = password ? null : t('Please enter the account password.')
     if (!problem) {
       setBusy(true)
-      problem = await setScreenTimeLimit(profile.id, minutes ? Number(minutes) : null, password)
+      problem = t(await setScreenTimeLimit(profile.id, minutes ? Number(minutes) : null, password))
       setBusy(false)
     }
     setError(problem)
     if (problem) return focusFirstError(form)
     setPassword('')
-    setStatus(minutes ? `${profile.name} can watch ${formatMinutes(Number(minutes))} a day` : `No daily limit for ${profile.name}`)
+    setStatus(minutes ? t('{name} can watch {time} a day', { name: profile.name, time: formatMinutes(Number(minutes)) }) : t('No daily limit for {name}', { name: profile.name }))
   }
 
   return (
     <section className="settings-card" aria-labelledby="screen-time-heading">
-      <h2 id="screen-time-heading">Screen time</h2>
+      <h2 id="screen-time-heading">{t('Screen time')}</h2>
       <p className="muted">
         {profile.dailyLimit
-          ? `${profile.name} can watch ${formatMinutes(profile.dailyLimit)} a day. When it’s used up, the player stops until tomorrow unless a grown-up allows more time.`
-          : `${profile.name} can watch as long as they like. Set a daily limit to stop the player once the time is used up.`}
-        {profile.dailyLimit && profile.id === watching?.id ? ` Watched today: ${formatMinutes(Math.floor(usedSeconds / 60))}.` : ''}
+          ? t('{name} can watch {time} a day. When it’s used up, the player stops until tomorrow unless a grown-up allows more time.', { name: profile.name, time: formatMinutes(profile.dailyLimit) })
+          : t('{name} can watch as long as they like. Set a daily limit to stop the player once the time is used up.', { name: profile.name })}
+        {profile.dailyLimit && profile.id === watching?.id ? ` ${t('Watched today: {time}.', { time: formatMinutes(Math.floor(usedSeconds / 60)) })}` : ''}
       </p>
-      <form className="lock-form" onSubmit={submit} noValidate aria-label="Set a daily limit">
+      <form className="lock-form" onSubmit={submit} noValidate aria-label={t('Set a daily limit')}>
         <label className="select-row">
-          <span className="switch-label">Daily limit</span>
+          <span className="switch-label">{t('Daily limit')}</span>
           <select value={minutes} onChange={(e) => { const { value } = e.target; setMinutes(value); setStatus('') }}>
-            <option value="">No limit</option>
-            {LIMIT_CHOICES.map((m) => <option key={m} value={m}>{formatMinutes(m)} a day</option>)}
+            <option value="">{t('No limit')}</option>
+            {LIMIT_CHOICES.map((m) => <option key={m} value={m}>{t('{time} a day', { time: formatMinutes(m) })}</option>)}
           </select>
         </label>
         {!unchanged && (
           <>
-            <Field label="Account password" type="password" autoComplete="current-password" value={password}
+            <Field label={t('Account password')} type="password" autoComplete="current-password" value={password}
               onChange={(e) => setPassword(e.target.value)} error={error} />
-            <button type="submit" className="cta" disabled={busy}>Save daily limit</button>
+            <button type="submit" className="cta" disabled={busy}>{t('Save daily limit')}</button>
           </>
         )}
       </form>
@@ -254,8 +259,9 @@ function ScreenTimeForm({ profile }) {
 // Only profiles with a limit count their time, so a profile without one shows nothing until it gets a limit.
 function ScreenTimeWeek({ profile }) {
   const week = useScreenTimeWeek(profile)
+  const t = useT()
   if (!profile.dailyLimit && !week?.some((u) => u.seconds > 0)) return null
-  if (!week) return <p className="muted">Loading the last 7 days…</p>
+  if (!week) return <p className="muted">{t('Loading the last 7 days…')}</p>
 
   const today = week.at(-1).day
   const total = week.reduce((sum, u) => sum + u.seconds, 0)
@@ -263,11 +269,11 @@ function ScreenTimeWeek({ profile }) {
   const scale = Math.max((profile.dailyLimit ?? 0) * 60, ...week.map((u) => u.seconds), 1)
   return (
     <div className="screen-week">
-      <h3>Last 7 days</h3>
+      <h3>{t('Last 7 days')}</h3>
       <p className="muted">
-        {total ? `${formatWatched(total)} in total, about ${total / 7 >= 30 ? formatWatched(total / 7) : 'under a minute'} a day.` : 'Nothing watched yet.'}
+        {total ? t('{total} in total, about {average} a day.', { total: formatWatched(total), average: total / 7 >= 30 ? formatWatched(total / 7) : t('under a minute') }) : t('Nothing watched yet.')}
       </p>
-      <ul aria-label="Time watched each day">
+      <ul aria-label={t('Time watched each day')}>
         {[...week].reverse().map((u) => (
           <li key={u.day}>
             <span className="screen-week-day">{dayLabel(u.day, today)}</span>
@@ -275,7 +281,7 @@ function ScreenTimeWeek({ profile }) {
               <span style={{ width: `${Math.min(100, (u.seconds / scale) * 100)}%` }} />
             </span>
             <span className="screen-week-time">
-              {formatWatched(u.seconds)}{u.extraSeconds > 0 && `, ${formatMinutes(u.extraSeconds / 60)} extra allowed`}
+              {formatWatched(u.seconds)}{u.extraSeconds > 0 && `, ${t('{time} extra allowed', { time: formatMinutes(u.extraSeconds / 60) })}`}
             </span>
           </li>
         ))}
@@ -287,6 +293,7 @@ function ScreenTimeWeek({ profile }) {
 // "Who's watching?: pick a profile, or manage them (add, rename, recolour, change the maturity rating, delete)
 export function Profiles() {
   const { profiles, chooseProfile, isUnlocked } = useProfile()
+  const t = useT()
   const navigate = useNavigate()
   const location = useLocation()
   const [mode, setMode] = useState('choose') // 'choose' | 'manage' | 'add' | a profile id being edited
@@ -316,7 +323,7 @@ export function Profiles() {
     }
     return (
       <>
-        <PageHeader title="Profiles" />
+        <PageHeader title={t('Profiles')} />
         <div className="settings">
           <PinPrompt key={askingFor.id} profile={askingFor} onUnlocked={unlocked} onCancel={() => setAsking(null)} />
         </div>
@@ -327,9 +334,9 @@ export function Profiles() {
   if (mode === 'add' || editing) {
     return (
       <>
-        <PageHeader title="Profiles" />
+        <PageHeader title={t('Profiles')} />
         <div className="settings">
-          <GrownUpGate what="profile settings">
+          <GrownUpGate what={t('profile settings')}>
             <ProfileForm key={mode} profile={editing} others={profiles.filter((p) => p.id !== editing?.id)} onDone={() => setMode('manage')} />
             {editing && <ProfileLockForm profile={editing} />}
             {editing && <ScreenTimeForm key={editing.id} profile={editing} />}
@@ -341,17 +348,17 @@ export function Profiles() {
 
   return (
     <>
-      <PageHeader title="Profiles" />
+      <PageHeader title={t('Profiles')} />
       <section className="profiles" aria-labelledby="profiles-heading">
-        <h2 id="profiles-heading">{managing ? 'Manage profiles' : 'Who’s watching?'}</h2>
+        <h2 id="profiles-heading">{managing ? t('Manage profiles') : t('Who’s watching?')}</h2>
         <ul className="profile-grid">
           {profiles.map((p) => (
             <li key={p.id}>
               <button type="button" className="profile-tile" onClick={() => pick(p)}
-                aria-label={`${managing ? `Edit ${p.name}` : p.name}${p.locked ? ' (locked)' : ''}`}>
+                aria-label={(managing ? t('Edit {name}', { name: p.name }) : p.name) + (p.locked ? ` ${t('(locked)')}` : '')}>
                 <ProfileAvatar profile={p} large />
                 <span className="profile-name">{p.locked && <Icon name="lock" />}{p.name}</span>
-                {p.maturity === 'kids' && <span className="profile-badge">Kids</span>}
+                {p.maturity === 'kids' && <span className="profile-badge">{t('Kids')}</span>}
               </button>
             </li>
           ))}
@@ -359,13 +366,13 @@ export function Profiles() {
             <li>
               <button type="button" className="profile-tile add" onClick={() => setMode('add')}>
                 <span className="profile-add" aria-hidden="true">+</span>
-                <span className="profile-name">Add profile</span>
+                <span className="profile-name">{t('Add profile')}</span>
               </button>
             </li>
           )}
         </ul>
         <button type="button" className="ghost-cta profiles-manage" onClick={() => setMode(managing ? 'choose' : 'manage')}>
-          {managing ? 'Done' : 'Manage profiles'}
+          {managing ? t('Done') : t('Manage profiles')}
         </button>
       </section>
     </>

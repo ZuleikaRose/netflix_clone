@@ -8,6 +8,7 @@ import { historyYears, summarizeHistory } from '../data/yearInReview.js'
 import { useAuth } from './authContext.js'
 import { FINISHED_PERCENT, LibraryContext } from './libraryContext.js'
 import { useProfile } from './profileContext.js'
+import { tr } from '../i18n/index.js'
 
 // The signed-in user's lists, ratings, scores and reports. Changes show at once; with Supabase (`library` from the
 // auth context) they are also saved and loaded back at sign-in, including the automatic sign-in after a reload. Without
@@ -131,14 +132,14 @@ export function LibraryProvider({ children }) {
         return null
       } catch (error) {
         warn(error)
-        return 'Your viewing history couldn’t be changed. Please try again.'
+        return tr('Your viewing history couldn’t be changed. Please try again.')
       }
     }
 
     // A database error as a message: names are unique per profile
     const listError = (error, name) => {
       warn(error)
-      return error?.code === '23505' ? `You already have a list called ${name.trim()}.` : 'Your list couldn’t be saved. Please try again.'
+      return error?.code === '23505' ? tr('You already have a list called {name}.', { name: name.trim() }) : tr('Your list couldn’t be saved. Please try again.')
     }
     const patchList = (id, patch) => setLists((all) => all.map((l) => (l.id === id ? { ...l, ...patch } : l)))
 
@@ -210,7 +211,7 @@ export function LibraryProvider({ children }) {
             : { id: `${ticketId}-${Date.now()}`, body, fromStaff: asStaff, author: asStaff ? 'Support team' : author, at: new Date() }
         } catch (error) {
           warn(error)
-          return 'Your reply couldn’t be sent. Please try again.'
+          return tr('Your reply couldn’t be sent. Please try again.')
         }
         setIssues((all) => all.map((t) => (t.ticketId === ticketId ? { ...t, replies: [...(t.replies ?? []), reply] } : t)))
         return null

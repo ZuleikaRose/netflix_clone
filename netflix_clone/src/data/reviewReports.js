@@ -1,3 +1,5 @@
+import { tr } from '../i18n/index.js'
+
 // Reported reviews (migration ..._review_reports): members flag another member's review; support staff keep or
 // remove it from the support dashboard. With Supabase the database stamps each report with a copy of the review;
 // in memory (no other members) the catalog's sample reviews can be reported and the demo account, who is staff,
@@ -35,9 +37,9 @@ export const resolveReviewRow = (supabase, reviewId, remove) => supabase
 
 // A database error on reporting, in members' words
 export function reportErrorMessage(error) {
-  if (error?.code === '23505') return 'You’ve already reported this review.'
-  if (error?.code === 'P0001') return error.message
-  return 'Your report couldn’t be sent. Please try again.'
+  if (error?.code === '23505') return tr('You’ve already reported this review.')
+  if (error?.code === 'P0001') return tr(error.message)
+  return tr('Your report couldn’t be sent. Please try again.')
 }
 
 // In memory: the session's reports and the reviews removed by "staff"

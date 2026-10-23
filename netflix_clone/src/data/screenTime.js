@@ -1,3 +1,4 @@
+import { locale, tr } from '../i18n/index.js'
 import { localDay } from './notifications.js'
 
 // Screen-time limits (migration ..._screen_time): a daily viewing limit per profile, meant for Kids profiles. Only
@@ -8,9 +9,10 @@ export const TICK_SECONDS = 5 // the player counts in steps this long while it p
 export const SAVE_EVERY_SECONDS = 15 // and saves them this often (the database takes up to 60 at a time)
 
 export const formatMinutes = (minutes) => {
-  if (minutes < 60) return `${minutes} minutes`
+  if (minutes < 60) return tr('{minutes} minutes', { minutes })
   const hours = minutes / 60
-  return Number.isInteger(hours) ? `${hours} hour${hours === 1 ? '' : 's'}` : `${Math.floor(hours)} h ${minutes % 60} min`
+  if (Number.isInteger(hours)) return hours === 1 ? tr('1 hour') : tr('{hours} hours', { hours })
+  return tr('{hours} h {minutes} min', { hours: Math.floor(hours), minutes: minutes % 60 })
 }
 
 // A day's usage ({ day, seconds, extraSeconds }) → seconds left today, or null without a limit
@@ -29,10 +31,10 @@ export function lastSevenDays(now = new Date()) {
 // One usage per day of `days` (days with no row watched nothing)
 export const weekOf = (days, usages) => days.map((day) => usages.find((u) => u.day === day) ?? emptyUsage(day))
 export const dayLabel = (day, today) => (day === today
-  ? 'Today'
-  : new Date(`${day}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))
+  ? tr('Today')
+  : new Date(`${day}T12:00:00`).toLocaleDateString(locale(), { weekday: 'short', month: 'short', day: 'numeric' }))
 export function formatWatched(seconds) {
   const minutes = Math.round(seconds / 60)
-  if (minutes === 0) return 'None'
-  return minutes === 1 ? '1 minute' : formatMinutes(minutes)
+  if (minutes === 0) return tr('None')
+  return minutes === 1 ? tr('1 minute') : formatMinutes(minutes)
 }

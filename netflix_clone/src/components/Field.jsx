@@ -1,7 +1,10 @@
 import { useId, useState } from 'react'
+import { useT } from '../state/useT.js'
 
+// `label`, `hint` and `error` come already translated
 export function Field({ label, error, type = 'text', hint, ...inputProps }) {
   const id = useId()
+  const t = useT()
   const [reveal, setReveal] = useState(false)
   const isPassword = type === 'password'
   const describedBy = [error && `${id}-error`, hint && `${id}-hint`].filter(Boolean).join(' ') || undefined
@@ -13,7 +16,7 @@ export function Field({ label, error, type = 'text', hint, ...inputProps }) {
         <input id={id} type={isPassword && reveal ? 'text' : type} aria-invalid={Boolean(error)} aria-describedby={describedBy} {...inputProps} />
         {isPassword && (
           <button type="button" className="reveal" aria-pressed={reveal} onClick={() => setReveal(!reveal)}>
-            {reveal ? 'Hide' : 'Show'}<span className="sr-only"> password</span>
+            {reveal ? t('Hide') : t('Show')}<span className="sr-only"> {t('password')}</span>
           </button>
         )}
       </div>

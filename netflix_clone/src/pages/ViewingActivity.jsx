@@ -6,6 +6,8 @@ import { useAuth } from '../state/authContext.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useProfile } from '../state/profileContext.js'
 import { useCatalog } from '../state/useCatalog.js'
+import { useT } from '../state/useT.js'
+import { locale } from '../i18n/index.js'
 
 const retentionChoices = [
   { value: '', label: 'Keep until I delete it' },
@@ -13,7 +15,7 @@ const retentionChoices = [
   { value: '365', label: 'Delete after 1 year' },
 ]
 
-const formatDay = (day) => new Date(`${day}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+const formatDay = (day) => new Date(`${day}T00:00:00`).toLocaleDateString(locale(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 
 // "Behind the Glass: S1:E2 The Signal" for a catalog episode, else the title's name
 function describe(title, episode) {
@@ -34,6 +36,7 @@ function downloadCsv(rows) {
 
 // /history: what this profile watched, day by day, with ways to hide entries and the account's history settings
 export function ViewingActivity() {
+  const t = useT()
   const { loadHistory, hideFromHistory, clearHistory } = useLibrary()
   const { user, setPreference } = useAuth()
   const { profile } = useProfile()
@@ -70,31 +73,31 @@ export function ViewingActivity() {
 
   return (
     <>
-      <PageHeader title="Viewing activity" back />
+      <PageHeader title={t('Viewing activity')} back />
       <div className="settings">
         <section className="settings-card" aria-labelledby="history-settings-heading">
-          <h2 id="history-settings-heading">History settings</h2>
+          <h2 id="history-settings-heading">{t('History settings')}</h2>
           <label className="switch-row">
             <span>
-              <span className="switch-label">Keep viewing history</span>
-              <span className="muted">Turned off, nothing you watch is added to any profile’s history. What’s already here stays until you hide it.</span>
+              <span className="switch-label">{t('Keep viewing history')}</span>
+              <span className="muted">{t('Turned off, nothing you watch is added to any profile’s history. What’s already here stays until you hide it.')}</span>
             </span>
             <input type="checkbox" role="switch" checked={user.preferences.keepHistory !== false} onChange={(e) => setPreference('keepHistory', e.target.checked)} />
           </label>
           <label className="select-row">
-            <span className="switch-label">Delete old history automatically</span>
+            <span className="switch-label">{t('Delete old history automatically')}</span>
             <select value={user.preferences.historyRetention ?? ''} onChange={(e) => setPreference('historyRetention', e.target.value ? Number(e.target.value) : null)}>
-              {retentionChoices.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              {retentionChoices.map((c) => <option key={c.value} value={c.value}>{t(c.label)}</option>)}
             </select>
           </label>
         </section>
 
         <section className="settings-card" aria-labelledby="history-heading">
-          <h2 id="history-heading">{profile.name}’s history</h2>
-          {error && <p className="form-alert" role="alert">{error}</p>}
-          {failed && <p className="form-alert" role="alert">Your viewing history couldn’t be loaded. Please try again.</p>}
-          {!failed && !entries && <p className="muted" role="status">Loading your history…</p>}
-          {entries && rows.length === 0 && <p className="muted">Nothing here yet. Titles you watch show up here, one entry per day.</p>}
+          <h2 id="history-heading">{t('{name}’s history', { name: profile.name })}</h2>
+          {error && <p className="form-alert" role="alert">{t(error)}</p>}
+          {failed && <p className="form-alert" role="alert">{t('Your viewing history couldn’t be loaded. Please try again.')}</p>}
+          {!failed && !entries && <p className="muted" role="status">{t('Loading your history…')}</p>}
+          {entries && rows.length === 0 && <p className="muted">{t('Nothing here yet. Titles you watch show up here, one entry per day.')}</p>}
           {days.map((day) => (
             <div key={day} className="history-day">
               <h3>{formatDay(day)}</h3>
@@ -102,7 +105,7 @@ export function ViewingActivity() {
                 {rows.filter((r) => r.day === day).map((r) => (
                   <li key={r.id}>
                     <Link to={r.titleData.path ?? `/title/${r.titleData.id}`} className="history-title">{r.title}</Link>
-                    <button type="button" className="ghost-cta history-hide" aria-label={`Hide ${r.title} from history`} onClick={() => hide(r)}>Hide</button>
+                    <button type="button" className="ghost-cta history-hide" aria-label={t('Hide {title} from history', { title: r.title })} onClick={() => hide(r)}>{t('Hide')}</button>
                   </li>
                 ))}
               </ul>
@@ -110,17 +113,17 @@ export function ViewingActivity() {
           ))}
           {rows.length > 0 && (
             <div className="history-actions">
-              <Link to="/year-in-review" className="ghost-cta">See your Year in Review</Link>
-              <button type="button" className="ghost-cta" onClick={() => downloadCsv(rows)}>Download all (CSV)</button>
+              <Link to="/year-in-review" className="ghost-cta">{t('See your Year in Review')}</Link>
+              <button type="button" className="ghost-cta" onClick={() => downloadCsv(rows)}>{t('Download all (CSV)')}</button>
               {confirming
                 ? (
-                  <div className="confirm-row" role="group" aria-label="Hide all history">
-                    <p>Hide all of {profile.name}’s viewing history? This can’t be undone.</p>
-                    <button type="button" className="cta delete-fill" onClick={hideAll}>Hide all</button>
-                    <button type="button" className="ghost-cta" onClick={() => setConfirming(false)}>Cancel</button>
+                  <div className="confirm-row" role="group" aria-label={t('Hide all history')}>
+                    <p>{t('Hide all of {name}’s viewing history? This can’t be undone.', { name: profile.name })}</p>
+                    <button type="button" className="cta delete-fill" onClick={hideAll}>{t('Hide all')}</button>
+                    <button type="button" className="ghost-cta" onClick={() => setConfirming(false)}>{t('Cancel')}</button>
                   </div>
                 )
-                : <button type="button" className="ghost-cta danger" onClick={() => setConfirming(true)}>Hide all…</button>}
+                : <button type="button" className="ghost-cta danger" onClick={() => setConfirming(true)}>{t('Hide all…')}</button>}
             </div>
           )}
         </section>

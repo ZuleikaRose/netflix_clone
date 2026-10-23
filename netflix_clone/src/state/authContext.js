@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import { tr } from '../i18n/index.js'
 
 export const AuthContext = createContext(null)
 
@@ -14,21 +15,23 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // round trip. Supabase also rejects leaked passwords, which only it can check.
 const MIN_PASSWORD = 13
 export const PASSWORD_HINT = `At least ${MIN_PASSWORD} characters, with an uppercase and a lowercase letter, a number and a symbol.`
+// The same, in the interface language
+export const passwordHint = () => tr('At least {count} characters, with an uppercase and a lowercase letter, a number and a symbol.', { count: MIN_PASSWORD })
 // The symbols Supabase counts
 const SYMBOL = /[!@#$%^&*()_+\-=[\]{};'\\:"|<>?,./`~]/
 
 // An error message for a new password, or null when it meets the rules
 export function passwordProblem(password) {
   const missing = [
-    password.length < MIN_PASSWORD && `at least ${MIN_PASSWORD} characters`,
-    !/[a-z]/.test(password) && 'a lowercase letter',
-    !/[A-Z]/.test(password) && 'an uppercase letter',
-    !/[0-9]/.test(password) && 'a number',
-    !SYMBOL.test(password) && 'a symbol',
+    password.length < MIN_PASSWORD && tr('at least {count} characters', { count: MIN_PASSWORD }),
+    !/[a-z]/.test(password) && tr('a lowercase letter'),
+    !/[A-Z]/.test(password) && tr('an uppercase letter'),
+    !/[0-9]/.test(password) && tr('a number'),
+    !SYMBOL.test(password) && tr('a symbol'),
   ].filter(Boolean)
   if (!missing.length) return null
-  const list = missing.length > 1 ? `${missing.slice(0, -1).join(', ')} and ${missing.at(-1)}` : missing[0]
-  return `Password needs ${list}.`
+  const list = missing.length > 1 ? tr('{list} and {last}', { list: missing.slice(0, -1).join(', '), last: missing.at(-1) }) : missing[0]
+  return tr('Password needs {list}.', { list })
 }
 
 export const normalizeEmail = (email) => email.trim().toLowerCase()

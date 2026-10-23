@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useLibrary } from '../../state/libraryContext.js'
+import { useT } from '../../state/useT.js'
 import { shuffle } from './shuffle.js'
 
 const ROUNDS = 5
@@ -13,6 +14,7 @@ const makeRounds = (titles) => shuffle(titles.filter((t) => t.cast.length)).slic
 })
 
 export function CastCall({ titles }) {
+  const t = useT()
   const { bestScores, recordScore } = useLibrary()
   const [rounds, setRounds] = useState(() => makeRounds(titles))
   const [index, setIndex] = useState(0)
@@ -46,10 +48,10 @@ export function CastCall({ titles }) {
       <div className="settings">
         <section className="settings-card thanks" role="status">
           <p className="big-check" aria-hidden="true">{score}</p>
-          <h2>You scored {score} of {rounds.length}</h2>
-          <p className="muted">Best: {bestScores.cast ?? score}</p>
+          <h2>{t('You scored {score} of {total}', { score, total: rounds.length })}</h2>
+          <p className="muted">{t('Best: {score}', { score: bestScores.cast ?? score })}</p>
         </section>
-        <button type="button" className="cta" onClick={restart}>Play again</button>
+        <button type="button" className="cta" onClick={restart}>{t('Play again')}</button>
       </div>
     )
   }
@@ -59,32 +61,32 @@ export function CastCall({ titles }) {
   return (
     <div className="settings">
       <div className="game-bar">
-        <p>Round <b>{index + 1}</b> of {rounds.length}</p>
-        <p className="muted">Score: {score}</p>
+        <p>{t('Round')} <b>{index + 1}</b> {t('of {total}', { total: rounds.length })}</p>
+        <p className="muted">{t('Score: {score}', { score })}</p>
       </div>
 
       <section className="settings-card" aria-labelledby="cast-q">
-        <h2 id="cast-q">Which title stars {round.actor}?</h2>
+        <h2 id="cast-q">{t('Which title stars {actor}?', { actor: round.actor })}</h2>
         <div className="answer-list">
-          {round.options.map((t) => {
-            const state = !picked ? '' : t.id === round.answer.id ? ' right' : t.id === picked ? ' wrong' : ''
+          {round.options.map((option) => {
+            const state = !picked ? '' : option.id === round.answer.id ? ' right' : option.id === picked ? ' wrong' : ''
             return (
-              <button key={t.id} type="button" className={`answer${state}`} aria-disabled={Boolean(picked)} onClick={() => choose(t)}>
-                {t.title}
-                {state === ' right' && <span className="sr-only"> — correct answer</span>}
-                {state === ' wrong' && <span className="sr-only"> — your answer, incorrect</span>}
+              <button key={option.id} type="button" className={`answer${state}`} aria-disabled={Boolean(picked)} onClick={() => choose(option)}>
+                {option.title}
+                {state === ' right' && <span className="sr-only"> {t('— correct answer')}</span>}
+                {state === ' wrong' && <span className="sr-only"> {t('— your answer, incorrect')}</span>}
               </button>
             )
           })}
         </div>
         <p className="save-status answer-feedback" role="status">
           {picked && (correct
-            ? `✓ Correct! ${round.actor} stars in ${round.answer.title}.`
-            : `✗ ${round.actor} stars in ${round.answer.title}.`)}
+            ? t('✓ Correct! {actor} stars in {title}.', { actor: round.actor, title: round.answer.title })
+            : t('✗ {actor} stars in {title}.', { actor: round.actor, title: round.answer.title }))}
         </p>
       </section>
 
-      {picked && <button type="button" className="cta" onClick={goToNextRound} autoFocus>{index + 1 === rounds.length ? 'See score' : 'Next question'}</button>}
+      {picked && <button type="button" className="cta" onClick={goToNextRound} autoFocus>{index + 1 === rounds.length ? t('See score') : t('Next question')}</button>}
     </div>
   )
 }

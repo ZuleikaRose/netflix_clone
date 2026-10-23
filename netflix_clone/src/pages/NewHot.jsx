@@ -7,13 +7,15 @@ import { formatReleaseDay } from '../data/notifications.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useReminder } from '../state/useReminder.js'
 import { useTmdbLists } from '../state/useTmdb.js'
+import { useT } from '../state/useT.js'
 
 function RemindButton({ title, reminder, day }) {
+  const t = useT()
   const on = reminder.isSet(title)
   return (
-    <button className={on ? 'ghost-action on' : 'ghost-action'} aria-pressed={on} aria-label={`Remind me about ${title.title}`}
+    <button className={on ? 'ghost-action on' : 'ghost-action'} aria-pressed={on} aria-label={t('Remind me about {title}', { title: title.title })}
       onClick={() => reminder.toggle(title, day)}>
-      <Icon name={on ? 'check' : 'bell'} /><span>{on ? 'Reminder set' : 'Remind Me'}</span>
+      <Icon name={on ? 'check' : 'bell'} /><span>{on ? t('Reminder set') : t('Remind Me')}</span>
     </button>
   )
 }
@@ -41,6 +43,7 @@ function FeedItem({ title, meta, children }) {
 
 // New & Hot: movies coming soon (from TMDB, with reminders that the bell announces on release day) and what's new here
 export function NewHot() {
+  const t = useT()
   const { titles: catalog, isAllowed } = useCatalog()
   const reminder = useReminder()
   const comingSoon = (useTmdbLists()?.upcomingMovies ?? []).filter(isAllowed)
@@ -48,15 +51,15 @@ export function NewHot() {
 
   return (
     <>
-      <PageHeader title="New & Hot" />
+      <PageHeader title={t('New & Hot')} />
       {reminder.error && <p className="form-alert page-alert" role="alert">{reminder.error}</p>}
       {comingSoon.length > 0 && (
         <section aria-labelledby="coming-soon-heading">
-          <div className="section-heading"><h2 id="coming-soon-heading">Coming Soon</h2></div>
+          <div className="section-heading"><h2 id="coming-soon-heading">{t('Coming Soon')}</h2></div>
           <ul className="feed">
-            {comingSoon.map((t) => (
-              <FeedItem key={t.id} title={t} meta={<p className="detail-meta"><span>Coming {formatReleaseDay(t.releaseDate)}</span><span className="maturity">{t.maturity}</span></p>}>
-                <RemindButton title={t} reminder={reminder} day={t.releaseDate} />
+            {comingSoon.map((item) => (
+              <FeedItem key={item.id} title={item} meta={<p className="detail-meta"><span>{t('Coming {date}', { date: formatReleaseDay(item.releaseDate) })}</span><span className="maturity">{item.maturity}</span></p>}>
+                <RemindButton title={item} reminder={reminder} day={item.releaseDate} />
               </FeedItem>
             ))}
           </ul>
@@ -64,7 +67,7 @@ export function NewHot() {
         </section>
       )}
       <section aria-labelledby="new-here-heading">
-        <div className="section-heading"><h2 id="new-here-heading">New on Netflix Clone</h2></div>
+        <div className="section-heading"><h2 id="new-here-heading">{t('New on Netflix Clone')}</h2></div>
         <ul className="feed">
           {fresh.map((t) => (
             <FeedItem key={t.id} title={t} meta={<p className="detail-meta"><span>{t.year}</span><span className="maturity">{t.maturity}</span><span>{describeLength(t)}</span></p>}>

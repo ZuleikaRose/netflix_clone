@@ -1,3 +1,5 @@
+import { tr } from '../i18n/index.js'
+
 // "Helpful" votes on reviews (migration ..._helpful_reviews): a member marks another member's review helpful, once;
 // tapping again takes the vote back. review.helpful_count is kept by the database. In memory the catalog's sample
 // reviews can be voted on until the page reloads.
@@ -12,7 +14,7 @@ export const sortReviews = (reviews, order) => (order === 'helpful'
   ? [...reviews].sort((a, b) => b.helpful - a.helpful)
   : reviews)
 
-export const helpfulLabel = (count) => (count === 1 ? '1 person found this helpful' : `${count} people found this helpful`)
+export const helpfulLabel = (count) => (count === 1 ? tr('1 person found this helpful') : tr('{count} people found this helpful', { count }))
 
 const unwrap = ({ data, error }) => {
   if (error) throw error
@@ -29,8 +31,8 @@ export const removeHelpfulVote = (supabase, reviewId) => supabase.from('review_h
 
 // A database error on voting, in members' words
 export function voteErrorMessage(error) {
-  if (error?.code === 'P0001') return error.message
-  return 'Your vote couldn’t be saved. Please try again.'
+  if (error?.code === 'P0001') return tr(error.message)
+  return tr('Your vote couldn’t be saved. Please try again.')
 }
 
 // In memory: the session's votes, by review id

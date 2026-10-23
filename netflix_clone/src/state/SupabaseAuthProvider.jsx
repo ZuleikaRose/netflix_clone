@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { authErrorMessage, billingColumns, callFunction, codeErrorMessage, endDeviceSession, loadAccount, loadDevices, saveAccount, savePreference } from '../data/accountApi.js'
 import { libraryApi } from '../data/libraryApi.js'
+import { tr } from '../i18n/index.js'
 import { pinMessages } from '../data/profiles.js'
 import { deleteProfileRow, insertProfile, profileErrorMessage, setProfilePinRow, setScreenTimeLimitRow, unlockProfileRow, updateProfileRow, verifyPassword } from '../data/profilesApi.js'
 import { getSupabase, hasStoredSession, readStored, writeStored } from '../lib/supabaseConfig.js'
@@ -299,7 +300,7 @@ export function SupabaseAuthProvider({ children }) {
             // With secure email change on, the new address only applies once confirmed
             if (data.user.email !== key) {
               setUser((u) => ({ ...u, name: name.trim() }))
-              return `Check ${key} for a link to confirm the new address.`
+              return tr('Check {email} for a link to confirm the new address.', { email: key })
             }
           }
         } catch (error) {

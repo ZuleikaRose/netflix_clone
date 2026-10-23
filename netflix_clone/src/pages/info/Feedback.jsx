@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useLibrary } from '../../state/libraryContext.js'
+import { useT } from '../../state/useT.js'
 import { focusFirstError } from '../formUtils.js'
 
 const scores = [
@@ -13,9 +14,10 @@ const areas = ['Browsing & search', 'Title pages', 'Playback', 'My List & Favori
 const blank = { score: 0, area: areas[0], message: '' }
 
 export function Feedback() {
+  const t = useT()
   const { feedback, addFeedback } = useLibrary()
   const [form, setForm] = useState(blank)
-  const [errors, setErrors] = useState({})
+  const [errors, setErrors] = useState({}) // English messages, shown in the interface language
   const [sent, setSent] = useState(false)
 
   const submit = (e) => {
@@ -35,9 +37,13 @@ export function Feedback() {
       <div className="settings">
         <section className="settings-card thanks" role="status">
           <p className="big-check" aria-hidden="true">✓</p>
-          <h2>Thanks for the feedback!</h2>
-          <p className="muted">Our team reads every message. You’ve shared feedback {feedback.length} time{feedback.length === 1 ? '' : 's'} this session.</p>
-          <button type="button" className="ghost-cta" onClick={() => setSent(false)}>Send more feedback</button>
+          <h2>{t('Thanks for the feedback!')}</h2>
+          <p className="muted">
+            {feedback.length === 1
+              ? t('Our team reads every message. You’ve shared feedback {count} time this session.', { count: feedback.length })
+              : t('Our team reads every message. You’ve shared feedback {count} times this session.', { count: feedback.length })}
+          </p>
+          <button type="button" className="ghost-cta" onClick={() => setSent(false)}>{t('Send more feedback')}</button>
         </section>
       </div>
     )
@@ -46,35 +52,35 @@ export function Feedback() {
   return (
     <div className="settings">
       <form className="settings-card" onSubmit={submit} noValidate aria-labelledby="feedback-heading">
-        <h2 id="feedback-heading">How’s your experience?</h2>
+        <h2 id="feedback-heading">{t('How’s your experience?')}</h2>
 
         <fieldset className="score-picker" aria-describedby={errors.score ? 'score-error' : undefined}>
-          <legend>Overall rating</legend>
+          <legend>{t('Overall rating')}</legend>
           <div className="score-row">
             {scores.map((s) => (
               <label key={s.value} className={form.score === s.value ? 'score on' : 'score'}>
                 <input type="radio" name="score" value={s.value} checked={form.score === s.value} aria-invalid={Boolean(errors.score)} onChange={() => setForm((f) => ({ ...f, score: s.value }))} />
-                <span aria-hidden="true">{s.face}</span><span className="sr-only">{s.label}</span>
+                <span aria-hidden="true">{s.face}</span><span className="sr-only">{t(s.label)}</span>
               </label>
             ))}
           </div>
-          {errors.score && <p id="score-error" className="field-error"><span aria-hidden="true">⚠</span> {errors.score}</p>}
+          {errors.score && <p id="score-error" className="field-error"><span aria-hidden="true">⚠</span> {t(errors.score)}</p>}
         </fieldset>
 
         <label className="select-row">
-          <span className="switch-label">What’s it about?</span>
+          <span className="switch-label">{t('What’s it about?')}</span>
           <select value={form.area} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, area: value })) }}>
-            {areas.map((a) => <option key={a}>{a}</option>)}
+            {areas.map((a) => <option key={a} value={a}>{t(a)}</option>)}
           </select>
         </label>
 
         <div className={errors.message ? 'field has-error' : 'field'}>
-          <label htmlFor="feedback-message">Your feedback</label>
-          <textarea id="feedback-message" rows="5" value={form.message} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? 'message-error' : undefined} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, message: value })) }} placeholder="What did you like? What should we improve?" />
-          {errors.message && <p id="message-error" className="field-error"><span aria-hidden="true">⚠</span> {errors.message}</p>}
+          <label htmlFor="feedback-message">{t('Your feedback')}</label>
+          <textarea id="feedback-message" rows="5" value={form.message} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? 'message-error' : undefined} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, message: value })) }} placeholder={t('What did you like? What should we improve?')} />
+          {errors.message && <p id="message-error" className="field-error"><span aria-hidden="true">⚠</span> {t(errors.message)}</p>}
         </div>
 
-        <button type="submit" className="cta">Send feedback</button>
+        <button type="submit" className="cta">{t('Send feedback')}</button>
       </form>
     </div>
   )

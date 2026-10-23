@@ -1,9 +1,10 @@
--- Helpful votes on reviews, the staff donations view, audio description and monthly donations, run by
--- `supabase test db` (pgTAP) against the seeded local database. Everything runs in one transaction and is rolled back.
+-- Helpful votes on reviews, the staff donations view, audio description, monthly donations and the interface language,
+-- run by `supabase test db` (pgTAP) against the seeded local database. Everything runs in one transaction and is
+-- rolled back.
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(17);
+select plan(18);
 
 \set alex '''a1e00000-0000-4000-8000-000000000001'''
 \set jordan '''a1e00000-0000-4000-8000-000000000002'''
@@ -13,6 +14,8 @@ select id as jordan_review from public.review where user_id = :jordan and body i
 -- Audio description ---------------------------------------------------------------------------------------------------
 select col_default_is('public', 'accessibility_settings', 'audio_description', 'false',
   'audio description is off until a member turns it on');
+select col_default_is('public', 'accessibility_settings', 'language', 'en'::character varying,
+  'the interface is in English until a member picks Spanish');
 
 set local role authenticated;
 select set_config('request.jwt.claims', format('{"sub":%s,"role":"authenticated","aal":"aal1"}', to_json(:alex::text)), true);

@@ -10,6 +10,7 @@ import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useSimilarTitles } from '../state/useSimilarTitles.js'
 import { useTmdbLists, useTmdbSearch } from '../state/useTmdb.js'
+import { useT } from '../state/useT.js'
 
 // Release-date filter (outline: filter by genre, release date or popularity)
 const releaseYears = [2026, 2025, 2024]
@@ -31,6 +32,7 @@ const hasGenre = (title, genre) => title.genres.some((g) => g === genre || g.spl
 // Every TMDB list title once, except films not out yet (those are New & Hot's Coming Soon)
 
 export function Search() {
+  const t = useT()
   // Query state lives in the URL so results survive Back/Forward and can be shared
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
@@ -88,7 +90,7 @@ export function Search() {
 
   return (
     <>
-      <PageHeader title="Search" back />
+      <PageHeader title={t('Search')} back />
       <div className="search-panel">
         <SearchBox
           value={q}
@@ -100,59 +102,66 @@ export function Search() {
           onClearRecent={clearRecentSearches}
         />
         <div className="search-helpers">
-          <Link to="/what-to-watch" className="assistant-link">Not sure what you want? Ask what to watch</Link>
+          <Link to="/what-to-watch" className="assistant-link">{t('Not sure what you want? Ask what to watch')}</Link>
           <SurpriseButton type={type || null} />
         </div>
 
-        <div className="genre-chips" role="group" aria-label="Filter by genre">
+        <div className="genre-chips" role="group" aria-label={t('Filter by genre')}>
           {genres.map((g) => (
-            <button key={g} className={genre === g ? 'chip active' : 'chip'} aria-pressed={genre === g} onClick={() => setQueryParam('genre', genre === g ? '' : g)}>{g}</button>
+            <button key={g} className={genre === g ? 'chip active' : 'chip'} aria-pressed={genre === g} onClick={() => setQueryParam('genre', genre === g ? '' : g)}>{t(g)}</button>
           ))}
         </div>
 
         <div className="search-selects">
-          <label>Type
+          <label>{t('Type')}
             <select value={type} onChange={(e) => setQueryParam('type', e.target.value)}>
-              <option value="">All</option>
-              <option value="show">TV Shows</option>
-              <option value="movie">Movies</option>
+              <option value="">{t('All')}</option>
+              <option value="show">{t('TV Shows')}</option>
+              <option value="movie">{t('Movies')}</option>
             </select>
           </label>
-          <label>Released
+          <label>{t('Released')}
             <select value={year} onChange={(e) => setQueryParam('year', e.target.value)}>
-              <option value="">Any year</option>
+              <option value="">{t('Any year')}</option>
               {releaseYears.map((y) => <option key={y} value={y}>{y}</option>)}
-              <option value="earlier">Before {EARLIEST_LISTED_YEAR}</option>
+              <option value="earlier">{t('Before {year}', { year: EARLIEST_LISTED_YEAR })}</option>
             </select>
           </label>
-          <label>Sort by
+          <label>{t('Sort by')}
             <select value={sort} onChange={(e) => setQueryParam('sort', e.target.value)}>
-              <option value="popular">Popularity</option>
-              <option value="newest">Release date</option>
+              <option value="popular">{t('Popularity')}</option>
+              <option value="newest">{t('Release date')}</option>
               <option value="az">A–Z</option>
             </select>
           </label>
         </div>
       </div>
 
-      <h2 className="results-heading" aria-live="polite">{needle || genre || type || year ? `${results.length} result${results.length === 1 ? '' : 's'}` : 'Top Searches'}</h2>
+      <h2 className="results-heading" aria-live="polite">{needle || genre || type || year
+        ? (results.length === 1 ? t('{count} result', { count: results.length }) : t('{count} results', { count: results.length }))
+        : t('Top Searches')}</h2>
       {results.length > 0 && (
         <div className="poster-grid" onClick={rememberOnOpen}>{results.map((t) => <PosterCard key={t.id} title={t} />)}</div>
       )}
       {results.length === 0 && similarResults.length > 0 && (
         <section aria-labelledby="similar-heading">
-          <h2 id="similar-heading" className="results-heading">No exact matches for “{q}”. Did you mean…</h2>
+          <h2 id="similar-heading" className="results-heading">{t('No exact matches for “{query}”. Did you mean…', { query: q })}</h2>
           <div className="poster-grid" onClick={rememberOnOpen}>{similarResults.map((t) => <PosterCard key={t.id} title={t} />)}</div>
         </section>
       )}
       {results.length === 0 && similarResults.length === 0 && similar !== null && (
-        <p className="empty">{needle ? `No matches for “${q}”` : 'Nothing in our catalog matches these filters'}. Try a different title, actor or genre.</p>
+        <p className="empty">{needle
+          ? t('No matches for “{query}”. Try a different title, actor or genre.', { query: q })
+          : t('Nothing in our catalog matches these filters. Try a different title, actor or genre.')}</p>
       )}
 
       {(tmdbSearching || tmdbResults.length > 0) && (
         <section aria-labelledby="tmdb-results-heading" aria-busy={tmdbSearching}>
           <h2 id="tmdb-results-heading" className="results-heading">
-            {tmdbSearching ? 'Searching TMDB…' : `${tmdbResults.length} ${needle ? 'more' : `title${tmdbResults.length === 1 ? '' : 's'}`} on TMDB`}
+            {tmdbSearching ? t('Searching TMDB…')
+              : needle ? t('{count} more on TMDB', { count: tmdbResults.length })
+                : tmdbResults.length === 1 ? t('{count} title on TMDB', { count: tmdbResults.length })
+                  : t('{count} titles on TMDB', { count: tmdbResults.length })}
           </h2>
           {tmdbResults.length > 0 && (
             <>

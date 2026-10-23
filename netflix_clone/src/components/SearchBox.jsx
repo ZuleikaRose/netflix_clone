@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Icon } from './Icon.jsx'
+import { useT } from '../state/useT.js'
 
 const kindLabels = { title: 'Title', person: 'Person', genre: 'Genre', recent: 'Recent' }
 
@@ -7,6 +8,7 @@ const kindLabels = { title: 'Title', person: 'Person', genre: 'Genre', recent: '
 // onChange(text) as the user types; onChoose(option) for a picked option ({ kind, label, to?, genre? });
 // onCommit(text) on Enter without a picked option; onClearRecent() empties the recent list.
 export function SearchBox({ value, onChange, suggestions, recent, onChoose, onCommit, onClearRecent }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
   const showingRecent = !value.trim()
@@ -44,12 +46,12 @@ export function SearchBox({ value, onChange, suggestions, recent, onChoose, onCo
 
   return (
     <div className="search-box">
-      <label htmlFor="search-input" className="sr-only">Search titles, people, genres</label>
+      <label htmlFor="search-input" className="sr-only">{t('Search titles, people, genres')}</label>
       <input
         id="search-input"
         type="search"
         className="search-input"
-        placeholder="Search titles, people, genres"
+        placeholder={t('Search titles, people, genres')}
         role="combobox"
         aria-expanded={expanded}
         aria-controls="search-options"
@@ -71,7 +73,7 @@ export function SearchBox({ value, onChange, suggestions, recent, onChoose, onCo
       />
       {expanded && (
         <div className="search-popup">
-          <ul id="search-options" role="listbox" aria-label={showingRecent ? 'Recent searches' : 'Suggestions'}>
+          <ul id="search-options" role="listbox" aria-label={showingRecent ? t('Recent searches') : t('Suggestions')}>
             {options.map((o, i) => (
               <li
                 key={o.id}
@@ -84,14 +86,14 @@ export function SearchBox({ value, onChange, suggestions, recent, onChoose, onCo
                 onClick={() => choose(o)}
               >
                 <Icon name={o.kind === 'recent' ? 'search' : o.kind === 'person' ? 'profile' : o.kind === 'genre' ? 'chevron' : 'play'} />
-                <span>{o.label}</span>
-                <span className="muted search-option-kind">{kindLabels[o.kind]}</span>
+                <span>{o.kind === 'genre' ? t(o.label) : o.label}</span>
+                <span className="muted search-option-kind">{t(kindLabels[o.kind])}</span>
               </li>
             ))}
           </ul>
           {showingRecent && (
             <button type="button" className="search-clear" onMouseDown={(e) => e.preventDefault()} onClick={() => { close(); onClearRecent() }}>
-              Clear recent searches
+              {t('Clear recent searches')}
             </button>
           )}
         </div>

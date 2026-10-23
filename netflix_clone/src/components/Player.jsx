@@ -10,6 +10,7 @@ import { useScreenTime } from '../state/useScreenTime.js'
 import { useAudioDescription } from '../state/useAudioDescription.js'
 import { TICK_SECONDS } from '../data/screenTime.js'
 import { ScreenTimeUp } from './ScreenTimeUp.jsx'
+import { useT } from '../state/useT.js'
 import { Icon } from './Icon.jsx'
 
 // Video player for the title's sample clip (data/clips.js) with custom, keyboard-accessible controls.
@@ -60,6 +61,7 @@ const cueText = (cue) => cue.text.replace(/<[^>]+>/g, '')
 // together); onUserAction(state) reports the viewer's own play, pause, seek and episode changes, and controlRef gets
 // { apply(state), snapshot() } so other members' changes can be applied. state: { playing, time, episode }.
 export function Player({ title, startEpisode = null, onClose, party = false, onUserAction, controlRef }) {
+  const t = useT()
   const { user, setPreference } = useAuth()
   const { settings, update } = useAccessibility()
   const { progress, saveProgress } = useLibrary()
@@ -109,7 +111,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
   const canPictureInPicture = Boolean(document.pictureInPictureEnabled)
   const describe = (n) => {
     const found = findEpisode(title, n)
-    return found ? `${episodeCode(found)} ${found.name}` : `Episode ${n}`
+    return found ? `${episodeCode(found)} ${found.name}` : t('Episode {number}', { number: n })
   }
 
   // The browser can refuse to start playback (e.g. autoplay without a user gesture); show Play instead
@@ -364,11 +366,11 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
   }
 
   const state = ended ? 'Finished' : paused ? 'Paused' : 'Now playing'
-  const status = `${state} · ${title.title}${isShow ? ` · ${describe(episode)}` : ''}`
+  const status = `${t(state)} · ${title.title}${isShow ? ` · ${describe(episode)}` : ''}`
 
   return (
     <>
-      <section className="player" ref={playerRef} aria-label={`Video player: ${title.title}`} onKeyDown={onKeyDown}>
+      <section className="player" ref={playerRef} aria-label={t('Video player: {title}', { title: title.title })} onKeyDown={onKeyDown}>
         <video
           ref={videoRef}
           poster={title.image}
@@ -392,48 +394,48 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
           <source src={sources.mp4} type="video/mp4" />
           <track key={language.code} id={`captions-${language.code}`} kind="captions" src={sources.captions} srcLang={language.code} label={language.label} />
           <track key={`descriptions-${language.code}`} id={`descriptions-${language.code}`} kind="descriptions" src={sources.descriptions}
-            srcLang={language.code} label={`${language.label}: audio description`} />
+            srcLang={language.code} label={t('{language}: audio description', { language: language.label })} />
         </video>
-        <p className="player-status" role="status">{status}{muted && ' · Muted'}</p>
-        <p className="player-chapter">Chapter: {chapter.name}</p>
+        <p className="player-status" role="status">{status}{muted && ` · ${t('Muted')}`}</p>
+        <p className="player-chapter">{t('Chapter: {name}', { name: t(chapter.name) })}</p>
         {canPictureInPicture && (
-          <button type="button" className="icon-button player-pip" aria-label="Picture in picture" aria-pressed={pictureInPicture} aria-keyshortcuts="I" onClick={togglePictureInPicture}><Icon name="pictureInPicture" /></button>
+          <button type="button" className="icon-button player-pip" aria-label={t('Picture in picture')} aria-pressed={pictureInPicture} aria-keyshortcuts="I" onClick={togglePictureInPicture}><Icon name="pictureInPicture" /></button>
         )}
-        <button type="button" className="icon-button player-ad" aria-label="Audio description" aria-pressed={settings.audioDescription} aria-keyshortcuts="D"
+        <button type="button" className="icon-button player-ad" aria-label={t('Audio description')} aria-pressed={settings.audioDescription} aria-keyshortcuts="D"
           onClick={toggleAudioDescription}><span className="ad-mark" aria-hidden="true">AD</span></button>
-        <button type="button" className="icon-button player-close" aria-label="Close player" onClick={onClose}><Icon name="close" /></button>
+        <button type="button" className="icon-button player-close" aria-label={t('Close player')} onClick={onClose}><Icon name="close" /></button>
 
         {settings.captions && caption && !ended && <p className={`captions caption-${settings.captionSize}`} lang={language.code}>{caption}</p>}
-        {skip && !screenTime.timeUp && <button type="button" className="skip-button" aria-keyshortcuts="S" onClick={skipAhead}>{skip.label}</button>}
+        {skip && !screenTime.timeUp && <button type="button" className="skip-button" aria-keyshortcuts="S" onClick={skipAhead}>{t(skip.label)}</button>}
 
         {screenTime.timeUp && (
           <ScreenTimeUp profileName={profile.name} limit={screenTime.limit} onAllow={screenTime.allowMoreTime} onClose={onClose} />
         )}
         {ended && !screenTime.timeUp && (
-          <div className="player-end" role="group" aria-label="Playback finished">
+          <div className="player-end" role="group" aria-label={t('Playback finished')}>
             {countingDown
               ? <>
-                <p>{describe(episode + 1)} starts in {nextIn}s</p>
-                <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>Play now</button>
-                <button type="button" className="secondary" onClick={() => setStayHere(true)}>Cancel</button>
+                <p>{t('{episode} starts in {seconds}s', { episode: describe(episode + 1), seconds: nextIn })}</p>
+                <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>{t('Play now')}</button>
+                <button type="button" className="secondary" onClick={() => setStayHere(true)}>{t('Cancel')}</button>
               </>
               : <>
-                <p>{!isShow ? 'Finished' : finale ? `${describe(episode)} finished · that’s the end of the series` : `${describe(episode)} finished`}</p>
-                {isShow && !finale && <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>Play next episode</button>}
-                <button type="button" className="secondary" onClick={() => playEpisode(episode)}>Replay</button>
+                <p>{!isShow ? t('Finished') : finale ? t('{episode} finished · that’s the end of the series', { episode: describe(episode) }) : t('{episode} finished', { episode: describe(episode) })}</p>
+                {isShow && !finale && <button type="button" className="play" onClick={() => playEpisode(episode + 1)}>{t('Play next episode')}</button>}
+                <button type="button" className="secondary" onClick={() => playEpisode(episode)}>{t('Replay')}</button>
               </>}
           </div>
         )}
 
         <div className="player-bar">
           {isShow && (
-            <div className="player-episodes" role="group" aria-label="Episodes">
+            <div className="player-episodes" role="group" aria-label={t('Episodes')}>
               <button type="button" className="episode-button" aria-disabled={episode === 1} aria-keyshortcuts="Shift+P" onClick={goToPreviousEpisode}>
-                <Icon name="previousEpisode" /> Previous episode
+                <Icon name="previousEpisode" /> {t('Previous episode')}
               </button>
-              <span className="episode-number">{findEpisode(title, episode) ? episodeCode(findEpisode(title, episode)) : `Episode ${episode}`}</span>
+              <span className="episode-number">{findEpisode(title, episode) ? episodeCode(findEpisode(title, episode)) : t('Episode {number}', { number: episode })}</span>
               <button type="button" className="episode-button" aria-disabled={finale} aria-keyshortcuts="Shift+N" onClick={goToNextEpisode}>
-                Next episode <Icon name="nextEpisode" />
+                {t('Next episode')} <Icon name="nextEpisode" />
               </button>
             </div>
           )}
@@ -441,14 +443,14 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
             <span>{clock(time)}</span>
             <div className="seek-track" onPointerMove={previewAt} onPointerDown={previewAt} onPointerLeave={() => setHover(null)}>
               <input type="range" className="seek" min="0" max={Math.floor(duration)} step="1" value={Math.floor(time)} onChange={(e) => seekTo(Number(e.target.value))}
-                aria-label="Seek" aria-valuetext={`${clock(time)} of ${clock(duration)}, chapter: ${chapter.name}`} />
+                aria-label={t('Seek')} aria-valuetext={t('{time} of {duration}, chapter: {chapter}', { time: clock(time), duration: clock(duration), chapter: t(chapter.name) })} />
               {duration > 0 && clip.chapters.slice(1).map((c) => (
                 <span key={c.start} className="chapter-mark" style={{ left: `${(c.start / duration) * 100}%` }} aria-hidden="true" />
               ))}
               {hover && (
                 <span className="seek-preview" style={{ left: `clamp(${THUMBS.width / 2}px, ${hover.at * 100}%, calc(100% - ${THUMBS.width / 2}px))` }} aria-hidden="true">
                   <span className="seek-thumb" style={{ backgroundImage: `url(${sources.thumbs})`, backgroundPosition: thumbAt(hover.seconds), width: THUMBS.width, height: THUMBS.height }} />
-                  <span>{clock(hover.seconds)} · {chapterAt(clip, hover.seconds).name}</span>
+                  <span>{clock(hover.seconds)} · {t(chapterAt(clip, hover.seconds).name)}</span>
                 </span>
               )}
             </div>
@@ -456,31 +458,31 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
           </div>
 
           <div className="player-controls">
-            <button type="button" className="icon-button" aria-label={paused || ended ? 'Play' : 'Pause'} aria-keyshortcuts="K" onClick={togglePlay}><Icon name={paused || ended ? 'play' : 'pause'} /></button>
-            <button type="button" className="icon-button" aria-label={`Back ${SKIP_SECONDS} seconds`} aria-keyshortcuts="J" onClick={() => seekTo(time - SKIP_SECONDS)}><Icon name="rewind" /></button>
-            <button type="button" className="icon-button" aria-label={`Forward ${SKIP_SECONDS} seconds`} aria-keyshortcuts="L" onClick={() => seekTo(time + SKIP_SECONDS)}><Icon name="forward" /></button>
+            <button type="button" className="icon-button" aria-label={paused || ended ? t('Play') : t('Pause')} aria-keyshortcuts="K" onClick={togglePlay}><Icon name={paused || ended ? 'play' : 'pause'} /></button>
+            <button type="button" className="icon-button" aria-label={t('Back {seconds} seconds', { seconds: SKIP_SECONDS })} aria-keyshortcuts="J" onClick={() => seekTo(time - SKIP_SECONDS)}><Icon name="rewind" /></button>
+            <button type="button" className="icon-button" aria-label={t('Forward {seconds} seconds', { seconds: SKIP_SECONDS })} aria-keyshortcuts="L" onClick={() => seekTo(time + SKIP_SECONDS)}><Icon name="forward" /></button>
             <span className="volume-control">
-              <button type="button" className="icon-button" aria-label="Mute" aria-pressed={muted} aria-keyshortcuts="M" onClick={toggleMute}><Icon name={muted ? 'mute' : 'volume'} /></button>
+              <button type="button" className="icon-button" aria-label={t('Mute')} aria-pressed={muted} aria-keyshortcuts="M" onClick={toggleMute}><Icon name={muted ? 'mute' : 'volume'} /></button>
               <input type="range" className="volume" min="0" max="100" step="5" value={muted ? 0 : Math.round(volume * 100)}
-                onChange={(e) => changeVolume(Number(e.target.value) / 100)} aria-label="Volume" aria-keyshortcuts="ArrowUp ArrowDown"
-                aria-valuetext={muted ? 'Muted' : `${Math.round(volume * 100)}%`} />
+                onChange={(e) => changeVolume(Number(e.target.value) / 100)} aria-label={t('Volume')} aria-keyshortcuts="ArrowUp ArrowDown"
+                aria-valuetext={muted ? t('Muted') : `${Math.round(volume * 100)}%`} />
             </span>
             <label className="speed">
-              <span className="sr-only">Playback speed</span>
+              <span className="sr-only">{t('Playback speed')}</span>
               <select value={speed} onChange={(e) => changeSpeed(Number(e.target.value))}>
                 {speeds.map((s) => <option key={s} value={s}>{s}×</option>)}
               </select>
             </label>
-            <button type="button" className="icon-button" aria-label="Closed captions" aria-pressed={settings.captions} aria-keyshortcuts="C" onClick={toggleCaptions}><Icon name="captions" /></button>
+            <button type="button" className="icon-button" aria-label={t('Closed captions')} aria-pressed={settings.captions} aria-keyshortcuts="C" onClick={toggleCaptions}><Icon name="captions" /></button>
             {document.fullscreenEnabled && (
-              <button type="button" className="icon-button" aria-label={fullscreen ? 'Exit full screen' : 'Full screen'} aria-keyshortcuts="F" onClick={toggleFullscreen}><Icon name={fullscreen ? 'exitFullscreen' : 'fullscreen'} /></button>
+              <button type="button" className="icon-button" aria-label={fullscreen ? t('Exit full screen') : t('Full screen')} aria-keyshortcuts="F" onClick={toggleFullscreen}><Icon name={fullscreen ? 'exitFullscreen' : 'fullscreen'} /></button>
             )}
           </div>
         </div>
       </section>
       <p className="clip-credit">
-        Sample clip: <a href={clip.sourceUrl} target="_blank" rel="noreferrer">{clip.film}</a> ({clip.year}, {clip.excerpt}) by the {clip.makers},{' '}
-        <a href={clip.licenseUrl} target="_blank" rel="noreferrer">{clip.license}</a>. {language.code === 'en' ? 'English captions from' : 'Spanish captions translated from'} {captionsCredit.source},{' '}
+        {t('Sample clip:')} <a href={clip.sourceUrl} target="_blank" rel="noreferrer">{clip.film}</a> {t('({year}, {excerpt}) by the {makers},', { year: clip.year, excerpt: clip.excerpt, makers: clip.makers })}{' '}
+        <a href={clip.licenseUrl} target="_blank" rel="noreferrer">{clip.license}</a>. {language.code === 'en' ? t('English captions from') : t('Spanish captions translated from')} {t(captionsCredit.source)},{' '}
         <a href={captionsCredit.licenseUrl} target="_blank" rel="noreferrer">{captionsCredit.license}</a>.
       </p>
     </>

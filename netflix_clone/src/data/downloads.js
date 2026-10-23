@@ -1,5 +1,6 @@
 import { captionLanguages, clipFor, clipSources } from './clips.js'
 import { readStored, writeStored } from '../lib/supabaseConfig.js'
+import { tr } from '../i18n/index.js'
 
 // Offline downloads: a title's sample clip, captions, audio description and seek previews are saved in the browser's Cache Storage
 // (DOWNLOAD_CACHE), and public/sw.js answers /media requests from it, byte ranges included, so the player works
@@ -65,8 +66,8 @@ export async function downloadTitle(titleId) {
     if (import.meta.env.DEV) console.warn('Download:', error)
     // QuotaExceededError: the device is out of space for this site
     return error?.name === 'QuotaExceededError'
-      ? 'There isn’t enough space on this device. Remove a download and try again.'
-      : 'The download didn’t finish. Check your connection and try again.'
+      ? tr('There isn’t enough space on this device. Remove a download and try again.')
+      : tr('The download didn’t finish. Check your connection and try again.')
   }
 }
 

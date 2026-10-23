@@ -295,7 +295,7 @@ test.describe('video player', () => {
 
     // Spanish captions, from the menu's Caption language
     await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
-    await menu(page).getByRole('radio', { name: 'Español' }).check()
+    await menu(page).getByRole('group', { name: 'Caption language' }).getByRole('radio', { name: 'Español' }).check()
     await page.keyboard.press('Escape')
     await seek(page).fill('3')
     await expect(captions).toHaveText('Esta espada tiene un pasado oscuro.')
@@ -324,6 +324,8 @@ test.describe('video player', () => {
     await button.click()
     await expect(button).toHaveAttribute('aria-pressed', 'true')
 
+    // The descriptions track loads once it's switched on; seeking back before it has would pass the first line unread
+    await expect.poll(() => video(page).evaluate((v) => v.textTracks.getTrackById('descriptions-en')?.cues?.length ?? 0)).toBeGreaterThan(0)
     // Back to the start (it resumed further in): the first description is read while the video waits, then it plays on
     await seek(page).fill('0')
     await expect.poll(async () => (await spoken()).find((s) => s.text.startsWith('Title:'))).toEqual({
@@ -338,7 +340,7 @@ test.describe('video player', () => {
     await expect(button).toHaveAttribute('aria-pressed', 'false')
     await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
     await menu(page).getByRole('switch', { name: /Audio description/ }).check()
-    await menu(page).getByRole('radio', { name: 'Español' }).check()
+    await menu(page).getByRole('group', { name: 'Caption language' }).getByRole('radio', { name: 'Español' }).check()
     await page.keyboard.press('Escape')
     await expect(button).toHaveAttribute('aria-pressed', 'true')
     await seek(page).fill('17')

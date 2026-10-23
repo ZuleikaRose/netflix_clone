@@ -1,4 +1,5 @@
 import { findEpisode } from './episodes.js'
+import { locale, tr } from '../i18n/index.js'
 
 // Year in Review. The viewing history for one profile and year is first summed up as
 //   { days: ['YYYY-MM-DD', …] (each day something was watched), months: [12 counts of viewings],
@@ -46,7 +47,7 @@ function longestStreak(days) {
   return best
 }
 
-const monthName = (index) => new Date(2000, index, 1).toLocaleDateString('en-US', { month: 'long' })
+const monthName = (index) => new Date(2000, index, 1).toLocaleDateString(locale(), { month: 'long' })
 
 // Stats for the page, or null when nothing was watched that year. findTitle(id) → the title (or undefined if it's
 // gone from the catalog, in which case it still counts but adds no genres, cast or minutes).
@@ -86,13 +87,15 @@ export function reviewYear(summary, findTitle) {
 // A short summary for sharing
 export function shareText(year, stats) {
   const parts = [
-    `My ${year} on Netflix Clone: ${stats.titles} ${stats.titles === 1 ? 'title' : 'titles'}`,
-    stats.episodes ? `${stats.episodes} ${stats.episodes === 1 ? 'episode' : 'episodes'}` : null,
-    `about ${stats.hours} ${stats.hours === 1 ? 'hour' : 'hours'} watched.`,
+    stats.titles === 1
+      ? tr('My {year} on Netflix Clone: {count} title', { year, count: stats.titles })
+      : tr('My {year} on Netflix Clone: {count} titles', { year, count: stats.titles }),
+    stats.episodes ? (stats.episodes === 1 ? tr('{count} episode', { count: 1 }) : tr('{count} episodes', { count: stats.episodes })) : null,
+    stats.hours === 1 ? tr('about {count} hour watched.', { count: 1 }) : tr('about {count} hours watched.', { count: stats.hours }),
   ].filter(Boolean)
   return [
     parts.join(', '),
-    stats.topGenres.length ? `Top genre: ${stats.topGenres[0]}.` : null,
-    stats.mostWatched ? `Most watched: ${stats.mostWatched.title}.` : null,
+    stats.topGenres.length ? tr('Top genre: {genre}.', { genre: tr(stats.topGenres[0]) }) : null,
+    stats.mostWatched ? tr('Most watched: {title}.', { title: stats.mostWatched.title }) : null,
   ].filter(Boolean).join(' ')
 }

@@ -1,3 +1,5 @@
+import { locale, tr } from '../i18n/index.js'
+
 // Billing is simulated: no payment is taken and full card numbers are never stored —
 // only brand, last four digits and expiry are kept, as a real app's UI would receive from a payment processor.
 
@@ -22,10 +24,11 @@ export function nextBillingDate(day, from = new Date()) {
 
 export const addMonths = (date, months) => new Date(date.getFullYear(), date.getMonth() + months, date.getDate())
 
-export const formatDate = (date) => date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+export const formatDate = (date) => date.toLocaleDateString(locale(), { month: 'long', day: 'numeric', year: 'numeric' })
 
-// 1 → 1st, 2 → 2nd, 11 → 11th, 22 → 22nd
+// 1 → 1st, 2 → 2nd, 11 → 11th, 22 → 22nd (Spanish says "día 1", so just the number)
 export function ordinal(n) {
+  if (locale() !== 'en-US') return String(n)
   const suffixes = ['th', 'st', 'nd', 'rd']
   const v = n % 100
   return `${n}${suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]}`
@@ -58,24 +61,24 @@ export function passesLuhn(digits) {
 export function validateCard({ name, number, exp, cvc }, now = new Date()) {
   const errors = {}
   const digits = number.replace(/[\s-]/g, '')
-  if (!name.trim()) errors.name = 'Enter the name on the card.'
-  if (!/^\d{13,19}$/.test(digits) || !passesLuhn(digits)) errors.number = 'Enter a valid card number.'
+  if (!name.trim()) errors.name = tr('Enter the name on the card.')
+  if (!/^\d{13,19}$/.test(digits) || !passesLuhn(digits)) errors.number = tr('Enter a valid card number.')
   const match = exp.match(/^(\d{2})\s*\/\s*(\d{2})$/)
   if (!match || Number(match[1]) < 1 || Number(match[1]) > 12) {
-    errors.exp = 'Use the format MM/YY.'
+    errors.exp = tr('Use the format MM/YY.')
   } else {
     // Cards are valid through the last day of their expiry month
     const expiresAfter = new Date(2000 + Number(match[2]), Number(match[1]), 1)
-    if (expiresAfter <= now) errors.exp = 'This card has expired.'
+    if (expiresAfter <= now) errors.exp = tr('This card has expired.')
   }
   const cvcLength = cardBrand(digits) === 'American Express' ? 4 : 3
-  if (!new RegExp(`^\\d{${cvcLength}}$`).test(cvc)) errors.cvc = `Enter the ${cvcLength}-digit security code.`
+  if (!new RegExp(`^\\d{${cvcLength}}$`).test(cvc)) errors.cvc = tr('Enter the {count}-digit security code.', { count: cvcLength })
   return errors
 }
 
 // One-line membership state, shown on the Membership card and in Billing
 export function billingSummary(billing) {
-  if (billing.status === 'paused') return `Paused · resumes ${formatDate(new Date(billing.resumesOn))}`
-  if (billing.status === 'cancelled') return `Cancelled · you can watch until ${formatDate(new Date(billing.endsOn))}`
-  return `Next payment ${formatDate(nextBillingDate(billing.day))}`
+  if (billing.status === 'paused') return tr('Paused · resumes {date}', { date: formatDate(new Date(billing.resumesOn)) })
+  if (billing.status === 'cancelled') return tr('Cancelled · you can watch until {date}', { date: formatDate(new Date(billing.endsOn)) })
+  return tr('Next payment {date}', { date: formatDate(nextBillingDate(billing.day)) })
 }

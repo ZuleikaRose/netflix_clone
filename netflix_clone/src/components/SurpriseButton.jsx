@@ -5,6 +5,7 @@ import { listedTitles } from '../data/tmdbApi.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useTmdbLists } from '../state/useTmdb.js'
+import { useT } from '../state/useT.js'
 
 // The last pick, so pressing again (or coming back) shows something else
 let previous = null
@@ -13,6 +14,7 @@ let previous = null
 // in TMDB's lists when TMDB is available (the same request Home and Search already make). `type` follows Home's
 // TV Shows / Movies chips.
 export function SurpriseButton({ type = null, className = 'ghost-cta surprise-button' }) {
+  const t = useT()
   const navigate = useNavigate()
   const { titles, isAllowed } = useCatalog()
   const tmdbLists = useTmdbLists()
@@ -31,8 +33,8 @@ export function SurpriseButton({ type = null, className = 'ghost-cta surprise-bu
 
   return (
     <>
-      <button type="button" className={className} onClick={surprise}><span aria-hidden="true">🎲</span> Surprise me</button>
-      {nothing && <p className="muted" role="status">Nothing to pick for this profile right now.</p>}
+      <button type="button" className={className} onClick={surprise}><span aria-hidden="true">🎲</span> {t('Surprise me')}</button>
+      {nothing && <p className="muted" role="status">{t('Nothing to pick for this profile right now.')}</p>}
     </>
   )
 }

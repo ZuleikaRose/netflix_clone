@@ -1,3 +1,4 @@
+import { locale, tr } from '../i18n/index.js'
 import { authBackend } from '../lib/supabaseConfig.js'
 
 // Donations (/donate): one-time ones through the process-donation Edge Function (a Stripe PaymentIntent) and monthly
@@ -15,8 +16,14 @@ export const DEFAULT_AMOUNT = '10'
 export const MIN_CENTS = 100 // $1: Stripe won't charge less than $0.50 in USD
 export const MAX_CENTS = 1000000 // $10,000, as the function and the donations table allow
 
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-export const formatUsd = (cents) => usd.format(cents / 100)
+// One formatter per interface locale (locale() is read when formatting, so it follows the language menu)
+const usdFormats = new Map()
+const usd = () => {
+  const code = locale()
+  if (!usdFormats.has(code)) usdFormats.set(code, new Intl.NumberFormat(code, { style: 'currency', currency: 'USD' }))
+  return usdFormats.get(code)
+}
+export const formatUsd = (cents) => usd().format(cents / 100)
 
 // "25", "$25", "1,000.5", "12.34" → integer cents, parsed from the digits (no floating-point maths); null if invalid
 export function dollarsToCents(text) {
@@ -29,10 +36,10 @@ export function dollarsToCents(text) {
 // The chosen amount in cents, or a message for the "Other amount" field
 export function readAmount(choice, other) {
   if (choice !== 'other') return { cents: Number(choice) * 100 }
-  if (!String(other).trim()) return { problem: 'Enter an amount.' }
+  if (!String(other).trim()) return { problem: tr('Enter an amount.') }
   const cents = dollarsToCents(other)
-  if (cents == null) return { problem: 'Enter an amount in dollars, like 15 or 12.50.' }
-  if (cents < MIN_CENTS || cents > MAX_CENTS) return { problem: `Choose an amount between ${formatUsd(MIN_CENTS)} and ${formatUsd(MAX_CENTS)}.` }
+  if (cents == null) return { problem: tr('Enter an amount in dollars, like 15 or 12.50.') }
+  if (cents < MIN_CENTS || cents > MAX_CENTS) return { problem: tr('Choose an amount between {min} and {max}.', { min: formatUsd(MIN_CENTS), max: formatUsd(MAX_CENTS) }) }
   return { cents }
 }
 
@@ -40,40 +47,41 @@ export const NETWORK_MESSAGE = 'Something went wrong. Please check your connecti
 export const GENERIC_PAYMENT_MESSAGE = 'Your payment couldn’t be completed. Please try again.'
 export const DECLINED_MESSAGE = 'Your card was declined. Please try a different card.'
 
-// The card field's own validation (the CardElement's change event / a validation_error), in our words
+// The card field's own validation (the CardElement's change event / a validation_error), in our words (in the
+// interface language)
 export function cardFieldMessage(error) {
   switch (error?.code) {
     case 'incomplete_number':
-    case 'invalid_number': return 'Enter a valid card number.'
+    case 'invalid_number': return tr('Enter a valid card number.')
     case 'incomplete_expiry':
     case 'invalid_expiry_month':
     case 'invalid_expiry_year':
     case 'invalid_expiry_month_past':
-    case 'invalid_expiry_year_past': return 'Enter a valid expiry date.'
+    case 'invalid_expiry_year_past': return tr('Enter a valid expiry date.')
     case 'incomplete_cvc':
-    case 'invalid_cvc': return 'Enter the card’s security code.'
-    case 'incomplete_zip': return 'Enter your ZIP code.'
-    default: return 'Check your card details.'
+    case 'invalid_cvc': return tr('Enter the card’s security code.')
+    case 'incomplete_zip': return tr('Enter your ZIP code.')
+    default: return tr('Check your card details.')
   }
 }
 
 // A Stripe.js error from confirmCardPayment → { network } or { message } for members. Never shows Stripe's codes,
-// decline codes or raw message text.
+// decline codes or raw message text. Messages are in the interface language.
 export function paymentError(error) {
-  if (error?.type === 'api_connection_error') return { network: true, message: NETWORK_MESSAGE }
+  if (error?.type === 'api_connection_error') return { network: true, message: tr(NETWORK_MESSAGE) }
   if (error?.type === 'validation_error') return { message: cardFieldMessage(error) }
   switch (error?.code) {
-    case 'card_declined': return { message: DECLINED_MESSAGE }
-    case 'expired_card': return { message: 'Your card has expired. Please use a different card.' }
+    case 'card_declined': return { message: tr(DECLINED_MESSAGE) }
+    case 'expired_card': return { message: tr('Your card has expired. Please use a different card.') }
     case 'incorrect_cvc':
-    case 'invalid_cvc': return { message: 'The security code is incorrect. Please check it and try again.' }
+    case 'invalid_cvc': return { message: tr('The security code is incorrect. Please check it and try again.') }
     case 'incorrect_number':
-    case 'invalid_number': return { message: 'The card number is incorrect. Please check it and try again.' }
-    case 'incorrect_zip': return { message: 'The ZIP code doesn’t match your card. Please check it and try again.' }
-    case 'processing_error': return { message: 'We couldn’t process your card just now. Please try again in a moment.' }
+    case 'invalid_number': return { message: tr('The card number is incorrect. Please check it and try again.') }
+    case 'incorrect_zip': return { message: tr('The ZIP code doesn’t match your card. Please check it and try again.') }
+    case 'processing_error': return { message: tr('We couldn’t process your card just now. Please try again in a moment.') }
     case 'payment_intent_authentication_failure':
-    case 'setup_intent_authentication_failure': return { message: 'Your card couldn’t be verified. Please try again or use a different card.' }
-    default: return { message: error?.decline_code ? DECLINED_MESSAGE : GENERIC_PAYMENT_MESSAGE }
+    case 'setup_intent_authentication_failure': return { message: tr('Your card couldn’t be verified. Please try again or use a different card.') }
+    default: return { message: tr(error?.decline_code ? DECLINED_MESSAGE : GENERIC_PAYMENT_MESSAGE) }
   }
 }
 
@@ -108,8 +116,7 @@ export const DONATION_FREQUENCIES = [
   { value: 'monthly', label: 'Monthly' },
 ]
 
-const day = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-export const formatDonationDate = (date) => day.format(date)
+export const formatDonationDate = (date) => date.toLocaleDateString(locale(), { month: 'short', day: 'numeric', year: 'numeric' })
 
 // Stripe emails the receipt; demo accounts have made-up addresses, so they get none
 export const receiptEmailFor = (user) => (user.isDemo ? null : user.email)

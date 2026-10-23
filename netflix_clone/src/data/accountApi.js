@@ -1,3 +1,4 @@
+import { tr } from '../i18n/index.js'
 import { defaultBilling } from './billing.js'
 import { loadProfiles } from './profilesApi.js'
 
@@ -120,9 +121,11 @@ export async function callFunction(supabase, name, body = {}) {
 function weakPasswordMessage({ reasons = [], message = '' }) {
   if (reasons.includes('pwned')) return 'This password has appeared in a data breach. Please choose a different one.'
   const needs = []
-  if (reasons.includes('length')) needs.push(`at least ${message.match(/at least (\d+) characters/)?.[1] ?? 'more'} characters`)
-  if (reasons.includes('characters')) needs.push('a lowercase letter, an uppercase letter, a number and a symbol')
-  return needs.length ? `Your password needs ${needs.join(' and ')}.` : 'Please choose a stronger password.'
+  const length = message.match(/at least (\d+) characters/)?.[1]
+  if (reasons.includes('length')) needs.push(length ? tr('at least {count} characters', { count: length }) : tr('at least more characters'))
+  if (reasons.includes('characters')) needs.push(tr('a lowercase letter, an uppercase letter, a number and a symbol'))
+  if (!needs.length) return 'Please choose a stronger password.'
+  return tr('Your password needs {list}.', { list: needs.length > 1 ? tr('{list} and {last}', { list: needs[0], last: needs[1] }) : needs[0] })
 }
 
 // Supabase Auth errors as the messages the forms show

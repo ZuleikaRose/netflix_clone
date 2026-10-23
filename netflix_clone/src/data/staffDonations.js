@@ -1,3 +1,4 @@
+import { locale } from '../i18n/index.js'
 import { STRIPE_PUBLISHABLE_KEY } from './donations.js'
 
 // The support dashboard's Donations view (migration ..._staff_donations): totals by month and the latest donations,
@@ -29,9 +30,9 @@ export function stripePaymentUrl(paymentId) {
   return `https://dashboard.stripe.com/${mode}payments/${paymentId}`
 }
 
-const monthName = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
-// "2026-10-01" (a month from the database) → "October 2026"
-export const formatMonth = (isoDate) => monthName.format(new Date(`${isoDate}T00:00:00Z`))
+// "2026-10-01" (a month from the database) → "October 2026" (in the interface language)
+export const formatMonth = (isoDate) => new Date(`${isoDate}T00:00:00Z`)
+  .toLocaleDateString(locale(), { month: 'long', year: 'numeric', timeZone: 'UTC' })
 
 // In memory: sample donations from this month (UTC) and last, with no Stripe payments behind them
 export function sampleDonations(now = new Date()) {

@@ -22,9 +22,11 @@ import { NotFound } from './NotFound.jsx'
 import { episodeCode, findEpisode, seasonsFor } from '../data/episodes.js'
 import { invitePath, startParty } from '../data/partyApi.js'
 import { personPath, splitNames } from '../data/people.js'
+import { useT } from '../state/useT.js'
 
 // The show's seasons; the list opens on the season the viewer is in
 function CatalogEpisodes({ title, progress, onPlay }) {
+  const t = useT()
   const seasons = seasonsFor(title)
   const current = progress ? findEpisode(title, progress.episode) : null
   const [season, setSeason] = useState(current?.season ?? 1)
@@ -32,7 +34,7 @@ function CatalogEpisodes({ title, progress, onPlay }) {
   return (
     <Episodes
       title={title.title}
-      seasons={seasons.map((s) => ({ number: s.season, label: `Season ${s.season}` }))}
+      seasons={seasons.map((s) => ({ number: s.season, label: t('Season {number}', { number: s.season }) }))}
       season={season}
       onSeason={setSeason}
       episodes={episodes.map((e) => ({
@@ -40,7 +42,7 @@ function CatalogEpisodes({ title, progress, onPlay }) {
         number: e.number,
         code: episodeCode(e),
         name: e.name,
-        meta: `${e.minutes}m${current?.number === e.number ? ' · Continue watching' : ''}`,
+        meta: `${e.minutes}m${current?.number === e.number ? ` · ${t('Continue watching')}` : ''}`,
         percent: current?.number === e.number ? progress.percent : 0,
       }))}
       onPlay={(e) => onPlay(e.number)}
@@ -50,6 +52,7 @@ function CatalogEpisodes({ title, progress, onPlay }) {
 
 // Starts a watch party for this title and opens it
 function PartyButton({ title }) {
+  const t = useT()
   const navigate = useNavigate()
   const [error, setError] = useState(null)
   const start = async () => {
@@ -57,18 +60,19 @@ function PartyButton({ title }) {
     try {
       navigate(invitePath(await startParty(title.id)))
     } catch {
-      setError('The watch party couldn’t be started. Please try again.')
+      setError(t('The watch party couldn’t be started. Please try again.'))
     }
   }
   return (
     <>
-      <button type="button" className="ghost-action" onClick={start}><Icon name="party" /><span>Watch party</span></button>
+      <button type="button" className="ghost-action" onClick={start}><Icon name="party" /><span>{t('Watch party')}</span></button>
       {error && <p className="form-alert" role="alert">{error}</p>}
     </>
   )
 }
 
 export function TitleDetail() {
+  const t = useT()
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
   const { myList, favorites, progress, reactions, toggleMyList, toggleFavorite } = useLibrary()
@@ -81,10 +85,10 @@ export function TitleDetail() {
   if (!isAllowed(title)) {
     return (
       <>
-        <PageHeader title="Restricted" back />
+        <PageHeader title={t('Restricted')} back />
         <div className="empty">
-          <p>{title.title} is rated {title.maturity}, which is above this profile’s maturity setting.</p>
-          <Link to="/account" className="play wide">Change in Account</Link>
+          <p>{t('{title} is rated {rating}, which is above this profile’s maturity setting.', { title: title.title, rating: title.maturity })}</p>
+          <Link to="/account" className="play wide">{t('Change in Account')}</Link>
         </div>
       </>
     )
@@ -97,7 +101,7 @@ export function TitleDetail() {
 
   return (
     <>
-      <PageHeader title={title.type === 'show' ? 'TV Show' : 'Movie'} back />
+      <PageHeader title={title.type === 'show' ? t('TV Show') : t('Movie')} back />
 
       {playing
         ? <Player key={params.get('episode')} title={title} startEpisode={Number(params.get('episode')) || null} onClose={() => setParams({}, { replace: true })} />
@@ -109,20 +113,20 @@ export function TitleDetail() {
         )}
 
       <div className="detail-body">
-        <p className="eyebrow"><b>N</b> {title.type === 'show' ? 'SERIES' : 'FILM'}</p>
+        <p className="eyebrow"><b>N</b> {title.type === 'show' ? t('SERIES') : t('FILM')}</p>
         <h2 className="detail-title">{title.title.toUpperCase()}</h2>
         <p className="detail-meta">
           <span>{title.year}</span><span className="maturity">{title.maturity}</span><span>{describeLength(title)}</span>
         </p>
 
         <div className="detail-actions">
-          <button className="play wide" onClick={() => setParams({ play: '1' }, { replace: true })}><span aria-hidden="true">▶</span> {progress[id] ? 'Resume' : 'Play'}</button>
+          <button className="play wide" onClick={() => setParams({ play: '1' }, { replace: true })}><span aria-hidden="true">▶</span> {progress[id] ? t('Resume') : t('Play')}</button>
           <div className="action-row">
             <button className={saved ? 'ghost-action on' : 'ghost-action'} aria-pressed={saved} onClick={() => toggleMyList(id)}>
-              <Icon name={saved ? 'check' : 'plus'} /><span>My List</span>
+              <Icon name={saved ? 'check' : 'plus'} /><span>{t('My List')}</span>
             </button>
             <button className={favorite ? 'ghost-action on' : 'ghost-action'} aria-pressed={favorite} onClick={() => toggleFavorite(id)}>
-              <Icon name="heart" filled={favorite} /><span>Favorite</span>
+              <Icon name="heart" filled={favorite} /><span>{t('Favorite')}</span>
             </button>
             <ShareButton title={title} />
             <PartyButton title={title} />
@@ -134,10 +138,10 @@ export function TitleDetail() {
         <AddToList title={title} />
 
         <p className="synopsis">{title.synopsis}</p>
-        <CreditLinks label="Starring" people={title.cast.map((name) => ({ name, to: personPath(name) }))} />
-        <CreditLinks label="Director" people={splitNames(title.crew.director).map((name) => ({ name, to: personPath(name) }))} />
-        <CreditLinks label="Writer" people={splitNames(title.crew.writer).map((name) => ({ name, to: personPath(name) }))} />
-        <p className="credits"><span>Genres:</span> {title.genres.join(', ')}</p>
+        <CreditLinks label={t('Starring')} people={title.cast.map((name) => ({ name, to: personPath(name) }))} />
+        <CreditLinks label={t('Director')} people={splitNames(title.crew.director).map((name) => ({ name, to: personPath(name) }))} />
+        <CreditLinks label={t('Writer')} people={splitNames(title.crew.writer).map((name) => ({ name, to: personPath(name) }))} />
+        <p className="credits"><span>{t('Genres')}:</span> {title.genres.map((g) => t(g)).join(', ')}</p>
 
         {title.type === 'show' && (
           <CatalogEpisodes title={title} progress={progress[id]} onPlay={(n) => setParams({ play: '1', episode: String(n) }, { replace: true })} />
@@ -146,7 +150,7 @@ export function TitleDetail() {
       </div>
 
       {related.length > 0 && (
-        <Row title="More Like This">{related.map((t) => <PosterCard key={t.id} title={t} />)}</Row>
+        <Row title={t('More Like This')}>{related.map((t) => <PosterCard key={t.id} title={t} />)}</Row>
       )}
     </>
   )

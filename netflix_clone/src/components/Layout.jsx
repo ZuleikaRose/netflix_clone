@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { AppNotices } from './AppNotices.jsx'
 import { Icon } from './Icon.jsx'
 import { infoPages } from '../data/infoPages.js'
+import { useT } from '../state/useT.js'
 
 const navItems = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -14,6 +15,7 @@ const navItems = [
 
 export function Layout() {
   const { pathname } = useLocation()
+  const t = useT()
   const isTabActive = ({ to, end, also = [] }) => (end ? pathname === to : pathname.startsWith(to)) || also.includes(pathname)
   const phoneRef = useRef(null)
 
@@ -33,21 +35,21 @@ export function Layout() {
 
         <footer className="legal">
           <nav aria-labelledby="legal-heading">
-            <p id="legal-heading">Legal</p>
+            <p id="legal-heading">{t('Legal')}</p>
             <ul>
-              {infoPages.map(({ slug, label }) => <li key={slug}><Link to={`/info/${slug}`}>{label}</Link></li>)}
+              {infoPages.map(({ slug, label }) => <li key={slug}><Link to={`/info/${slug}`}>{t(label)}</Link></li>)}
             </ul>
           </nav>
         </footer>
 
-        <nav className="bottom-nav" aria-label="Main navigation">
+        <nav className="bottom-nav" aria-label={t('Main navigation')}>
           {navItems.map(({ to, label, icon, end, also }) => (
             <Link key={to} to={to} className={isTabActive({ to, end, also }) ? 'nav-item selected' : 'nav-item'} aria-current={isTabActive({ to, end, also }) ? 'page' : undefined}>
-              <Icon name={icon} /><span>{label}</span>
+              <Icon name={icon} /><span>{t(label)}</span>
             </Link>
           ))}
           {/* Floats just above the tab bar's right end, so it stays pinned to the phone frame on desktop too */}
-          <Link to="/donate" className="donate-fab" aria-label="Donate: buy us a coffee" aria-current={pathname === '/donate' ? 'page' : undefined}>
+          <Link to="/donate" className="donate-fab" aria-label={t('Donate: buy us a coffee')} aria-current={pathname === '/donate' ? 'page' : undefined}>
             <Icon name="coffee" />
           </Link>
         </nav>

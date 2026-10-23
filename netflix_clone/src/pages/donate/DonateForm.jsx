@@ -7,7 +7,9 @@ import {
 } from '../../data/donations.js'
 import { getSupabase } from '../../lib/supabaseConfig.js'
 import { forgetStripe, getStripe } from '../../lib/stripe.js'
+import { useAccessibility } from '../../state/accessibilityContext.js'
 import { useAuth } from '../../state/authContext.js'
+import { useT } from '../../state/useT.js'
 import { focusFirstError } from '../formUtils.js'
 
 // The card field lives in Stripe's iframe, so it can't read the page's CSS: these mirror index.css (.field input)
@@ -23,6 +25,8 @@ const cardStyle = {
   invalid: { color: '#e87c03', iconColor: '#e87c03' },
 }
 const elementsOptions = { fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap' }], locale: 'en' }
+// Stripe's card field in the interface language (Latin American Spanish for Spanish)
+const stripeLocales = { es: 'es-419' }
 // PaymentIntent statuses that can still be confirmed with a card
 const CONFIRMABLE = ['requires_payment_method', 'requires_confirmation', 'requires_action']
 
@@ -33,19 +37,24 @@ export default function DonateForm({ onDonated, hasMonthly = false }) {
   // getStripe() is memoised, so `use` sees the same promise on every render
   const stripe = use(getStripe())
   const [, retry] = useState(0)
+  const t = useT()
+  const language = useAccessibility()?.settings.language ?? 'en'
   if (!stripe) {
     return (
       <section className="settings-card" aria-labelledby="donate-load-heading">
-        <h2 id="donate-load-heading">The payment form didn’t load</h2>
-        <p role="alert" className="form-alert">{NETWORK_MESSAGE}</p>
-        <button type="button" className="ghost-cta" onClick={() => { forgetStripe(); retry((n) => n + 1) }}>Try again</button>
+        <h2 id="donate-load-heading">{t('The payment form didn’t load')}</h2>
+        <p role="alert" className="form-alert">{t(NETWORK_MESSAGE)}</p>
+        <button type="button" className="ghost-cta" onClick={() => { forgetStripe(); retry((n) => n + 1) }}>{t('Try again')}</button>
       </section>
     )
   }
-  return <Elements stripe={stripe} options={elementsOptions}><DonationForm onDonated={onDonated} hasMonthly={hasMonthly} /></Elements>
+  // Stripe can't change an Elements' locale, so a new language starts a new one
+  const options = stripeLocales[language] ? { ...elementsOptions, locale: stripeLocales[language] } : elementsOptions
+  return <Elements key={language} stripe={stripe} options={options}><DonationForm onDonated={onDonated} hasMonthly={hasMonthly} /></Elements>
 }
 
 function DonationForm({ onDonated, hasMonthly }) {
+  const t = useT()
   const { user } = useAuth()
   const stripe = useStripe()
   const elements = useElements()
@@ -71,7 +80,8 @@ function DonationForm({ onDonated, hasMonthly }) {
   }, [outcome])
 
   const amount = readAmount(choice, other)
-  const buttonLabel = amount.cents ? `Donate ${formatUsd(amount.cents)}${monthly ? ' a month' : ''}` : 'Donate'
+  const buttonLabel = !amount.cents ? t('Donate')
+    : monthly ? t('Donate {amount} a month', { amount: formatUsd(amount.cents) }) : t('Donate {amount}', { amount: formatUsd(amount.cents) })
 
   // A Stripe.js error or result → the outcome. `processing` (the bank hasn't answered yet) isn't a failure: the webhook
   // records it once Stripe knows.
@@ -161,56 +171,61 @@ function DonationForm({ onDonated, hasMonthly }) {
   }
 
   if (outcome?.kind === 'succeeded' || outcome?.kind === 'processing') {
+    // The email address sits inside the sentence, in bold
+    const [receiptBefore, receiptAfter] = t('Stripe will email a receipt to {email}.').split('{email}')
     return (
       <section className="settings-card donate-result" aria-labelledby="donate-result-heading">
         {outcome.kind === 'succeeded' ? (
           <div role="status">
             <h2 id="donate-result-heading" ref={resultHeading} tabIndex={-1}>
-              {outcome.monthly ? `Thank you for giving ${formatUsd(outcome.cents)} a month` : `Thank you for your ${formatUsd(outcome.cents)} donation`}
+              {outcome.monthly
+                ? t('Thank you for giving {amount} a month', { amount: formatUsd(outcome.cents) })
+                : t('Thank you for your {amount} donation', { amount: formatUsd(outcome.cents) })}
             </h2>
             <p className="muted">
-              {outcome.monthly ? 'Your first payment went through, and the next ones follow on the same day each month until you cancel.' : 'Your payment went through.'}{' '}
-              {receiptEmailFor(user) ? <>Stripe will email a receipt to <b>{receiptEmailFor(user)}</b>.</> : 'It will appear on your card statement.'}
+              {outcome.monthly ? t('Your first payment went through, and the next ones follow on the same day each month until you cancel.') : t('Your payment went through.')}{' '}
+              {receiptEmailFor(user) ? <>{receiptBefore}<b>{receiptEmailFor(user)}</b>{receiptAfter}</> : t('It will appear on your card statement.')}
             </p>
           </div>
         ) : (
           <div role="status">
             <h2 id="donate-result-heading" ref={resultHeading} tabIndex={-1}>
-              Your {formatUsd(outcome.cents)}{outcome.monthly && ' monthly'} donation is being processed
+              {outcome.monthly
+                ? t('Your {amount} monthly donation is being processed', { amount: formatUsd(outcome.cents) })
+                : t('Your {amount} donation is being processed', { amount: formatUsd(outcome.cents) })}
             </h2>
             <p className="muted">
-              Your bank hasn’t confirmed the payment yet. It will show under Your donations once it has, so there’s no
-              need to donate again.
+              {t('Your bank hasn’t confirmed the payment yet. It will show under Your donations once it has, so there’s no need to donate again.')}
             </p>
           </div>
         )}
-        <button type="button" className="cta" onClick={startOver}>Make another donation</button>
+        <button type="button" className="cta" onClick={startOver}>{t('Make another donation')}</button>
       </section>
     )
   }
 
   return (
     <form ref={formRef} className="settings-card donate-form" onSubmit={submit} noValidate aria-labelledby="donate-form-heading" aria-busy={processing}>
-      <h2 id="donate-form-heading">Your donation</h2>
+      <h2 id="donate-form-heading">{t('Your donation')}</h2>
 
       {!hasMonthly && (
         <fieldset className="choice-group" disabled={processing}>
-          <legend>How often</legend>
+          <legend>{t('How often')}</legend>
           <div className="choice-options">
             {DONATION_FREQUENCIES.map((f) => (
               <label key={f.value} className="choice">
                 <input type="radio" name="donation-frequency" value={f.value} checked={frequency === f.value}
                   onChange={(e) => { const { value } = e.target; setFrequency(value) }} />
-                <span>{f.label}</span>
+                <span>{t(f.label)}</span>
               </label>
             ))}
           </div>
-          {monthly && <p className="field-hint">Charged today and on the same day each month until you cancel, here or in Account.</p>}
+          {monthly && <p className="field-hint">{t('Charged today and on the same day each month until you cancel, here or in Account.')}</p>}
         </fieldset>
       )}
 
       <fieldset className="choice-group" disabled={processing}>
-        <legend>Amount</legend>
+        <legend>{t('Amount')}</legend>
         <div className="choice-options">
           {DONATION_AMOUNTS.map((dollars) => (
             <label key={dollars} className="choice">
@@ -222,38 +237,38 @@ function DonationForm({ onDonated, hasMonthly }) {
           <label className="choice">
             <input type="radio" name="donation-amount" value="other" checked={choice === 'other'}
               onChange={(e) => { const { value } = e.target; setChoice(value) }} />
-            <span>Other amount</span>
+            <span>{t('Other amount')}</span>
           </label>
         </div>
       </fieldset>
 
       {choice === 'other' && (
-        <Field label="Other amount (US dollars)" inputMode="decimal" autoComplete="off" value={other} disabled={processing}
-          error={errors.amount} hint="From $1 to $10,000, up to two decimal places."
+        <Field label={t('Other amount (US dollars)')} inputMode="decimal" autoComplete="off" value={other} disabled={processing}
+          error={t(errors.amount)} hint={t('From $1 to $10,000, up to two decimal places.')}
           onChange={(e) => { const { value } = e.target; setOther(value) }} />
       )}
 
       <div className={errors.card ? 'field has-error' : 'field'} role="group" aria-labelledby="donate-card-label">
-        <p id="donate-card-label" className="donate-card-label">Card details</p>
+        <p id="donate-card-label" className="donate-card-label">{t('Card details')}</p>
         <CardElement className="card-input" options={{ style: cardStyle, disabled: processing, disableLink: true }}
           onChange={(e) => { setCard({ complete: e.complete, error: e.error ?? null }); if (e.complete) setErrors((x) => ({ ...x, card: null })) }} />
         {errors.card
-          ? <p className="field-error"><span aria-hidden="true">⚠</span> {errors.card}</p>
-          : <p className="field-hint">Card payments are handled by Stripe. We never see or store your card number.</p>}
+          ? <p className="field-error"><span aria-hidden="true">⚠</span> {t(errors.card)}</p>
+          : <p className="field-hint">{t('Card payments are handled by Stripe. We never see or store your card number.')}</p>}
       </div>
 
       {outcome && (
         <div className="donate-problem" role="alert">
-          <h3 ref={resultHeading} tabIndex={-1}>{outcome.kind === 'network' ? 'We couldn’t reach the payment service' : 'Your donation didn’t go through'}</h3>
-          <p>{outcome.kind === 'network' ? NETWORK_MESSAGE : outcome.message}</p>
+          <h3 ref={resultHeading} tabIndex={-1}>{outcome.kind === 'network' ? t('We couldn’t reach the payment service') : t('Your donation didn’t go through')}</h3>
+          <p>{t(outcome.kind === 'network' ? NETWORK_MESSAGE : outcome.message)}</p>
           {outcome.kind === 'network' && (
-            <button type="button" className="ghost-cta" onClick={() => donate(outcome.cents, outcome.monthly)} disabled={processing}>Try again</button>
+            <button type="button" className="ghost-cta" onClick={() => donate(outcome.cents, outcome.monthly)} disabled={processing}>{t('Try again')}</button>
           )}
         </div>
       )}
 
-      <button type="submit" className="cta" disabled={processing || !stripe}>{processing ? 'Processing…' : buttonLabel}</button>
-      {processing && <p className="muted" role="status">Processing your donation…</p>}
+      <button type="submit" className="cta" disabled={processing || !stripe}>{processing ? t('Processing…') : buttonLabel}</button>
+      {processing && <p className="muted" role="status">{t('Processing your donation…')}</p>}
     </form>
   )
 }

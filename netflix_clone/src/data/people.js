@@ -1,3 +1,5 @@
+import { locale } from '../i18n/index.js'
+
 // Catalog people (the built-in titles' fictional cast and crew) live at /people/:name; TMDB people at /tmdb/person/:id
 export const personPath = (name) => `/people/${encodeURIComponent(name)}`
 
@@ -20,7 +22,7 @@ export function catalogCredits(titles, name) {
 }
 
 // "1964-09-02" → "September 2, 1964"
-export const formatDay = (day) => new Date(`${day}T00:00:00`).toLocaleDateString('en-US', { dateStyle: 'long' })
+export const formatDay = (day) => new Date(`${day}T00:00:00`).toLocaleDateString(locale(), { dateStyle: 'long' })
 
 // Age in whole years on `until` (a date string) or today
 export function ageOn(born, until) {

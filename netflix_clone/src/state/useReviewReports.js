@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { fetchReviewReports, memoryReviewReports, resolveMemoryReview, resolveReviewRow, subscribeMemoryReports } from '../data/reviewReports.js'
 import { getSupabase } from '../lib/supabaseConfig.js'
 import { useAuth } from './authContext.js'
+import { tr } from '../i18n/index.js'
 
 const warn = (error) => {
   if (import.meta.env.DEV) console.warn('Supabase:', error)
@@ -50,7 +51,7 @@ export function useReviewReports(status) {
         await resolveReviewRow(await getSupabase(), reviewId, remove)
       } catch (error) {
         warn(error)
-        return 'The review couldn’t be updated. Please try again.'
+        return tr('The review couldn’t be updated. Please try again.')
       }
       setVersion((v) => v + 1)
       return null

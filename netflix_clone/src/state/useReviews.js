@@ -10,6 +10,7 @@ import {
 import { getSupabase } from '../lib/supabaseConfig.js'
 import { useAuth } from './authContext.js'
 import { useLibrary } from './libraryContext.js'
+import { tr } from '../i18n/index.js'
 
 const warn = (error) => {
   if (import.meta.env.DEV) console.warn('Supabase:', error)
@@ -81,7 +82,7 @@ export function useReviews(title) {
         row = await postReview(await getSupabase(), user.id, titleId, review)
       } catch (error) {
         warn(error)
-        return 'Your review couldn’t be posted. Please try again.'
+        return tr('Your review couldn’t be posted. Please try again.')
       }
       setSaved((s) => ({ titleId, reviews: [{ ...review, id: row.id, mine: true, helpful: 0 }, ...(s.titleId === titleId ? s.reviews : [])] }))
       return null

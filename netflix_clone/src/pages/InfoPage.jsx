@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.jsx'
 import { infoLabel } from '../data/infoPages.js'
+import { useT } from '../state/useT.js'
 import { AccessibilityPolicy } from './info/AccessibilityPolicy.jsx'
 import { Affiliate } from './info/Affiliate.jsx'
 import { AiIntegration } from './info/AiIntegration.jsx'
@@ -33,11 +34,12 @@ const pages = {
 
 export function InfoPage() {
   const { slug } = useParams()
+  const t = useT()
   if (!pages[slug]) return <NotFound />
 
   return (
     <>
-      <PageHeader title={infoLabel(slug)} back />
+      <PageHeader title={t(infoLabel(slug))} back />
       {pages[slug]}
     </>
   )

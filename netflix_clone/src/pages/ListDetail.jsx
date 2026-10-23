@@ -9,8 +9,10 @@ import { useLibrary } from '../state/libraryContext.js'
 import { useCatalog } from '../state/useCatalog.js'
 import { focusFirstError } from './formUtils.js'
 import { NotFound } from './NotFound.jsx'
+import { useT } from '../state/useT.js'
 
 function DetailsForm({ list, updateList }) {
+  const t = useT()
   const [form, setForm] = useState({ name: list.name, description: list.description })
   const [error, setError] = useState(null)
   const [status, setStatus] = useState('')
@@ -19,21 +21,22 @@ function DetailsForm({ list, updateList }) {
     const formElement = e.currentTarget
     const problem = await updateList(list.id, form)
     setError(problem)
-    setStatus(problem ? '' : 'List saved')
+    setStatus(problem ? '' : t('List saved'))
     if (problem) focusFirstError(formElement)
   }
   return (
     <form className="settings-card" onSubmit={submit} noValidate aria-labelledby="list-details-heading">
-      <h2 id="list-details-heading">Details</h2>
-      <Field label="Name" value={form.name} maxLength={MAX_LIST_NAME} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, name: value })) }} error={error} />
-      <Field label="Description (optional)" value={form.description} maxLength={MAX_LIST_DESCRIPTION} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, description: value })) }} />
-      <button type="submit" className="cta">Save list</button>
+      <h2 id="list-details-heading">{t('Details')}</h2>
+      <Field label={t('Name')} value={form.name} maxLength={MAX_LIST_NAME} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, name: value })) }} error={t(error)} />
+      <Field label={t('Description (optional)')} value={form.description} maxLength={MAX_LIST_DESCRIPTION} onChange={(e) => { const { value } = e.target; setForm((f) => ({ ...f, description: value })) }} />
+      <button type="submit" className="cta">{t('Save list')}</button>
       <p className="save-status" role="status">{status && <><span aria-hidden="true">✓</span> {status}</>}</p>
     </form>
   )
 }
 
 function Sharing({ list, updateList }) {
+  const t = useT()
   const { copied, copy } = useCopyToClipboard()
   const [error, setError] = useState(null)
   // The switch moves at once and goes back if saving fails
@@ -47,22 +50,22 @@ function Sharing({ list, updateList }) {
   }
   return (
     <section className="settings-card" aria-labelledby="sharing-heading">
-      <h2 id="sharing-heading">Sharing</h2>
+      <h2 id="sharing-heading">{t('Sharing')}</h2>
       <label className="switch-row">
         <span>
-          <span className="switch-label">Share with a link</span>
-          <span className="muted">Anyone with the link can see this list’s name, description, titles and your profile name, without signing in.</span>
+          <span className="switch-label">{t('Share with a link')}</span>
+          <span className="muted">{t('Anyone with the link can see this list’s name, description, titles and your profile name, without signing in.')}</span>
         </span>
         <input type="checkbox" role="switch" checked={isPublic} onChange={(e) => changeSharing(e.target.checked)} />
       </label>
-      {error && <p className="form-alert" role="alert">{error}</p>}
+      {error && <p className="form-alert" role="alert">{t(error)}</p>}
       {list.isPublic && pending === null && (
         <>
-          <Field label="Share link" value={url} readOnly onFocus={(e) => e.target.select()} />
-          <button type="button" className="ghost-cta" onClick={() => copy('link', url)}>Copy link</button>
+          <Field label={t('Share link')} value={url} readOnly onFocus={(e) => e.target.select()} />
+          <button type="button" className="ghost-cta" onClick={() => copy('link', url)}>{t('Copy link')}</button>
           <p className="save-status" role="status">
-            {copied?.ok && <><span aria-hidden="true">✓</span> Link copied</>}
-            {copied && !copied.ok && 'Couldn’t copy: select the link above and copy it yourself.'}
+            {copied?.ok && <><span aria-hidden="true">✓</span> {t('Link copied')}</>}
+            {copied && !copied.ok && t('Couldn’t copy: select the link above and copy it yourself.')}
           </p>
         </>
       )}
@@ -72,6 +75,7 @@ function Sharing({ list, updateList }) {
 
 // /lists/:listId: one of the profile's lists: its titles, details, sharing, and deleting it
 export function ListDetail() {
+  const t = useT()
   const { listId } = useParams()
   const navigate = useNavigate()
   const { lists, updateList, deleteList, toggleInList } = useLibrary()
@@ -93,16 +97,16 @@ export function ListDetail() {
       <PageHeader title={list.name} back />
       <div className="settings">
         <section className="settings-card" aria-labelledby="list-titles-heading">
-          <h2 id="list-titles-heading">Titles</h2>
+          <h2 id="list-titles-heading">{t('Titles')}</h2>
           {list.description && <p className="muted">{list.description}</p>}
           {titles.length === 0
-            ? <p className="muted">Nothing here yet. Use “Add to a list” on any title page.</p>
+            ? <p className="muted">{t('Nothing here yet. Use “Add to a list” on any title page.')}</p>
             : (
               <ul className="poster-grid credit-grid list-grid">
-                {titles.map((t) => (
-                  <li key={t.id}>
-                    <PosterCard title={t} />
-                    <button type="button" className="ghost-cta list-remove" aria-label={`Remove ${t.title} from ${list.name}`} onClick={() => toggleInList(list.id, t.id)}>Remove</button>
+                {titles.map((item) => (
+                  <li key={item.id}>
+                    <PosterCard title={item} />
+                    <button type="button" className="ghost-cta list-remove" aria-label={t('Remove {title} from {list}', { title: item.title, list: list.name })} onClick={() => toggleInList(list.id, item.id)}>{t('Remove')}</button>
                   </li>
                 ))}
               </ul>
@@ -111,17 +115,17 @@ export function ListDetail() {
         <DetailsForm key={list.id} list={list} updateList={updateList} />
         <Sharing list={list} updateList={updateList} />
         <section className="settings-card" aria-labelledby="delete-list-heading">
-          <h2 id="delete-list-heading">Delete list</h2>
-          {deleteError && <p className="form-alert" role="alert">{deleteError}</p>}
+          <h2 id="delete-list-heading">{t('Delete list')}</h2>
+          {deleteError && <p className="form-alert" role="alert">{t(deleteError)}</p>}
           {confirming
             ? (
-              <div className="confirm-row" role="group" aria-label={`Delete ${list.name}`}>
-                <p>Delete {list.name}? Its share link stops working. The titles themselves stay on Netflix Clone.</p>
-                <button type="button" className="cta delete-fill" onClick={remove}>Delete list</button>
-                <button type="button" className="ghost-cta" onClick={() => setConfirming(false)}>Cancel</button>
+              <div className="confirm-row" role="group" aria-label={t('Delete {name}', { name: list.name })}>
+                <p>{t('Delete {name}? Its share link stops working. The titles themselves stay on Netflix Clone.', { name: list.name })}</p>
+                <button type="button" className="cta delete-fill" onClick={remove}>{t('Delete list')}</button>
+                <button type="button" className="ghost-cta" onClick={() => setConfirming(false)}>{t('Cancel')}</button>
               </div>
             )
-            : <button type="button" className="ghost-cta danger" onClick={() => setConfirming(true)}>Delete this list…</button>}
+            : <button type="button" className="ghost-cta danger" onClick={() => setConfirming(true)}>{t('Delete this list…')}</button>}
         </section>
       </div>
     </>
