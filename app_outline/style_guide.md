@@ -121,6 +121,20 @@ together.
   the reasons as pill radio choices, an optional note, an accent **Send report** and Cancel. Afterwards a muted
   "Reported" line replaces it. On the support dashboard each reported review shows its text as a quote with a grey left
   rule, the reasons and reporters below, and **Keep review** (outlined) beside **Remove review** (`.delete-fill`).
+* **Helpful votes:** a small grey "👍 Helpful" toggle beside Report under each review by someone else, with the count in
+  brackets; pressed, it turns white and bold. Your own review shows "N people found this helpful" in muted grey. A Sort
+  reviews select (Most helpful, Newest) sits above the list once there are two reviews.
+* **Last 7 days:** under the screen-time form, newest day first: the day, a thin grey bar measured against the daily
+  limit, and the time watched (plus extra time allowed) in muted grey, then the total and the daily average.
+* **Audio description:** an "AD" button in the player's top bar, left of picture-in-picture and Close: bold letters in a
+  2px outlined box that inverts to white when on, like the other pressed toggles.
+* **Monthly donations:** a How often pill choice (One time, Monthly) above the amounts, a hint once Monthly is chosen, and
+  "Donate $10.00 a month". Your monthly donation is a settings card above the form (and in Account) with Cancel monthly
+  donation, which asks again with Yes, stop it (`.delete-fill`) and Keep it.
+* **Staff donations:** a By month table (month on the left, figures right-aligned under grey headings) and the donation list
+  in the history's colors, each with an Open in Stripe link.
+* **Language:** the first choice in the accessibility menu, English / Español as pill radios, each written in its own
+  language; `<html lang>` follows it. Spanish runs longer, so labels wrap rather than being cut off.
 * **Icon buttons:** at least 44×44px; pressed toggles invert to white.
 
 ## Touch targets and focus

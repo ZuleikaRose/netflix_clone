@@ -148,6 +148,13 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
 34. Take live payments on production: the live publishable key in the front-end repo, the live Stripe keys and a
     live webhook endpoint on the production project; a live $1.00 test donation was recorded.
 35. Include TMDB's movies and TV shows in Surprise me (PR #19, and the front-end repo).
+36. "What new features can we do?", then "please do 4, 7, 8, 9, 10, and 11": monthly donations (Stripe subscriptions,
+    cancelled on /donate or in Account), a weekly screen-time summary for parents, helpful votes on reviews, audio
+    description in the player (written for each clip, read aloud by the browser), the whole interface in Spanish (four
+    agents translated their own areas in parallel, with a shared glossary and a coverage check) and a donations view on
+    the support dashboard. Migrations and functions went to the dev project only.
 
-Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel) and CAPTCHA on sign-up
-and sign-in.
+Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), CAPTCHA on sign-up and
+sign-in, and the six features on production: migrations 25–29, non_transactional 011–012, the monthly-donation function,
+the updated stripe-webhook and delete-account functions, and four more events on the live Stripe webhook
+(invoice.paid, invoice.payment_failed, customer.subscription.updated, customer.subscription.deleted).
