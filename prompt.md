@@ -184,6 +184,9 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     the live site on Vercel: the Vercel CLI is installed; it needs `vercel login` first. Then "the carousel ... Top 10 in the U.S. Today should only be able to move
     left and right": its numbers reached 9px below the cards, so the row scrolled vertically too; rows now scroll
     sideways only.
+43. Looking for the live site without a Vercel sign-in: the team address `front-end-zuleika-llc.vercel.app` (and
+    each preview) redirects to Vercel's sign-in, because Deployment Protection is on, so the site isn't public yet.
 
-Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), and CAPTCHA on sign-up
-and sign-in.
+Still to do: custom SMTP for Auth emails, CAPTCHA on sign-up and sign-in, and the Vercel site: decide whether to make
+production public (Deployment Protection), then, after `vercel login`, check the production address, any custom
+domain and the project's environment variables (the Supabase and live Stripe values).

@@ -98,7 +98,7 @@ Migrations, index files, functions, seed data and pgTAP tests are in [`supabase/
 
 | Path | What it is |
 | --- | --- |
-| [`netflix_clone/`](netflix_clone/) | The Vite app: source, Playwright tests, configs (also published on its own as [netflix_clone_front_end](https://github.com/ZuleikaRose/netflix_clone_front_end), set up for Vercel and kept in step with this folder, six new features included) |
+| [`netflix_clone/`](netflix_clone/) | The Vite app: source, Playwright tests, configs (also published on its own as [netflix_clone_front_end](https://github.com/ZuleikaRose/netflix_clone_front_end), deployed on Vercel at `front-end-zuleika-llc.vercel.app`, private to the Vercel team for now, and kept in step with this folder, six new features included) |
 | [`supabase/`](supabase/) | Supabase CLI project: migrations, `non_transactional/` index files, Edge Functions, seeds, pgTAP tests |
 | [`app_outline/`](app_outline/) | Requirements: [`user_journey.md`](app_outline/user_journey.md), per-page folders, [`style_guide.md`](app_outline/style_guide.md), Figma wireframe export |
 | [`user_stories.md`](user_stories.md) | What the database stores, one user story per thing the app remembers |
