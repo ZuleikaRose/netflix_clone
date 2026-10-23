@@ -261,9 +261,13 @@ after editing.
   title pages, helpers in `data/reactions.js`. Loves, then favorites, then likes seed Because You Liked; `notDisliked`
   filters every recommendation row (not Continue Watching or Top 10) and the assistant's candidates.
 - **Player extras**: `data/clips.js` gives each clip `recap`/`intro` ranges (Skip Recap from episode 2, Skip Intro;
-  key S) and `chapters`; seek previews come from `public/media/<clip>.thumbs.jpg`, drawn by
+  key S), an `outro` range (the clip's last 6 s; Skip Outro on every title, movies too: `finishNow` pauses, jumps to
+  the end and records the title finished, so a show's next-episode countdown starts) and `chapters`; seek previews come from `public/media/<clip>.thumbs.jpg`, drawn by
   `node scripts/thumbnails.mjs` (re-run it when a clip changes; `THUMBS` in clips.js must match). Picture-in-picture
-  (key I) sits beside Close: the controls row is full at 390px.
+  (key I) sits beside Close: the controls row is full at 390px. Full screen on a phone or tablet (`isMobileDevice`:
+  `userAgentData.mobile` or `(pointer: coarse)`) locks the screen to landscape from the `fullscreenchange` handler, so
+  the button, F and the browser's own control all do it; it unlocks when full screen ends. Browsers that can't lock
+  (iPhone Safari, which doesn't offer element full screen anyway) refuse quietly. Tests stub `ScreenOrientation`.
 - **Profile locks / Kids**: PIN hashes live in `private.profile_pins`; `profiles.locked` changes only through
   `set_profile_pin()` (a trigger keeps it otherwise). `unlock_profile()` returns `ok`/`wrong`/`locked` (five wrong →
   15 minutes). `ProfileProvider` keeps unlocked profiles until another is chosen and never remembers a locked one per
