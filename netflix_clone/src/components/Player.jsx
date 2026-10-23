@@ -257,7 +257,8 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
   const syncPosition = () => {
     const video = videoRef.current
     setTime(video.currentTime)
-    setEnded(video.ended)
+    // Sitting at the very end counts as finished too: a paused video moved there (finishNow) doesn't always say ended
+    setEnded(video.ended || (video.duration > 0 && video.currentTime >= video.duration))
     Object.assign(watched.current, { seconds: video.currentTime, duration: video.duration || 0, episode })
     if (Math.abs(video.currentTime - watched.current.savedAt) >= PROGRESS_SAVE_EVERY_SECONDS) recordProgress()
   }
@@ -366,9 +367,19 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
     const video = videoRef.current
     video.pause()
     moveTo(video.duration || duration)
+    // Saved where it ends first, as playing through to the end does (that's what puts it in the viewing history),
+    // then as finished
+    Object.assign(watched.current, { seconds: video.currentTime, duration: video.duration || duration, episode })
+    recordProgress()
     setEnded(true)
     recordFinished()
     report({ playing: false })
+  }
+  // The seek bar moves in whole seconds, so its end sits a moment before the clip's (52 of 52.008 s): reaching it
+  // finishes the title, rather than leaving the last fraction of a second to play (or never play, when paused)
+  const scrubTo = (seconds) => {
+    if (duration && seconds >= Math.floor(duration)) finishNow()
+    else seekTo(seconds)
   }
   const skipAhead = () => {
     if (skip?.finish) finishNow()
@@ -472,7 +483,7 @@ export function Player({ title, startEpisode = null, onClose, party = false, onU
           <div className="player-timeline">
             <span>{clock(time)}</span>
             <div className="seek-track" onPointerMove={previewAt} onPointerDown={previewAt} onPointerLeave={() => setHover(null)}>
-              <input type="range" className="seek" min="0" max={Math.floor(duration)} step="1" value={Math.floor(time)} onChange={(e) => seekTo(Number(e.target.value))}
+              <input type="range" className="seek" min="0" max={Math.floor(duration)} step="1" value={Math.floor(time)} onChange={(e) => scrubTo(Number(e.target.value))}
                 aria-label={t('Seek')} aria-valuetext={t('{time} of {duration}, chapter: {chapter}', { time: clock(time), duration: clock(duration), chapter: t(chapter.name) })} />
               {duration > 0 && clip.chapters.slice(1).map((c) => (
                 <span key={c.start} className="chapter-mark" style={{ left: `${(c.start / duration) * 100}%` }} aria-hidden="true" />
