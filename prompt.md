@@ -177,6 +177,13 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     rotate the video sideways." Skip Outro for the last 6 seconds of every clip (movies and shows; it finishes the
     title, so a show's next-episode countdown starts), and full screen on a phone or tablet locks the screen to
     landscape until full screen ends. Clip lengths checked with ffprobe.
+42. "please do number 3 and 4": (3) the flaky viewing-history test, and the Year in Review and next-episode ones
+    like it. All drag the seek bar to its end, which moves in whole seconds and so stops a few milliseconds short of
+    the clip; a busy browser sometimes never played them. Reaching the seek bar's end now finishes the title (as Skip
+    Outro does, saving the viewing first), and the full suite ran with no failures or flaky tests. (4) Confirming
+    the live site on Vercel: the Vercel CLI is installed; it needs `vercel login` first. Then "the carousel ... Top 10 in the U.S. Today should only be able to move
+    left and right": its numbers reached 9px below the cards, so the row scrolled vertically too; rows now scroll
+    sideways only.
 
 Still to do: custom SMTP for Auth emails, hosting (the front-end repo is ready for Vercel), and CAPTCHA on sign-up
 and sign-in.
