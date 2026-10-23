@@ -343,7 +343,10 @@ test.describe('video player', () => {
     await menu(page).getByRole('group', { name: 'Caption language' }).getByRole('radio', { name: 'Español' }).check()
     await page.keyboard.press('Escape')
     await expect(button).toHaveAttribute('aria-pressed', 'true')
-    await seek(page).fill('17')
+    // Seek once the Spanish cues have loaded, and into the cue (17.2–19.7 s) rather than just before it: if the switch
+    // landed in the title's cue, that description holds the video, and the next cue mustn't depend on it playing on
+    await expect.poll(() => video(page).evaluate((v) => v.textTracks.getTrackById('descriptions-es')?.cues?.length ?? 0)).toBeGreaterThan(0)
+    await seek(page).fill('18')
     await expect.poll(async () => (await spoken()).at(-1)?.text).toContain('Una máquina inmensa de cables y metal.')
     expect((await spoken()).at(-1).lang).toBe('es-ES')
   })
