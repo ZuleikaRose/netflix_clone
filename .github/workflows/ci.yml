@@ -21,7 +21,7 @@ defaults:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 35 # the full Playwright suite (two builds; Chromium phone and desktop, plus a tablet, Firefox and WebKit) takes 15–20 minutes
+    timeout-minutes: 35 # the full Playwright suite (two builds; Chromium phone and desktop, plus a tablet and Firefox) takes 10–15 minutes
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +41,7 @@ jobs:
         run: npm run build
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium firefox webkit
+        run: npx playwright install --with-deps chromium firefox
 
       - name: End-to-end and accessibility tests
         run: npm run test:e2e
