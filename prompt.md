@@ -218,5 +218,11 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     the WebKit project and its install are gone from both repos' Playwright config and CI (installing WebKit's
     system libraries is what kept hanging). Chromium (phone, desktop, tablet) and Firefox stay. The new `tmdb`
     function is deployed to dev and answers in Spanish there; production waits for the user's go-ahead.
-Still to do: custom SMTP for Auth emails, CAPTCHA on sign-up and sign-in, and deploying the Spanish-aware `tmdb`
-function (step 48).
+51. "there was a vscode crash. Please continue where you left off." Nothing was lost: both repos were clean and
+    merged. A safety hook had blocked the production `tmdb` deploy, so the user ran it; production then answered
+    The Matrix in Spanish ("Matrix", a Spanish synopsis), with genre names in English as designed.
+52. "Please update and edit new table and columns on the drawsql.png and update the schema.sql file too ... update
+    supabase ... Then update the README.md": asked which table and columns, the answer was none. `schema.sql`,
+    `drawsql.png` and both Supabase projects already matched (34 public tables plus `private.profile_pins`, all 29
+    migrations), so none changed. CLAUDE.md, the README and these records now say the Spanish `tmdb` is live.
+Still to do: custom SMTP for Auth emails, and CAPTCHA on sign-up and sign-in.
