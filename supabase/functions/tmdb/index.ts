@@ -9,8 +9,9 @@
 //   { action: 'person', id }                         → { person }: an actor's or director's details and best-known titles
 //   { action: 'season', id, season }                 → { season }: a TV show's season and its episodes
 // Any action but `save` takes `language: 'es'` for TMDB's Spanish (Mexico) titles, overviews and season and episode
-// names; titles TMDB hasn't translated keep their original. Genre names stay English (the app translates them and
-// matches Search's genre chips on them), and saved titles are stored in English, since every member shares the row.
+// names; titles TMDB hasn't translated keep their original. `genres` stay English (Search's genre chips match on
+// them), and Spanish answers add `genreLabels`, TMDB's own Spanish names in the same order, for the app to show.
+// Saved titles are stored in English, since every member shares the row.
 // Public like the catalog itself (except `save`); the TMDB key stays in the TMDB_API_FREE secret and never reaches
 // the browser. List, search and recommendation results carry real US certifications (looked up once per title and
 // kept in public.tmdb_certifications), so restricted profiles see the titles within their maturity setting.
@@ -77,11 +78,21 @@ async function tmdb(path: string, params: Record<string, string> = {}, lang: Lan
 
 const tmdbPath = (type: Type) => (type === 'show' ? 'tv' : 'movie')
 
-// TMDB list results carry genre ids only; the names come from TMDB's genre lists
-const genreNames = (type: Type) => cached(`genres:${type}`, LIST_TTL_MS, async () => {
-  const { genres } = await tmdb(`/genre/${tmdbPath(type)}/list`)
+// TMDB list results carry genre ids only; the names come from TMDB's genre lists, in English or Spanish
+const genreNames = (type: Type, lang: Lang = 'en-US') => cached(`genres:${type}:${lang}`, LIST_TTL_MS, async () => {
+  const { genres } = await tmdb(`/genre/${tmdbPath(type)}/list`, {}, lang)
   return new Map<number, string>(genres.map((g: Item) => [g.id, g.name]))
 })
+
+// A title's genres by id: `genres` in English and, in Spanish, `genreLabels` (TMDB's Spanish name, else the English)
+async function genresOf(ids: number[], type: Type, lang: Lang) {
+  const english = await genreNames(type)
+  const known = ids.filter((id) => english.has(id))
+  const genres = known.map((id) => english.get(id) as string)
+  if (!spanish(lang)) return { genres }
+  const local = await genreNames(type, lang)
+  return { genres, genreLabels: known.map((id) => local.get(id) || (english.get(id) as string)) }
+}
 
 const image = (path: string | null, size: string) => (path ? `${IMAGES}${size}${path}` : null)
 
@@ -90,7 +101,7 @@ const formatRuntime = (minutes?: number) =>
 
 // The shape of data/catalog.js titles, plus `source`, `tmdbId`, `rating`, `backdrop` and `tmdbUrl`.
 // TMDB's list and search results have no certification: `maturity` starts as 'NR' and toTitles fills it in.
-function toTitle(item: Item, type: Type, genres: string[], lang: Lang) {
+function toTitle(item: Item, type: Type, { genres, genreLabels }: { genres: string[]; genreLabels?: string[] }, lang: Lang) {
   return {
     id: `tmdb-${type}-${item.id}`,
     tmdbId: item.id,
@@ -102,6 +113,7 @@ function toTitle(item: Item, type: Type, genres: string[], lang: Lang) {
     releaseDate: item.release_date || item.first_air_date || null,
     maturity: 'NR',
     genres,
+    ...(genreLabels ? { genreLabels } : {}),
     mood: [],
     popularity: Math.round((item.vote_average ?? 0) * 10),
     rating: item.vote_count ? Math.round(item.vote_average * 10) / 10 : null,
@@ -166,14 +178,10 @@ async function withCertifications<T extends { tmdbId: number; type: Type; maturi
 }
 
 async function toTitles(items: Item[], lang: Lang, type?: Type) {
-  const [movieGenres, showGenres] = await Promise.all([genreNames('movie'), genreNames('show')])
-  const titles = items
+  const titles = await Promise.all(items
     .map((item) => ({ item, itemType: type ?? (item.media_type === 'tv' ? 'show' : 'movie') as Type }))
     .filter(({ item }) => item.poster_path || item.backdrop_path)
-    .map(({ item, itemType }) => {
-      const genres = itemType === 'show' ? showGenres : movieGenres
-      return toTitle(item, itemType, (item.genre_ids ?? []).map((id: number) => genres.get(id)).filter(Boolean), lang)
-    })
+    .map(async ({ item, itemType }) => toTitle(item, itemType, await genresOf(item.genre_ids ?? [], itemType, lang), lang)))
   return withCertifications(titles)
 }
 
@@ -233,10 +241,10 @@ const title = (type: Type, id: number, lang: Lang = 'en-US'): Promise<Item> => c
   // No Spanish overview: the English one rather than none
   if (spanish(lang) && !item.overview) item.overview = (await title(type, id)).synopsis
   const crew: Item[] = item.credits?.crew ?? []
-  // Genre names in English whatever the language (see the top of the file)
-  const genres = await genreNames(type)
+  // English genres, plus Spanish labels in Spanish (see the top of the file)
+  const genres = await genresOf((item.genres ?? []).map((g: Item) => g.id), type, lang)
   return {
-    ...toTitle(item, type, (item.genres ?? []).map((g: Item) => genres.get(g.id) ?? g.name), lang),
+    ...toTitle(item, type, genres, lang),
     maturity: certification(item, type),
     ...(type === 'show'
       ? {

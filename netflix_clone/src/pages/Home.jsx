@@ -21,6 +21,7 @@ import { SurpriseButton } from '../components/SurpriseButton.jsx'
 import { useStoreTitle } from '../state/useStoreTitle.js'
 import { useTmdbLists, useTmdbRecommendations } from '../state/useTmdb.js'
 import { TmdbCredit } from '../components/TmdbCredit.jsx'
+import { genreLabels } from '../data/tmdbApi.js'
 import { useT } from '../state/useT.js'
 
 const filters = [['TV Shows', 'show'], ['Movies', 'movie']]
@@ -158,7 +159,7 @@ export function Home() {
         <div className="hero-copy">
           <p className="eyebrow">{featuredIsTmdb ? null : <b>N</b>} {featured.type === 'show' ? t('SERIES') : t('FILM')}{featuredIsTmdb && ' · TMDB'}</p>
           <h1 className="hero-title">{first}<br />{rest.join(' ')}</h1>
-          <p className="meta">{(featuredIsTmdb ? featured.genres.slice(0, 3) : featured.mood).join('  ·  ')}</p>
+          <p className="meta">{(featuredIsTmdb ? genreLabels(featured, t).slice(0, 3) : featured.mood).join('  ·  ')}</p>
           <PreviewToggle title={featured} preview={preview} />
           <div className="hero-actions">
             {featuredIsTmdb

@@ -19,6 +19,7 @@ import { useCatalog } from '../state/useCatalog.js'
 import { useReminder } from '../state/useReminder.js'
 import { useStoreTitle } from '../state/useStoreTitle.js'
 import { useTmdbRecommendations, useTmdbSeason, useTmdbTitle } from '../state/useTmdb.js'
+import { genreLabels } from '../data/tmdbApi.js'
 import { NotFound } from './NotFound.jsx'
 import { locale, tr } from '../i18n/index.js'
 import { useT } from '../state/useT.js'
@@ -243,7 +244,7 @@ export function TmdbTitle() {
 
         <p className="synopsis">{title.synopsis}</p>
         <Credits title={title} />
-        {title.genres.length > 0 && <p className="credits"><span>{t('Genres')}:</span> {title.genres.map((g) => t(g)).join(', ')}</p>}
+        {title.genres.length > 0 && <p className="credits"><span>{t('Genres')}:</span> {genreLabels(title, t).join(', ')}</p>}
 
         {title.seasonList?.length > 0 && <TmdbEpisodes key={title.id} title={title} />}
         <WhereToWatch title={title} />

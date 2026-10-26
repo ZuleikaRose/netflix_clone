@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
+import { completeDownloads } from './data/downloads.js'
 import { registerServiceWorker } from './lib/pwa.js'
 import { AccessibilityProvider } from './state/AccessibilityProvider.jsx'
 import { AuthProvider } from './state/AuthProvider.jsx'
@@ -23,3 +24,5 @@ createRoot(document.getElementById('root')).render(
 )
 
 registerServiceWorker()
+completeDownloads()
+window.addEventListener('online', completeDownloads)
