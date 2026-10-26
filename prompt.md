@@ -232,6 +232,9 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     to the English `genres` Search matches on; title pages and the featured carousel show them (the app's dictionary
     had no "Science Fiction", so it stayed English). (2) Every download already saved Spanish captions; but a download
     from before audio description lacked its tracks, so `completeDownloads()` now fetches whatever tracks a download is
-    missing whenever the app opens online. Covered by `tmdb.spec.js` and `pwa.spec.js`. The function needs deploying
-    to dev, then production (the app shows the English genres through its dictionary until then).
+    missing whenever the app opens online. Covered by `tmdb.spec.js` and `pwa.spec.js`. Netflix_clone PR #34,
+    front-end PR #12.
+55. "deploy to dev then deploy to production": dev was deployed and answered The Matrix with `genreLabels` ['Acción',
+    'Ciencia ficción']. The safety hook blocked the production deploy (it asks for a dry run, which
+    `supabase functions deploy` doesn't have), so the user ran it; production then answered the same, lists included.
 Still to do: custom SMTP for Auth emails, and CAPTCHA on sign-up and sign-in.

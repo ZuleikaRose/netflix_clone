@@ -54,7 +54,7 @@ Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkv
 non_transactional file and function to dev first, then production, with the same migration version on both.
 Both run all 29 migrations (through `20261025040000_interface_language`) and non_transactional 001–012 (production
 caught up 2026-10-23). Both have the same 11 functions (with `monthly-donation`, and the monthly versions of
-`stripe-webhook` and `delete-account`, and the Spanish-aware `tmdb`, on production since 2026-10-26; the deployed
+`stripe-webhook` and `delete-account`, and the Spanish-aware `tmdb` with Spanish genre names (`genreLabels`), on both since 2026-10-26; the deployed
 bundles match). Production's live Stripe webhook has the four
 monthly events too (`invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`,
 `customer.subscription.deleted`), and monthly donations are live: a $1.00 live monthly donation was started, its
