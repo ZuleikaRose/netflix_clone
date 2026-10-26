@@ -22,6 +22,7 @@ netflix_clone/        The Vite app — run all npm commands here
   src/pages/          One file per route; info/, games/ and account/ hold sub-pages
   src/components/     Layout (tab bar or wide-screen top bar, footer), PageHeader, Field, Player, Preview, AccessibilityPanel, hooks
   src/i18n/           Spanish interface: index.js (English text is the key; tr(), locale()), es/<area>.js dictionaries
+                      (es/content.js: the built-in catalog's synopses and episode names)
   scripts/            i18n-check.mjs (run by npm run lint), pwa-icons.mjs, thumbnails.mjs
   e2e/                Playwright specs, serve.js (static server), ports.js (ports + dev project config)
   public/             manifest.webmanifest, sw.js (service worker), icons/ (drawn by scripts/pwa-icons.mjs), media/
@@ -187,6 +188,10 @@ after editing.
   place; the featured carousel is TMDB's five most popular movies and shows (More Info instead of Play; My List stores
   the title first via `state/useStoreTitle.js`). Both fall back to the catalog (`top10`, `popularity`) without TMDB,
   as in CI; specs about the catalog's own Home use `test.use({ tmdb: 'fail' })`.
+- **TMDB in Spanish**: the hooks in `state/useTmdb.js` send the interface language; with Spanish the `tmdb` function
+  gets `language: 'es'` and asks TMDB for `es-MX` (titles, overviews, season and episode names; cache keys include the
+  language). Genre names stay English (the app translates them, and Search matches on them), and `save` always stores
+  English, since the `titles` row is shared. Without the `language` field the function answers in English as before.
 - **Rows**: horizontal rows use `components/Row.jsx` (title, ‹ › buttons that page by 85% of the width, quick clicks
   add up, `aria-disabled` at the ends, hidden when the row fits).
 - **Supabase security**: new `public` tables get no anon/authenticated grants by default (migration
