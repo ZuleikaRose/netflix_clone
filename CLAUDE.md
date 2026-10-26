@@ -20,7 +20,7 @@ netflix_clone/        The Vite app — run all npm commands here
                       billing, preferences), LibraryProvider (lists, ratings, scores, watch progress, tickets…), useReviews,
                       AccessibilityProvider (accessibility menu settings)
   src/pages/          One file per route; info/, games/ and account/ hold sub-pages
-  src/components/     Layout (phone frame, tab bar, footer), PageHeader, Field, Player, Preview, AccessibilityPanel, hooks
+  src/components/     Layout (tab bar or wide-screen top bar, footer), PageHeader, Field, Player, Preview, AccessibilityPanel, hooks
   src/i18n/           Spanish interface: index.js (English text is the key; tr(), locale()), es/<area>.js dictionaries
   scripts/            i18n-check.mjs (run by npm run lint), pwa-icons.mjs, thumbnails.mjs
   e2e/                Playwright specs, serve.js (static server), ports.js (ports + dev project config)
@@ -309,7 +309,7 @@ after editing.
   whatever amount is chosen now; the same amount confirms it again (one intent and one row, even after a decline); a
   new amount gets a new intent. So no retry can charge twice. `processing` shows "being processed", not a failure.
   The round coffee link (`.donate-fab`, "Donate: buy us a coffee") sits inside `.bottom-nav`,
-  absolutely positioned above it, so it is pinned to the phone frame and covered by the tab bar's axe audit; the
+  absolutely positioned above it, so it is covered by the tab bar's axe audit (wide screens: fixed bottom right); the
   bottom `scroll-padding` leaves room for it. `donate.spec.js` pays with Stripe test cards 4242… and 4000…0002 on :4174.
 - **Donation history and receipts**: /donate lists the member's donations (`DonationHistory`, read straight from
   `donations`; it rechecks a few times after a donation while the webhook records it). `process-donation` sets
@@ -386,7 +386,9 @@ after editing.
 
 ## Design rules (from `app_outline/style_guide.md`)
 
-- Designed for a 390px phone; on desktop the app sits in a centered phone frame that scrolls internally.
+- Designed for a 390px phone; from 600px the app fills the screen (more columns), and from 1024px (`useWideScreen`,
+  keep in step with index.css) a top bar replaces the tab bar. `layout.spec.js` sweeps every page at 320–1920px; the
+  layout, browse and i18n specs also run on `tablet`, `firefox` and `webkit` projects.
 - One accent (`--accent: #e50914`) for primary actions; error orange is distinct.
 - Touch targets ≥ 44px (use a `::before` hit area if the visual must be smaller); visible focus; labels on every input.
 - Motion is subtle and disabled under `prefers-reduced-motion`; no auto-advancing carousels (WCAG 2.2.2).

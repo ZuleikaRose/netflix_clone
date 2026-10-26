@@ -8,11 +8,15 @@ together.
 
 ## Layout
 
-* **Mobile-first:** designed for a 390px phone. The app column is at most 430px wide (`.phone`).
-* **Desktop:** from 600px wide the app sits in a centered phone frame (up to 900px tall, rounded, 1px `#333` border)
-  that scrolls inside itself, so the header and tab bar stay pinned. The page area grows to fill the frame, so on a
-  short page (an empty Watch list) the footer and tab bar still sit at the frame's bottom, in the same place on every
-  tab.
+* **Mobile-first:** designed for a 390px phone, and it works down to 320px (rows of chips scroll sideways).
+* **Tablets (600px and wider):** the app fills the screen. Gutters grow to 32px, posters and the hero get bigger, grids
+  add columns, title art and the player keep a 16:9 shape, and text pages (settings, legal, notifications) stay in a
+  centred 880px column. The tab bar stays at the bottom, spanning the width. Signed-out pages put the form in a
+  480px column.
+* **Wide screens (1024px and wider: notebooks, Chromebooks, desktops, tablets sideways):** a 68px top bar
+  (logo, the four tabs with icon and label, then accessibility, search, bell and profile) replaces the tab bar and the
+  page headers' icons; page headers show only the back button and a left-aligned 32px title. Home's banner shows its
+  copy on the left. Gutters are 48px (64px from 1600px). The coffee button sits in the bottom right corner.
 * **Page header** (every page): sticky, translucent black (`#090909f2`) with a blur. Back button or brand on the left,
   the page title centered, and the accessibility menu button on the right.
 * **Bottom tab bar** (signed in): Home · Games · New & Hot · My App, fixed at the bottom, highlighting the current
@@ -100,7 +104,7 @@ together.
 * **App notices:** offline and "new version ready" notices sit above the page on `#262626` with white text and a
   white Reload button; they're informational, so they don't use the accent or the error orange.
 * **Coffee button:** a 52px circle with a white coffee cup, floating 12px above the tab bar's right end on every
-  signed-in page (inside the phone frame on desktop), with a soft shadow. It links to /donate ("Donate: buy us a
+  signed-in page (bottom right corner on wide screens), with a soft shadow. It links to /donate ("Donate: buy us a
   coffee") and turns darker there. Keyboard focus scrolls clear of it.
 * **Donate page:** a settings card with the amount as pill radio choices ($5, $10, $25, $50, Other amount), the Stripe
   card field styled like our inputs (`#1a1a1a`, white text, orange when invalid), and a full-width accent "Donate

@@ -76,6 +76,9 @@ test.describe('homepage', () => {
   })
 
   test('row arrows page through a row and stop at its ends', async ({ page }) => {
+    // A phone-width window, so the row is wider than the screen (on a wide one the built-in Top 10 fits, and the
+    // arrows hide)
+    await page.setViewportSize({ width: 390, height: 844 })
     const left = page.getByRole('button', { name: 'Scroll Top 10 in the U.S. Today left' })
     const right = page.getByRole('button', { name: 'Scroll Top 10 in the U.S. Today right' })
     const rail = page.locator('.row-section', { has: page.getByRole('heading', { name: 'Top 10 in the U.S. Today' }) }).locator('.rail')

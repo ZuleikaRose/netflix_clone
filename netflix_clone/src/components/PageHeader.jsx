@@ -5,13 +5,24 @@ import { AccessibilityButton } from './AccessibilityButton.jsx'
 import { NotificationBell } from './NotificationBell.jsx'
 import { useDocumentTitle } from './useDocumentTitle.js'
 import { useT } from '../state/useT.js'
+import { useWideScreen } from '../state/useWideScreen.js'
 
-// `title` comes already translated
+// `title` comes already translated. On wide screens the top bar (Layout) has the logo and icons, so the header is
+// just the back button and the title.
 export function PageHeader({ title, back = false }) {
   const t = useT()
   const navigate = useNavigate()
+  const wide = useWideScreen()
   useDocumentTitle(title)
 
+  if (wide) {
+    return (
+      <header className="page-header">
+        {back && <button className="icon-button" aria-label={t('Go back')} onClick={() => navigate(-1)}><Icon name="back" /></button>}
+        <h1>{title}</h1>
+      </header>
+    )
+  }
   return (
     <header className="page-header">
       {back
