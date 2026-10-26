@@ -137,7 +137,7 @@ export function TitleDetail() {
         <TitleReaction title={title} />
         <AddToList title={title} />
 
-        <p className="synopsis">{title.synopsis}</p>
+        <p className="synopsis">{t(title.synopsis)}</p>
         <CreditLinks label={t('Starring')} people={title.cast.map((name) => ({ name, to: personPath(name) }))} />
         <CreditLinks label={t('Director')} people={splitNames(title.crew.director).map((name) => ({ name, to: personPath(name) }))} />
         <CreditLinks label={t('Writer')} people={splitNames(title.crew.writer).map((name) => ({ name, to: personPath(name) }))} />

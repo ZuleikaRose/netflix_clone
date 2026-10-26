@@ -24,10 +24,11 @@ const undersizedTargets = () => [...document.querySelectorAll('.page :is(a, butt
   })
   .filter(({ w, h }) => w < 44 || h < 44)
 
+// Rows that scroll sideways (.rail, Home's .filters chips) are meant to reach past the edge
 const overflowingElements = () => {
   const width = document.documentElement.clientWidth
   return [...document.querySelectorAll('.page *')]
-    .filter((el) => !el.closest('.rail') && el.getBoundingClientRect().right > width + 1)
+    .filter((el) => !el.closest('.rail, .filters') && el.getBoundingClientRect().right > width + 1)
     .map((el) => el.className || el.tagName)
 }
 
@@ -56,23 +57,49 @@ test('keyboard focus is visible and follows a logical order on Home', async ({ p
     await page.keyboard.press('Tab')
     order.push(await page.evaluate(() => document.activeElement.getAttribute('aria-label') || document.activeElement.innerText))
   }
-  expect(order).toEqual(['Home', 'Accessibility menu', 'Search', 'Notifications', 'My App profile'])
+  // Wide screens (the desktop project) have the tabs in the top bar, between the logo and the icons
+  const wide = page.viewportSize().width >= 1024
+  expect(order).toEqual(wide
+    ? ['Home', 'Home', 'Games', 'New & Hot', 'My App']
+    : ['Home', 'Accessibility menu', 'Search', 'Notifications', 'My App profile'])
   const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)
   expect(outline).toBe('solid')
 })
 
-test.describe('tall desktop window', () => {
-  test.use({ viewport: { width: 1440, height: 1200 } })
+// Phones, tablets (portrait and sideways), Chromebooks and notebooks, desktop monitors: the app fills the screen,
+// with the tab bar at the bottom below 1024px and a top bar from 1024px
+const devices = [
+  { name: 'small phone', width: 320, height: 640 },
+  { name: 'tablet', width: 768, height: 1024 },
+  { name: 'tablet sideways', width: 1024, height: 768 },
+  { name: 'notebook / Chromebook', width: 1366, height: 768 },
+  { name: 'desktop', width: 1920, height: 1080 },
+]
+for (const device of devices) {
+  test.describe(`${device.name} (${device.width}×${device.height})`, () => {
+    test.use({ viewport: { width: device.width, height: device.height } })
 
-  test('the tab bar sits at the bottom of the phone frame on every tab, even on short pages', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'The phone frame is desktop only')
-    await signInAsDemo(page)
-    const frame = await page.locator('.phone').boundingBox()
-    for (const route of ['/', '/games', '/new', '/my-netflix', '/favorites']) {
-      await navigateInApp(page, route)
-      await expect(tabBar(page)).toBeVisible()
-      const bar = await tabBar(page).boundingBox()
-      expect(Math.round(bar.y + bar.height), `tab bar on ${route}`).toBe(Math.round(frame.y + frame.height - 1))
-    }
+    test('every page fits the screen, and the navigation suits it', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'desktop', 'Sets its own window size; runs once')
+      test.setTimeout(120_000)
+      await signInAsDemo(page)
+      const wide = device.width >= 1024
+      const nav = tabBar(page)
+      await expect(nav).toBeVisible()
+      const box = await nav.boundingBox()
+      if (wide) {
+        expect(box.y, 'the tabs are in the top bar').toBeLessThan(80)
+      } else {
+        expect(Math.round(box.y + box.height), 'the tab bar sits at the bottom').toBe(device.height)
+        expect(Math.round(box.width), 'the tab bar spans the screen').toBe(device.width)
+      }
+      for (const route of routes) {
+        await navigateInApp(page, route)
+        await expect(page.locator('.page h1, .page-header h1').first(), route).toBeVisible()
+        expect(await page.evaluate(overflowingElements), `${route} overflows horizontally`).toEqual([])
+        // The app uses the whole width, not a phone-sized column
+        expect(Math.round((await page.locator('.phone').boundingBox()).width), route).toBe(device.width)
+      }
+    })
   })
-})
+}

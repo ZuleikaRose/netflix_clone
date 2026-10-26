@@ -16,6 +16,7 @@ import { useCatalog } from '../state/useCatalog.js'
 import { useLibrary } from '../state/libraryContext.js'
 import { useProfile } from '../state/profileContext.js'
 import { ProfileAvatar } from '../components/ProfileAvatar.jsx'
+import { useWideScreen } from '../state/useWideScreen.js'
 import { SurpriseButton } from '../components/SurpriseButton.jsx'
 import { useStoreTitle } from '../state/useStoreTitle.js'
 import { useTmdbLists, useTmdbRecommendations } from '../state/useTmdb.js'
@@ -45,6 +46,7 @@ export function Home() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { profile } = useProfile()
+  const wide = useWideScreen()
   const { myList, favorites, ratings, reactions, progress, toggleMyList, dismissedNotices, dismissNotice } = useLibrary()
   const [type, setType] = useState(null)
   const [slide, setSlide] = useState(0)
@@ -115,15 +117,18 @@ export function Home() {
 
   return (
     <>
-      <header className="topbar">
-        <Link to="/" className="brand" aria-label={t('Home')}><Logo size={34} /></Link>
-        <div className="top-actions">
-          <AccessibilityButton />
-          <Link to="/search" className="icon-button" aria-label={t('Search')}><Icon name="search" /></Link>
-          <NotificationBell />
-          <Link to="/my-netflix" className="avatar-hit" aria-label={t('My App profile')}><ProfileAvatar profile={profile} /></Link>
-        </div>
-      </header>
+      {/* Wide screens have these in the top bar (Layout) */}
+      {!wide && (
+        <header className="topbar">
+          <Link to="/" className="brand" aria-label={t('Home')}><Logo size={34} /></Link>
+          <div className="top-actions">
+            <AccessibilityButton />
+            <Link to="/search" className="icon-button" aria-label={t('Search')}><Icon name="search" /></Link>
+            <NotificationBell />
+            <Link to="/my-netflix" className="avatar-hit" aria-label={t('My App profile')}><ProfileAvatar profile={profile} /></Link>
+          </div>
+        </header>
+      )}
 
       <section className="filters" aria-label={t('Browse filters')}>
         {filters.map(([label, value]) => (

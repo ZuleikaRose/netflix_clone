@@ -9,6 +9,9 @@ test.describe('Spanish interface', () => {
 
     await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
     const menu = page.getByRole('dialog')
+    // The translation option has its own section, with a hint in Spanish
+    await expect(menu.getByRole('heading', { name: 'Language & translation' })).toBeVisible()
+    await expect(menu.getByText('¿Prefieres español? Elige Español para traducir toda la app.')).toBeVisible()
     await menu.getByRole('group', { name: 'Language', exact: true }).getByRole('radio', { name: 'Español' }).check()
     await expect(page.locator('html')).toHaveAttribute('lang', 'es')
     // The menu itself follows at once
@@ -24,6 +27,10 @@ test.describe('Spanish interface', () => {
     await navigateInApp(page, '/title/after-dark')
     await expect(page.getByRole('heading', { name: /AFTER\s*DARK/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /^\s*(Reanudar|Reproducir)$/ })).toBeVisible()
+    // The catalog's synopses and episode names are in Spanish too
+    await expect(page.getByText(/^Un cartel de la autopista empieza a mostrar advertencias/)).toBeVisible()
+    await navigateInApp(page, '/title/night-shift')
+    await expect(page.getByRole('button', { name: 'Reproducir S1:E1 Piloto', exact: true })).toBeVisible()
 
     // A form in Spanish, with its validation message
     await navigateInApp(page, '/info/feedback')

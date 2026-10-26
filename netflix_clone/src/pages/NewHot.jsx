@@ -21,6 +21,7 @@ function RemindButton({ title, reminder, day }) {
 }
 
 function FeedItem({ title, meta, children }) {
+  const t = useT()
   return (
     <li className="feed-item">
       <Link to={title.path ?? `/title/${title.id}`} className="feed-art">
@@ -35,7 +36,7 @@ function FeedItem({ title, meta, children }) {
           {children}
         </div>
         {meta}
-        <p className="muted">{title.synopsis}</p>
+        <p className="muted">{t(title.synopsis)}</p>
       </div>
     </li>
   )
