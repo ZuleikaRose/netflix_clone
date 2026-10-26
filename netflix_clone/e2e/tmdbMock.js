@@ -73,6 +73,8 @@ export async function mockTmdb(page, { fail = false } = {}) {
       person: () => people[body.id] ? { person: people[body.id] } : { status: 404, error: 'Person not found.' },
       save: () => details[`${body.type}:${body.id}`] ? { title: details[`${body.type}:${body.id}`] } : null,
     }[body.action]?.()
+    // `language: 'es'`: the title page answers with a Spanish overview, as TMDB's Spanish data would
+    if (body.language === 'es' && reply?.title) reply.title = { ...reply.title, synopsis: `Sinopsis de ${reply.title.title}.` }
     if (reply?.status) return route.fulfill({ status: reply.status, headers: cors, json: { error: reply.error } })
     return reply ? route.fulfill({ headers: cors, json: reply }) : route.fulfill({ status: 404, headers: cors, json: { error: 'Title not found.' } })
   })

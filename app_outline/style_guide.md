@@ -103,6 +103,8 @@ together.
   Watching now with names, the invite link with Copy, and the chat.
 * **App notices:** offline and "new version ready" notices sit above the page on `#262626` with white text and a
   white Reload button; they're informational, so they don't use the accent or the error orange.
+* **Accessibility menu:** Language & translation comes first (English / Español pills), with a one-line hint written in the
+  other language. On tablets and wider the menu is a centred dialog rather than a bottom sheet.
 * **Coffee button:** a 52px circle with a white coffee cup, floating 12px above the tab bar's right end on every
   signed-in page (bottom right corner on wide screens), with a soft shadow. It links to /donate ("Donate: buy us a
   coffee") and turns darker there. Keyboard focus scrolls clear of it.
