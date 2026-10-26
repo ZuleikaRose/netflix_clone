@@ -53,7 +53,7 @@ Without it, the demo account lives in memory and the TMDB sections don't appear.
 - **Keyboard shortcuts:** press **?** on any page to see every shortcut.
 - **Screen-time limits:** give a profile (say, a Kids profile) a daily limit with the account password; the player stops when it's used up, and only the account password allows more time.
 - **Spanish captions:** choose Caption language → Español in the accessibility menu.
-- **The whole app in Spanish:** choose Language & translation → Español at the top of the accessibility menu (or arrive in Spanish when your browser is); the choice follows you to every device. Synopses and episode names are translated, and TMDB's titles and overviews come in Spanish once the updated `tmdb` function is deployed; title names, cast and reviews stay as published.
+- **The whole app in Spanish:** choose Language & translation → Español at the top of the accessibility menu (or arrive in Spanish when your browser is); the choice follows you to every device. Synopses and episode names are translated, and TMDB's titles and overviews come in Spanish too; title names, cast and reviews stay as published.
 - **Every screen size:** phones get the mobile design; tablets fill the width; notebooks, Chromebooks and desktops (Windows, Mac, Linux) get a top bar and a wide banner.
 - **Audio description:** turn it on from the player's AD button, the D key or the accessibility menu, and the player reads out what happens on screen in your caption language, pausing the video while it speaks.
 - **Weekly screen time:** for a profile with a daily limit, see how long it watched on each of the last 7 days, with the total and the daily average.
