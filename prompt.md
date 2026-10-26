@@ -191,4 +191,28 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     front-end repo's latest `main`, made with the production Supabase project, Supabase Auth and the live Stripe key;
     the $1.00 monthly test donation was made from it.
 
-Still to do: custom SMTP for Auth emails, and CAPTCHA on sign-up and sign-in.
+45. "1. please add spanish translation for the netflix_clone app 2. Please make sure the app is reflexive and
+    responsive. Works on notebooks, tablets, PC, MAC, Linux, Chromebooks. Do these in phases and commit and push".
+    Phase 1: the interface was already in Spanish; a page-by-page audit in Spanish found the catalog's own text still
+    in English, so `src/i18n/es/content.js` translates the synopses and episode names. Phase 2: asked whether to keep
+    the desktop phone frame or fill the screen, the answer was fill the screen. Phones keep the mobile design;
+    tablets use the full width; from 1024px a top bar replaces the tab bar. Layout tests sweep 320–1920px and run in a
+    tablet window, Firefox and WebKit. Front-end PR #10 and PR #30 here.
+46. "merge both": #30 merged once green; #10's CI hung installing browsers, was cancelled and rerun, passed and merged.
+    The live site shows the new layout and the Spanish catalog text.
+47. "give an option in accessibility for spanish translation of the app": the existing English/Español choice now
+    has its own Language & translation section at the top of the menu, with a hint written in the other language.
+48. "please continue" (the open follow-up: TMDB in Spanish): the app sends the interface language to the `tmdb`
+    function, which asks TMDB for es-MX (genre names and saved titles stay English). Type-checked with Deno and covered
+    by a mocked e2e test. Deploying the function to the Supabase projects was blocked by the session's permission
+    check, so it waits for the user to deploy it (dev first, then production); until then the deployed function
+    ignores the new field and answers in English.
+49. "Please update and edit new table and columns on the drawsql.png and update the schema.sql file too ... update the
+    user_journey.md, user_stories.md, style_guide.md, CLAUDE.md, prompt.md ... update supabase ... update the
+    README.md ... commit and push prompt records to github". This work added no tables or columns: `schema.sql` and
+    `drawsql.png` already list all 34 tables and the language columns, and both Supabase projects run all 29
+    migrations, so neither file nor database needed a change. The journey, stories (74–75), style guide, CLAUDE.md,
+    READMEs and these prompt records were updated.
+
+Still to do: custom SMTP for Auth emails, CAPTCHA on sign-up and sign-in, and deploying the Spanish-aware `tmdb`
+function (step 48).
