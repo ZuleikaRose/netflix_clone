@@ -21,11 +21,10 @@ export default defineConfig({
   projects: [
     { name: 'mobile', use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, hasTouch: true } },
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
-    // A tablet held upright (tab bar at the bottom, wider layout), and the other engines on notebook-sized windows:
-    // Firefox (Windows, Linux) and WebKit (Safari on a Mac, and every iPad and iPhone browser). Chromebooks and Edge
-    // are Chromium, as above. They run the page sweeps, browsing and the Spanish interface.
+    // A tablet held upright (tab bar at the bottom, wider layout), and Firefox (Windows, Linux) on a notebook-sized
+    // window. Chromebooks and Edge are Chromium, as above. They run the page sweeps, browsing and the Spanish
+    // interface. Safari (WebKit) isn't tested: its system libraries made CI's browser install hang.
     { name: 'firefox', testMatch: /(layout|browse|i18n)\.spec\.js/, use: { ...devices['Desktop Firefox'], viewport: { width: 1366, height: 768 } } },
-    { name: 'webkit', testMatch: /(layout|browse|i18n)\.spec\.js/, use: { ...devices['Desktop Safari'], viewport: { width: 1440, height: 900 } } },
     { name: 'tablet', testMatch: /(layout|browse|i18n)\.spec\.js/, use: { ...devices['Desktop Chrome'], viewport: { width: 820, height: 1180 }, hasTouch: true } },
   ],
   // Tests run against production builds, served with SPA fallback by e2e/serve.js. Both builds use the dev project

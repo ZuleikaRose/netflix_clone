@@ -145,7 +145,7 @@ Requirements and the outline-to-route map are in [`../CLAUDE.md`](../CLAUDE.md).
 ## Design notes
 
 - Spanish: Accessibility menu → Language & translation → Español translates the interface, the catalog's synopses and episode names (`src/i18n/es/content.js`) and, through the `tmdb` function, TMDB's titles and overviews.
-- Designed for 390px phones. Tablets (600px+) use the full width with more columns; notebooks, Chromebooks and desktops (1024px+) get a top bar instead of the tab bar and a centred column for text pages. Layout tests cover 320–1920px in Chromium, Firefox and WebKit.
+- Designed for 390px phones. Tablets (600px+) use the full width with more columns; notebooks, Chromebooks and desktops (1024px+) get a top bar instead of the tab bar and a centred column for text pages. Layout tests cover 320–1920px in Chromium and Firefox (Safari isn't tested).
 - One accent color (`#e50914`) for primary actions. Form errors use a distinct orange (`#e87c03`).
 - Touch targets are at least 44px, keyboard focus is always visible, and every input has a label. Motion is subtle and turned off under `prefers-reduced-motion`.
 - The accessibility menu's settings are applied as `data-a11y-*` attributes on `<html>`. Signed out, they reset on reload; with Supabase, members' settings are saved and applied again at sign-in and after a reload. Its readable and dyslexia-friendly fonts are Atkinson Hyperlegible and Lexend from Google Fonts.

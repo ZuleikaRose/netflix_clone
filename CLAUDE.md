@@ -393,7 +393,8 @@ after editing.
 
 - Designed for a 390px phone; from 600px the app fills the screen (more columns), and from 1024px (`useWideScreen`,
   keep in step with index.css) a top bar replaces the tab bar. `layout.spec.js` sweeps every page at 320–1920px; the
-  layout, browse and i18n specs also run on `tablet`, `firefox` and `webkit` projects.
+  layout, browse and i18n specs also run on `tablet` and `firefox` projects. Safari (WebKit) is
+  deliberately not tested: installing its system libraries made CI hang.
 - One accent (`--accent: #e50914`) for primary actions; error orange is distinct.
 - Touch targets ≥ 44px (use a `::before` hit area if the visual must be smaller); visible focus; labels on every input.
 - Motion is subtle and disabled under `prefers-reduced-motion`; no auto-advancing carousels (WCAG 2.2.2).

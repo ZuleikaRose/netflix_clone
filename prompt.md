@@ -214,5 +214,9 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     migrations, so neither file nor database needed a change. The journey, stories (74–75), style guide, CLAUDE.md,
     READMEs and these prompt records were updated.
 
+50. "please merge both" (#31 merged; #11's CI hung again installing browsers) and "skip testing on safari browsers":
+    the WebKit project and its install are gone from both repos' Playwright config and CI (installing WebKit's
+    system libraries is what kept hanging). Chromium (phone, desktop, tablet) and Firefox stay. The new `tmdb`
+    function is deployed to dev and answers in Spanish there; production waits for the user's go-ahead.
 Still to do: custom SMTP for Auth emails, CAPTCHA on sign-up and sign-in, and deploying the Spanish-aware `tmdb`
 function (step 48).
