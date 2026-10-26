@@ -66,7 +66,7 @@ export function PlotTwist({ titles }) {
 
       <section className="settings-card" aria-labelledby="plot-q">
         <h2 id="plot-q">{t('Which title is this?')}</h2>
-        <blockquote className="plot">“{round.answer.synopsis}”</blockquote>
+        <blockquote className="plot">“{t(round.answer.synopsis)}”</blockquote>
         <div className="answer-list">
           {round.options.map((option) => {
             const state = !picked ? '' : option.id === round.answer.id ? ' right' : option.id === picked ? ' wrong' : ''

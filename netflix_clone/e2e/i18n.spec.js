@@ -24,6 +24,10 @@ test.describe('Spanish interface', () => {
     await navigateInApp(page, '/title/after-dark')
     await expect(page.getByRole('heading', { name: /AFTER\s*DARK/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /^\s*(Reanudar|Reproducir)$/ })).toBeVisible()
+    // The catalog's synopses and episode names are in Spanish too
+    await expect(page.getByText(/^Un cartel de la autopista empieza a mostrar advertencias/)).toBeVisible()
+    await navigateInApp(page, '/title/night-shift')
+    await expect(page.getByRole('button', { name: 'Reproducir S1:E1 Piloto', exact: true })).toBeVisible()
 
     // A form in Spanish, with its validation message
     await navigateInApp(page, '/info/feedback')
