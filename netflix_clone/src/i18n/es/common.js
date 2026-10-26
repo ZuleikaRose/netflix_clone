@@ -19,6 +19,7 @@ export default {
   'Accessibility menu': 'Menú de accesibilidad',
   'Close accessibility menu': 'Cerrar el menú de accesibilidad',
   'Language': 'Idioma',
+  'Language & translation': 'Idioma y traducción',
 
   // Actions
   'Play': 'Reproducir',

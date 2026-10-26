@@ -655,6 +655,7 @@ textarea { resize: vertical; }
 .a11y-head h2 { margin: 0; font-size: 19px; }
 .a11y-body { display: grid; gap: 22px; padding: 16px 18px; overflow-y: auto; }
 .a11y-body section { display: grid; gap: 12px; }
+.a11y-language p { margin: 0; }
 .a11y-body h3 { margin: 0; color: #bcbcbc; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
 .a11y-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px max(14px, env(safe-area-inset-bottom)); border-top: 1px solid #262626; }
 .a11y-foot .ghost-cta { width: auto; margin: 0; padding: 0 16px; }

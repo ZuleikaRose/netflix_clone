@@ -9,6 +9,9 @@ test.describe('Spanish interface', () => {
 
     await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
     const menu = page.getByRole('dialog')
+    // The translation option has its own section, with a hint in Spanish
+    await expect(menu.getByRole('heading', { name: 'Language & translation' })).toBeVisible()
+    await expect(menu.getByText('¿Prefieres español? Elige Español para traducir toda la app.')).toBeVisible()
     await menu.getByRole('group', { name: 'Language', exact: true }).getByRole('radio', { name: 'Español' }).check()
     await expect(page.locator('html')).toHaveAttribute('lang', 'es')
     // The menu itself follows at once

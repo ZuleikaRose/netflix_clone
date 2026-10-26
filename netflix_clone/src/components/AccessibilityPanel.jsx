@@ -66,7 +66,15 @@ export function AccessibilityPanel() {
       </header>
 
       <div className="a11y-body">
-        <Choice name="language" value={settings.language} onChange={update} />
+        {/* First in the menu: the whole app in Spanish (or back to English). The hint is in the other language, so
+            someone who can't read the current one still finds it */}
+        <section aria-labelledby="a11y-language" className="a11y-language">
+          <h3 id="a11y-language">{t('Language & translation')}</h3>
+          <Choice name="language" value={settings.language} onChange={update} />
+          {settings.language === 'es'
+            ? <p className="muted" lang="en">Prefer English? Choose English to show the whole app in English.</p>
+            : <p className="muted" lang="es">¿Prefieres español? Elige Español para traducir toda la app.</p>}
+        </section>
 
         <section aria-labelledby="a11y-profiles">
           <h3 id="a11y-profiles">{t('Profiles')}</h3>
