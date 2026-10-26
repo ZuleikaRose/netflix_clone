@@ -27,6 +27,22 @@ test.describe('TMDB titles from the tmdb Edge Function', () => {
     await expect(newRow.getByRole('link', { name: 'The Pitt' })).toHaveCount(0)
   })
 
+  test('in Spanish, TMDB pages ask the function for Spanish and show its overview; English asks without a language', async ({ page }) => {
+    await mockTmdb(page)
+    const asked = []
+    page.on('request', (r) => { if (r.url().includes('/functions/v1/tmdb') && r.method() === 'POST') asked.push(r.postDataJSON()) })
+    await signInAsDemo(page)
+    await navigateInApp(page, '/tmdb/movie/603')
+    await expect(page.getByText('The Matrix overview.')).toBeVisible()
+    expect(asked.find((b) => b.action === 'title')).not.toHaveProperty('language')
+
+    await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
+    await page.getByRole('dialog').getByRole('group', { name: 'Language', exact: true }).getByRole('radio', { name: 'Español' }).check()
+    await page.keyboard.press('Escape')
+    await expect(page.getByText('Sinopsis de The Matrix.')).toBeVisible()
+    expect(asked.filter((b) => b.action === 'title').at(-1)).toMatchObject({ action: 'title', language: 'es' })
+  })
+
   test('Top 10 is TMDB’s trending movies and TV shows, alternating and numbered by place', async ({ page }) => {
     await mockTmdb(page)
     await signInAsDemo(page)

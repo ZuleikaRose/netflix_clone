@@ -8,6 +8,9 @@
 //   { action: 'save', type, id } (signed in)         → { title } after storing it, so it can go on My List or Favorites
 //   { action: 'person', id }                         → { person }: an actor's or director's details and best-known titles
 //   { action: 'season', id, season }                 → { season }: a TV show's season and its episodes
+// Any action but `save` takes `language: 'es'` for TMDB's Spanish (Mexico) titles, overviews and season and episode
+// names; titles TMDB hasn't translated keep their original. Genre names stay English (the app translates them and
+// matches Search's genre chips on them), and saved titles are stored in English, since every member shares the row.
 // Public like the catalog itself (except `save`); the TMDB key stays in the TMDB_API_FREE secret and never reaches
 // the browser. List, search and recommendation results carry real US certifications (looked up once per title and
 // kept in public.tmdb_certifications), so restricted profiles see the titles within their maturity setting.
@@ -39,6 +42,9 @@ const CREW_JOBS = ['Director', 'Creator', 'Screenplay', 'Writer']
 const GUEST_ROLE = /^(self|himself|herself|themselves)\b|\(uncredited\)/i
 
 type Type = 'movie' | 'show'
+type Lang = 'en-US' | 'es-MX'
+const asLang = (value: unknown): Lang => (value === 'es' ? 'es-MX' : 'en-US')
+const spanish = (lang: Lang) => lang === 'es-MX'
 type Item = Record<string, any>
 
 // Responses kept for a few minutes per function instance, so busy pages don't each cost TMDB requests
@@ -56,9 +62,9 @@ const isCached = (cacheKey: string) => (cache.get(cacheKey)?.expires ?? 0) > Dat
 
 class NotFound extends Error {}
 
-async function tmdb(path: string, params: Record<string, string> = {}): Promise<Item> {
+async function tmdb(path: string, params: Record<string, string> = {}, lang: Lang = 'en-US'): Promise<Item> {
   const url = new URL(API + path)
-  for (const [name, value] of Object.entries({ language: 'en-US', ...params })) url.searchParams.set(name, value)
+  for (const [name, value] of Object.entries({ language: lang, ...params })) url.searchParams.set(name, value)
   if (!isReadToken) url.searchParams.set('api_key', key)
   const response = await fetch(url, {
     headers: { accept: 'application/json', ...(isReadToken ? { Authorization: `Bearer ${key}` } : {}) },
@@ -84,7 +90,7 @@ const formatRuntime = (minutes?: number) =>
 
 // The shape of data/catalog.js titles, plus `source`, `tmdbId`, `rating`, `backdrop` and `tmdbUrl`.
 // TMDB's list and search results have no certification: `maturity` starts as 'NR' and toTitles fills it in.
-function toTitle(item: Item, type: Type, genres: string[]) {
+function toTitle(item: Item, type: Type, genres: string[], lang: Lang) {
   return {
     id: `tmdb-${type}-${item.id}`,
     tmdbId: item.id,
@@ -104,7 +110,7 @@ function toTitle(item: Item, type: Type, genres: string[]) {
     image: image(item.poster_path, 'w342') ?? image(item.backdrop_path, 'w780'),
     backdrop: image(item.backdrop_path, 'w780') ?? image(item.poster_path, 'w500'),
     tint: 'none',
-    synopsis: item.overview || 'No overview yet.',
+    synopsis: item.overview || (spanish(lang) ? 'Todavía no hay sinopsis.' : 'No overview yet.'),
     cast: [],
     crew: { director: null, writer: null },
     reviews: [],
@@ -159,31 +165,31 @@ async function withCertifications<T extends { tmdbId: number; type: Type; maturi
   return titles.map((t) => ({ ...t, maturity: found.get(keyOf(t.type, t.tmdbId)) ?? 'NR' }))
 }
 
-async function toTitles(items: Item[], type?: Type) {
+async function toTitles(items: Item[], lang: Lang, type?: Type) {
   const [movieGenres, showGenres] = await Promise.all([genreNames('movie'), genreNames('show')])
   const titles = items
     .map((item) => ({ item, itemType: type ?? (item.media_type === 'tv' ? 'show' : 'movie') as Type }))
     .filter(({ item }) => item.poster_path || item.backdrop_path)
     .map(({ item, itemType }) => {
       const genres = itemType === 'show' ? showGenres : movieGenres
-      return toTitle(item, itemType, (item.genre_ids ?? []).map((id: number) => genres.get(id)).filter(Boolean))
+      return toTitle(item, itemType, (item.genre_ids ?? []).map((id: number) => genres.get(id)).filter(Boolean), lang)
     })
   return withCertifications(titles)
 }
 
-const list = (path: string, type: Type) =>
-  cached(`list:${path}`, LIST_TTL_MS, async () => toTitles((await tmdb(path)).results, type))
+const list = (path: string, type: Type, lang: Lang) =>
+  cached(`list:${path}:${lang}`, LIST_TTL_MS, async () => toTitles((await tmdb(path, {}, lang)).results, lang, type))
 
 // New: movies in theaters now and TV shows with an episode airing this week
-const lists = () => cached('lists', LIST_TTL_MS, async () => {
+const lists = (lang: Lang) => cached(`lists:${lang}`, LIST_TTL_MS, async () => {
   const [newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows, upcoming] = await Promise.all([
-    list('/movie/now_playing', 'movie'),
-    list('/tv/on_the_air', 'show'),
-    list('/trending/movie/week', 'movie'),
-    list('/trending/tv/week', 'show'),
-    list('/movie/popular', 'movie'),
-    list('/tv/popular', 'show'),
-    list('/movie/upcoming?region=US', 'movie'),
+    list('/movie/now_playing', 'movie', lang),
+    list('/tv/on_the_air', 'show', lang),
+    list('/trending/movie/week', 'movie', lang),
+    list('/trending/tv/week', 'show', lang),
+    list('/movie/popular', 'movie', lang),
+    list('/tv/popular', 'show', lang),
+    list('/movie/upcoming?region=US', 'movie', lang),
   ])
   // Coming soon: TMDB's upcoming list also has films already out, so keep the future ones, soonest first
   const today = new Date().toISOString().slice(0, 10)
@@ -192,9 +198,9 @@ const lists = () => cached('lists', LIST_TTL_MS, async () => {
   return { newMovies, newShows, trendingMovies, trendingShows, popularMovies, popularShows, upcomingMovies }
 })
 
-const search = (query: string) => cached(`search:${query.toLowerCase()}`, SEARCH_TTL_MS, async () => {
-  const { results } = await tmdb('/search/multi', { query, include_adult: 'false' })
-  return toTitles(results.filter((r: Item) => r.media_type === 'movie' || r.media_type === 'tv'))
+const search = (query: string, lang: Lang) => cached(`search:${query.toLowerCase()}:${lang}`, SEARCH_TTL_MS, async () => {
+  const { results } = await tmdb('/search/multi', { query, include_adult: 'false' }, lang)
+  return toTitles(results.filter((r: Item) => r.media_type === 'movie' || r.media_type === 'tv'), lang)
 })
 
 const names = (people: Item[] = []) => [...new Set(people.map((p) => p.name))].join(', ') || null
@@ -220,12 +226,17 @@ function providers(item: Item) {
   return found.stream.length || found.rent.length || found.buy.length ? found : null
 }
 
-const title = (type: Type, id: number) => cached(`title:${type}:${id}`, LIST_TTL_MS, async () => {
+const title = (type: Type, id: number, lang: Lang = 'en-US'): Promise<Item> => cached(`title:${type}:${id}:${lang}`, LIST_TTL_MS, async () => {
   const append = `credits,videos,watch/providers,${type === 'show' ? 'content_ratings' : 'release_dates'}`
-  const item = await tmdb(`/${tmdbPath(type)}/${id}`, { append_to_response: append })
+  // In Spanish, trailers in either language (TMDB returns only the request's language otherwise)
+  const item = await tmdb(`/${tmdbPath(type)}/${id}`, { append_to_response: append, ...(spanish(lang) ? { include_video_language: 'es,en' } : {}) }, lang)
+  // No Spanish overview: the English one rather than none
+  if (spanish(lang) && !item.overview) item.overview = (await title(type, id)).synopsis
   const crew: Item[] = item.credits?.crew ?? []
+  // Genre names in English whatever the language (see the top of the file)
+  const genres = await genreNames(type)
   return {
-    ...toTitle(item, type, (item.genres ?? []).map((g: Item) => g.name)),
+    ...toTitle(item, type, (item.genres ?? []).map((g: Item) => genres.get(g.id) ?? g.name), lang),
     maturity: certification(item, type),
     ...(type === 'show'
       ? {
@@ -238,7 +249,7 @@ const title = (type: Type, id: number) => cached(`title:${type}:${id}`, LIST_TTL
           : null,
         // Numbered seasons (TMDB's season 0 holds specials)
         seasonList: (item.seasons ?? []).filter((x: Item) => x.season_number > 0 && x.episode_count > 0).map((x: Item) => ({
-          number: x.season_number, name: x.name || `Season ${x.season_number}`, episodes: x.episode_count,
+          number: x.season_number, name: x.name || `${spanish(lang) ? 'Temporada' : 'Season'} ${x.season_number}`, episodes: x.episode_count,
           year: Number((x.air_date ?? '').slice(0, 4)) || null,
         })),
       }
@@ -261,8 +272,8 @@ const title = (type: Type, id: number) => cached(`title:${type}:${id}`, LIST_TTL
   }
 })
 
-const recommendations = (type: Type, id: number) => cached(`recommendations:${type}:${id}`, LIST_TTL_MS, async () =>
-  toTitles((await tmdb(`/${tmdbPath(type)}/${id}/recommendations`)).results, type))
+const recommendations = (type: Type, id: number, lang: Lang) => cached(`recommendations:${type}:${id}:${lang}`, LIST_TTL_MS, async () =>
+  toTitles((await tmdb(`/${tmdbPath(type)}/${id}/recommendations`, {}, lang)).results, lang, type))
 
 // Stores a TMDB title a member saves: its core fields as a titles row (source 'tmdb', so watch lists and favorites
 // can reference it) and its TMDB-only details in tmdb_titles. Built from TMDB's data, never from what the browser sends.
@@ -285,8 +296,8 @@ const save = (type: Type, id: number) => cached(`saved:${type}:${id}`, LIST_TTL_
 
 // An actor's or director's page: TMDB's details and their best-known movies and shows (acting, directing, writing
 // or creating), most voted first, each with the role they had
-const person = (id: number) => cached(`person:${id}`, LIST_TTL_MS, async () => {
-  const item = await tmdb(`/person/${id}`, { append_to_response: 'combined_credits' })
+const person = (id: number, lang: Lang) => cached(`person:${id}:${lang}`, LIST_TTL_MS, async () => {
+  const item = await tmdb(`/person/${id}`, { append_to_response: 'combined_credits' }, lang)
   const credits: Item[] = [
     ...(item.combined_credits?.cast ?? []),
     ...(item.combined_credits?.crew ?? []).filter((c: Item) => CREW_JOBS.includes(c.job)),
@@ -308,7 +319,7 @@ const person = (id: number) => cached(`person:${id}`, LIST_TTL_MS, async () => {
     const key = `${c.media_type}:${c.id}`
     return seen.has(key) ? false : (seen.add(key), true)
   }).slice(0, PERSON_CREDITS)
-  const titles = await toTitles(best)
+  const titles = await toTitles(best, lang)
   return {
     id,
     name: item.name,
@@ -324,15 +335,16 @@ const person = (id: number) => cached(`person:${id}`, LIST_TTL_MS, async () => {
 })
 
 // One season of a TV show, with its episodes in order
-const season = (id: number, number: number) => cached(`season:${id}:${number}`, LIST_TTL_MS, async () => {
-  const item = await tmdb(`/tv/${id}/season/${number}`)
+const season = (id: number, number: number, lang: Lang) => cached(`season:${id}:${number}:${lang}`, LIST_TTL_MS, async () => {
+  const item = await tmdb(`/tv/${id}/season/${number}`, {}, lang)
+  const es = spanish(lang)
   return {
     number,
-    name: item.name || `Season ${number}`,
+    name: item.name || `${es ? 'Temporada' : 'Season'} ${number}`,
     overview: item.overview || null,
     episodes: (item.episodes ?? []).map((e: Item) => ({
       number: e.episode_number,
-      name: e.name || `Episode ${e.episode_number}`,
+      name: e.name || `${es ? 'Episodio' : 'Episode'} ${e.episode_number}`,
       overview: e.overview || null,
       airDate: e.air_date || null,
       runtime: formatRuntime(e.runtime),
@@ -346,13 +358,14 @@ const asType = (value: unknown): Type | null => (value === 'movie' || value === 
 
 // The request as [cache key, answer], or an error response for a bad request
 function route(body: Record<string, unknown>): [string, () => Promise<unknown>] | Response {
+  const lang = asLang(body.language)
   switch (body.action) {
     case 'lists':
-      return ['lists', lists]
+      return [`lists:${lang}`, () => lists(lang)]
     case 'search': {
       const query = typeof body.query === 'string' ? body.query.trim().slice(0, 100) : ''
       if (!query) return json({ results: [] })
-      return [`search:${query.toLowerCase()}`, async () => ({ results: await search(query) })]
+      return [`search:${query.toLowerCase()}:${lang}`, async () => ({ results: await search(query, lang) })]
     }
     case 'title':
     case 'recommendations':
@@ -362,9 +375,9 @@ function route(body: Record<string, unknown>): [string, () => Promise<unknown>] 
       if (!type || !Number.isInteger(id) || id <= 0) return json({ error: 'Send a type (movie or show) and a TMDB id.' }, 400)
       if (body.action === 'save') return [`saved:${type}:${id}`, async () => ({ title: await save(type, id) })]
       if (body.action === 'recommendations') {
-        return [`recommendations:${type}:${id}`, async () => ({ results: await recommendations(type, id) })]
+        return [`recommendations:${type}:${id}:${lang}`, async () => ({ results: await recommendations(type, id, lang) })]
       }
-      return [`title:${type}:${id}`, async () => ({ title: await title(type, id) })]
+      return [`title:${type}:${id}:${lang}`, async () => ({ title: await title(type, id, lang) })]
     }
     case 'season': {
       const id = Number(body.id)
@@ -372,12 +385,12 @@ function route(body: Record<string, unknown>): [string, () => Promise<unknown>] 
       if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(number) || number < 0 || number > 500) {
         return json({ error: 'Send a TMDB TV show id and a season number.' }, 400)
       }
-      return [`season:${id}:${number}`, async () => ({ season: await season(id, number) })]
+      return [`season:${id}:${number}:${lang}`, async () => ({ season: await season(id, number, lang) })]
     }
     case 'person': {
       const id = Number(body.id)
       if (!Number.isInteger(id) || id <= 0) return json({ error: 'Send a TMDB person id.' }, 400)
-      return [`person:${id}`, async () => ({ person: await person(id) })]
+      return [`person:${id}:${lang}`, async () => ({ person: await person(id, lang) })]
     }
     default:
       return json({ error: 'Unknown action. Use lists, search, title, recommendations, save, person or season.' }, 400)
