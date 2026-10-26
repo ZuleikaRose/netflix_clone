@@ -191,8 +191,10 @@ after editing.
   as in CI; specs about the catalog's own Home use `test.use({ tmdb: 'fail' })`.
 - **TMDB in Spanish**: the hooks in `state/useTmdb.js` send the interface language; with Spanish the `tmdb` function
   gets `language: 'es'` and asks TMDB for `es-MX` (titles, overviews, season and episode names; cache keys include the
-  language). Genre names stay English (the app translates them, and Search matches on them), and `save` always stores
-  English, since the `titles` row is shared. Without the `language` field the function answers in English as before.
+  language). `genres` stay English (Search matches on them); Spanish answers add `genreLabels`, TMDB's es-MX genre
+  names in the same order, which `genreLabels()` in `data/tmdbApi.js` shows (else `t()` of the English names, as for
+  saved titles). `save` always stores English, since the `titles` row is shared. Without the `language` field the
+  function answers in English as before.
 - **Rows**: horizontal rows use `components/Row.jsx` (title, ‹ › buttons that page by 85% of the width, quick clicks
   add up, `aria-disabled` at the ends, hidden when the row fits).
 - **Supabase security**: new `public` tables get no anon/authenticated grants by default (migration
@@ -339,9 +341,10 @@ after editing.
   `accessibility_settings.caption_language`); the Player keys its `<track>` by language
   (`public/media/<clip>.<lang>.vtt`). The Spanish files are this app's translation of the CC BY-SA English captions:
   keep the credit in the player and the Legal hub.
-- **Offline downloads**: `data/downloads.js` puts a title's clip (the format this browser plays), both caption files
-  and the seek previews in the `downloads` cache; `public/sw.js` answers `/media` from it, byte ranges included, and
-  never deletes that cache. The list is per device (`netflix-clone-downloads`). Offered only when a service worker
+- **Offline downloads**: `data/downloads.js` puts a title's clip (the format this browser plays), its captions and
+  audio description in every caption language, and the seek previews in the `downloads` cache; `public/sw.js` answers
+  `/media` from it, byte ranges included, and never deletes that cache. `completeDownloads()` (run by `main.jsx` at
+  start and on `online`) fetches any track an older download lacks, so a new caption language reaches it too. The list is per device (`netflix-clone-downloads`). Offered only when a service worker
   controls the page (production builds), so `pwa.spec.js` is where it's tested.
 - **Reported reviews**: members report another member's review (`review_reports`; a trigger copies the review and
   refuses your own; one per member per review). The support dashboard's Reported reviews view uses

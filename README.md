@@ -53,11 +53,11 @@ Without it, the demo account lives in memory and the TMDB sections don't appear.
 - **Keyboard shortcuts:** press **?** on any page to see every shortcut.
 - **Screen-time limits:** give a profile (say, a Kids profile) a daily limit with the account password; the player stops when it's used up, and only the account password allows more time.
 - **Spanish captions:** choose Caption language → Español in the accessibility menu.
-- **The whole app in Spanish:** choose Language & translation → Español at the top of the accessibility menu (or arrive in Spanish when your browser is); the choice follows you to every device. Synopses and episode names are translated, and TMDB's titles and overviews come in Spanish too; title names, cast and reviews stay as published.
+- **The whole app in Spanish:** choose Language & translation → Español at the top of the accessibility menu (or arrive in Spanish when your browser is); the choice follows you to every device. Synopses and episode names are translated, and TMDB's titles, overviews and genre names come in Spanish too; title names, cast and reviews stay as published.
 - **Every screen size:** phones get the mobile design; tablets fill the width; notebooks, Chromebooks and desktops (Windows, Mac, Linux) get a top bar and a wide banner.
 - **Audio description:** turn it on from the player's AD button, the D key or the accessibility menu, and the player reads out what happens on screen in your caption language, pausing the video while it speaks.
 - **Weekly screen time:** for a profile with a daily limit, see how long it watched on each of the last 7 days, with the total and the daily average.
-- **Offline downloads:** download a title from its page and watch it with no connection (My App → Downloads).
+- **Offline downloads:** download a title from its page and watch it with no connection (My App → Downloads), with captions and audio description in English or Spanish.
 - **Report a review:** flag another member's review; the support team keeps or removes it from the support dashboard.
 - **Helpful reviews:** mark another member's review as helpful (and take it back), and sort reviews by most helpful or newest.
 - **Donations for staff:** the support dashboard shows donations by month (amount paid, paid and failed counts) and the latest donations, each linked to its payment in Stripe.

@@ -225,4 +225,13 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     supabase ... Then update the README.md": asked which table and columns, the answer was none. `schema.sql`,
     `drawsql.png` and both Supabase projects already matched (34 public tables plus `private.profile_pins`, all 29
     migrations), so none changed. CLAUDE.md, the README and these records now say the Spanish `tmdb` is live.
+53. "What's the next features to add? Can you clean up code and features?" A survey found lint and the translation check
+    clean, no TODOs or stray logs, two unused exports and three large files; ideas offered included the next two.
+54. "add these two features then commit and push: Spanish genre names coming straight from TMDB. Offline-ready Spanish
+    captions for all clips." (1) In Spanish, the `tmdb` function adds `genreLabels`, TMDB's es-MX genre names, next
+    to the English `genres` Search matches on; title pages and the featured carousel show them (the app's dictionary
+    had no "Science Fiction", so it stayed English). (2) Every download already saved Spanish captions; but a download
+    from before audio description lacked its tracks, so `completeDownloads()` now fetches whatever tracks a download is
+    missing whenever the app opens online. Covered by `tmdb.spec.js` and `pwa.spec.js`. The function needs deploying
+    to dev, then production (the app shows the English genres through its dictionary until then).
 Still to do: custom SMTP for Auth emails, and CAPTCHA on sign-up and sign-in.
