@@ -206,8 +206,9 @@ test('the maturity rating in Account belongs to the watching profile', async ({ 
 })
 
 test('a daily screen-time limit stops the player until a grown-up allows more time', async ({ page }) => {
-  // The player counts watched time on a timer; a fake clock skips through the half hour
-  await page.clock.install()
+  // The player counts watched time on a timer; a fake clock skips through the half hour. It starts at a fixed
+  // afternoon: from the real time, a run late in the evening crossed midnight, and the new day's count started at 0
+  await page.clock.install({ time: new Date(2026, 9, 19, 15, 0) })
   const accountPassword = await demoPassword(page)
   await navigateInApp(page, '/profiles')
   await page.getByRole('button', { name: 'Manage profiles' }).click()

@@ -28,16 +28,15 @@ const save = (next) => {
 // Downloads need Cache Storage and a service worker controlling the page (production builds, see lib/pwa.js)
 export const canDownload = () => typeof caches !== 'undefined' && Boolean(navigator.serviceWorker?.controller)
 
-// The one video file this browser will play (Playwright's Chromium only plays WebM), its captions and audio
-// description in every language, and its previews
+// A clip's captions and audio description in every language
+const trackFiles = (clip) =>
+  captionLanguages.flatMap((l) => [clipSources(clip, l.code).captions, clipSources(clip, l.code).descriptions])
+
+// The one video file this browser will play (Playwright's Chromium only plays WebM), its tracks and its previews
 function filesFor(clip) {
   const sources = clipSources(clip)
   const webm = document.createElement('video').canPlayType('video/webm; codecs="vp9, opus"')
-  return [
-    webm ? sources.webm : sources.mp4,
-    ...captionLanguages.flatMap((l) => [clipSources(clip, l.code).captions, clipSources(clip, l.code).descriptions]),
-    sources.thumbs,
-  ]
+  return [webm ? sources.webm : sources.mp4, ...trackFiles(clip), sources.thumbs]
 }
 
 export function formatSize(bytes) {
@@ -68,6 +67,27 @@ export async function downloadTitle(titleId) {
     return error?.name === 'QuotaExceededError'
       ? tr('There isn’t enough space on this device. Remove a download and try again.')
       : tr('The download didn’t finish. Check your connection and try again.')
+  }
+}
+
+// Downloads saved before a track existed (audio description came later the same day as downloads, and a caption
+// language may be added again) lack its files. While online, this fetches whatever a downloaded clip is missing, so
+// every download has captions and audio description in English and Spanish offline. main.jsx runs it at start and
+// whenever the connection comes back; a file that fails is tried again next time.
+export async function completeDownloads() {
+  if (!downloads.length || !canDownload() || !navigator.onLine) return
+  try {
+    const cache = await caches.open(DOWNLOAD_CACHE)
+    const clips = new Map(downloads.map((d) => [d.clipId, clipFor(d.titleId)]))
+    for (const clip of clips.values()) {
+      for (const url of trackFiles(clip)) {
+        if (await cache.match(url)) continue
+        const response = await fetch(url, { cache: 'no-store' })
+        if (response.ok) await cache.put(url, response)
+      }
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) console.warn('Completing downloads:', error)
   }
 }
 

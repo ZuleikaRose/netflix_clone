@@ -58,6 +58,9 @@ const people = {
 }
 const recommendations = { 'movie:603': [inception, matrix], 'show:1399': [] }
 
+// TMDB's es-MX genre names (the app's own dictionary has no "Science Fiction")
+const spanishGenres = { Action: 'Acción', 'Science Fiction': 'Ciencia ficción', Drama: 'Drama' }
+
 // `fail: true` answers every call with a 500. Calling this again in a test replaces the earlier mock (newest route wins).
 export async function mockTmdb(page, { fail = false } = {}) {
   await page.route(tmdbEndpoint, async (route) => {
@@ -73,8 +76,11 @@ export async function mockTmdb(page, { fail = false } = {}) {
       person: () => people[body.id] ? { person: people[body.id] } : { status: 404, error: 'Person not found.' },
       save: () => details[`${body.type}:${body.id}`] ? { title: details[`${body.type}:${body.id}`] } : null,
     }[body.action]?.()
-    // `language: 'es'`: the title page answers with a Spanish overview, as TMDB's Spanish data would
-    if (body.language === 'es' && reply?.title) reply.title = { ...reply.title, synopsis: `Sinopsis de ${reply.title.title}.` }
+    // `language: 'es'`: the title page answers with a Spanish overview and TMDB's Spanish genre names, as the
+    // function would
+    if (body.language === 'es' && reply?.title) {
+      reply.title = { ...reply.title, synopsis: `Sinopsis de ${reply.title.title}.`, genreLabels: reply.title.genres.map((g) => spanishGenres[g] ?? g) }
+    }
     if (reply?.status) return route.fulfill({ status: reply.status, headers: cors, json: { error: reply.error } })
     return reply ? route.fulfill({ headers: cors, json: reply }) : route.fulfill({ status: 404, headers: cors, json: { error: 'Title not found.' } })
   })

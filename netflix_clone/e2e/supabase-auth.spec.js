@@ -3,7 +3,8 @@ import { navigateInApp, signInAsDemo } from './helpers.js'
 import { SUPABASE_E2E_PORT, supabaseAuthSettings, supabaseConfigured } from './ports.js'
 import { totpCode } from '../src/data/totp.js'
 
-// Real Supabase Auth against the dev project (eagle_platoon_dev). Each run creates a couple of accounts there: demo
+// Real Supabase Auth against the dev project (eagle_platoon_dev, deleted 2026-10-31: retired, skips without
+// .env.development.local; don't point it at production). Each run creates a couple of accounts there: demo
 // accounts and e2e-…@example.com sign-ups are deleted by the hourly cleanup job after 24 hours.
 // Desktop only, to keep the number of sign-ins (rate limited per IP) low.
 test.use({ baseURL: `http://localhost:${SUPABASE_E2E_PORT}` })

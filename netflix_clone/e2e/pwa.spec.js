@@ -85,3 +85,46 @@ test('a downloaded title plays and seeks without a connection, and removing it f
   await expect(page.getByText('No downloads yet.')).toBeVisible()
   await expect.poll(() => page.evaluate(async () => (await (await caches.open('downloads')).keys()).length)).toBe(0)
 })
+
+test('an older download gets the tracks it lacks, so Spanish captions work offline', async ({ page, context }) => {
+  test.setTimeout(60_000)
+  await page.goto('/login')
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)), { timeout: 15_000 }).toBe(true)
+  await page.getByRole('button', { name: 'Use demo account' }).click()
+  await expect(page).not.toHaveURL(/\/login$/)
+  await navigateInApp(page, '/title/behind-the-glass') // Sintel
+  await page.getByRole('button', { name: 'Download to watch offline' }).click()
+  await expect(page.getByRole('status').filter({ hasText: /Downloaded \(\d/ })).toBeVisible({ timeout: 20_000 })
+
+  // A download from before the Spanish tracks existed
+  const spanish = ['/media/sintel.es.vtt', '/media/sintel.es.descriptions.vtt']
+  const cachedTracks = () => page.evaluate(async (urls) => {
+    const cache = await caches.open('downloads')
+    return (await Promise.all(urls.map((url) => cache.match(url)))).filter(Boolean).length
+  }, spanish)
+  await page.evaluate(async (urls) => {
+    const cache = await caches.open('downloads')
+    await Promise.all(urls.map((url) => cache.delete(url)))
+  }, spanish)
+  expect(await cachedTracks()).toBe(0)
+
+  // Starting the app online fills them in
+  await page.reload()
+  await expect.poll(cachedTracks, { timeout: 15_000 }).toBe(2)
+
+  // The reload signed the in-memory demo account out
+  await page.getByRole('button', { name: 'Use demo account' }).click()
+  await expect(page).not.toHaveURL(/\/login$/)
+  await context.setOffline(true)
+  await navigateInApp(page, '/title/behind-the-glass')
+  await page.getByRole('button', { name: 'Accessibility menu', exact: true }).click()
+  const menu = page.getByRole('dialog', { name: 'Accessibility' })
+  await menu.getByRole('switch', { name: /Closed captions/ }).check()
+  await menu.getByRole('group', { name: 'Caption language' }).getByRole('radio', { name: 'Español' }).check()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: /^\s*(Resume|Play)$/ }).click()
+  await page.getByRole('button', { name: 'Pause', exact: true }).click()
+  await page.getByLabel('Seek').fill('3')
+  await expect(page.locator('.captions')).toHaveText('Esta espada tiene un pasado oscuro.')
+  await context.setOffline(false)
+})
