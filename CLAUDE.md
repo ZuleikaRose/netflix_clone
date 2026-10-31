@@ -24,9 +24,11 @@ netflix_clone/        The Vite app — run all npm commands here
   src/i18n/           Spanish interface: index.js (English text is the key; tr(), locale()), es/<area>.js dictionaries
                       (es/content.js: the built-in catalog's synopses and episode names)
   scripts/            i18n-check.mjs (run by npm run lint), pwa-icons.mjs, thumbnails.mjs
-  e2e/                Playwright specs, serve.js (static server), ports.js (ports + dev project config)
+  e2e/                Playwright specs, serve.js (static server), ports.js (ports; the Supabase checks skip without
+                      .env.development.local)
   public/             manifest.webmanifest, sw.js (service worker), icons/ (drawn by scripts/pwa-icons.mjs), media/
-  .env.example        Copy to .env.development.local (dev project) and .env.production.local (production); git-ignored
+  .env.example        Copy to .env.production.local (production); git-ignored. There's no dev project, so leave
+                      .env.development.local out (never put production's values in it)
 supabase/             Supabase CLI project (config.toml); MCP config in supabase/.mcp.json (not committed)
   migrations/         Schema + RLS, catalog titles, auth support (triggers, promotions, cleanup cron), rate limits,
                       saved TMDB titles, watch progress and leaderboards, profiles, support dashboard, notifications,
@@ -35,12 +37,13 @@ supabase/             Supabase CLI project (config.toml); MCP config in supabase
                       screen-time limits, caption language, reported reviews, helpful votes, staff donations view,
                       audio description, monthly donations, interface language
   non_transactional/  CREATE INDEX CONCURRENTLY files: apply with psql after migrations (the CLI can't run them)
-                      (Index Advisor is installed on both projects: dashboard → Query Performance suggests missing ones)
+                      (Index Advisor is installed on production: dashboard → Query Performance suggests missing ones)
   functions/          Edge Functions: demo-account, delete-account, apply-promo, record-referral, tmdb, assistant,
                       process-donation, monthly-donation, stripe-webhook (+ _shared/:
                       clients, CORS, caller check, per-IP rate limits via public.hit_rate_limit); hello and multiply are
                       standalone public test endpoints
-  seeds/              Development test data (6 example.com users, rows in every table); never run on production
+  seeds/              Test data for a local database (6 example.com users, rows in every table; `supabase db reset
+                      --local` loads it); never run on production
   tests/database/     pgTAP tests (`supabase test db`): access rules, triggers, cleanup job, rate limiter, indexes
   diagram/            erd.html (source of drawsql.png) + render.mjs (`node supabase/diagram/render.mjs` redraws it)
 schema.sql, drawsql.png  The table design and its diagram, kept in step with the migrations (all 34 public tables)
@@ -49,28 +52,30 @@ prompt.md             The original build prompt and the Supabase-phase prompts
 .github/workflows/    CI: lint, build, Playwright; pgTAP against a local Supabase (Docker)
 ```
 
-Supabase projects (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production,
-**eagle_platoon_dev** `cfcbhwwpslgxjpijdnfy` = development and e2e tests (has the seed data). Apply every migration,
-non_transactional file and function to dev first, then production, with the same migration version on both.
-Both run all 29 migrations (through `20261025040000_interface_language`) and non_transactional 001–012 (production
-caught up 2026-10-23). Both have the same 11 functions (with `monthly-donation`, and the monthly versions of
-`stripe-webhook` and `delete-account`, and the Spanish-aware `tmdb` with Spanish genre names (`genreLabels`), on both since 2026-10-26; the deployed
-bundles match). Production's live Stripe webhook has the four
+Supabase project (org "Zuleika LLC", Pro plan): **eagle_platoon** `czgzptjegmkvrxnxduxs` = production, the only
+project. The development project (eagle_platoon_dev) was deleted on 2026-10-31, and changes now go straight to
+production. Before applying one: the pull request's CI `database` job must pass (every migration, the
+non_transactional files and the pgTAP tests on a local Supabase in Docker), check with `get_advisors` afterwards, and
+keep each migration's version the same as its file. Production runs all 29 migrations (through
+`20261025040000_interface_language`), non_transactional 001–012 and 11 functions (with `monthly-donation`, the monthly
+versions of `stripe-webhook` and `delete-account`, and the Spanish-aware `tmdb` with Spanish genre names
+(`genreLabels`), since 2026-10-26). Production's live Stripe webhook has the four
 monthly events too (`invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`,
 `customer.subscription.deleted`), and monthly donations are live: a $1.00 live monthly donation was started, its
 first payment recorded and linked, and cancelled on 2026-10-23. Change the live webhook in the Stripe dashboard (the
 Stripe connector reaches this account in test mode only); a webhook event the function doesn't receive leaves a
 monthly donation's row out of step with Stripe.
 `assistant`
-needs the `ANTHROPIC_API_KEY` function secret on each project (without it the app matches words).
-The donation functions need two function variables per project:
-`STRIPE_SECRET_KEY` (a test-mode key on dev, a live key on production; without it process-donation answers 503)
+needs the `ANTHROPIC_API_KEY` function secret on production (without it the app matches words).
+The donation functions need two function variables:
+`STRIPE_SECRET_KEY` (the live key; without it process-donation answers 503)
 and `STRIPE_WEBHOOK_SECRET`, the signing value of the Stripe webhook endpoint that points at
-`<project>.supabase.co/functions/v1/stripe-webhook`
+`czgzptjegmkvrxnxduxs.supabase.co/functions/v1/stripe-webhook`
 (events `payment_intent.succeeded` and `payment_intent.payment_failed`, plus the four `invoice.*` /
-`customer.subscription.*` events for monthly donations on dev). Never put either value in the repo.
+`customer.subscription.*` events for monthly donations). Never put either value in the repo.
 Production takes live payments in the **Demo_Netflix_Clone** Stripe account (live webhook endpoint registered;
-first live $1.00 donation recorded 2026-10-22); dev uses the same account in test mode. The live `pk_live_` key is
+first live $1.00 donation recorded 2026-10-22). The test-mode webhook that pointed at the deleted dev project can be
+removed in the Stripe dashboard. The live `pk_live_` key is
 set only in the front-end repo's `.env.production.local` (and must be in the host's settings once it's hosted).
 **Hosting**: Vercel (team `zuleika-llc`, Hobby plan, project `front-end`) builds the front-end repo on every pull
 request (a preview) and every merge to `main` (production). The live site is **https://front-end-sepia-rho.vercel.app**
@@ -83,9 +88,9 @@ too (`vercel env ls --scope zuleika-llc --project front-end`).
 `apply_migration` stamps the current time as the version: afterwards set it to the file's version in
 `supabase_migrations.schema_migrations`, and apply one migration per second or less often, or two get the same stamp
 and the second fails on the duplicate version.
-Each project needs the `TMDB_API_FREE` Edge Function secret for `tmdb` (the dashboard can't show it back; the value
+Production needs the `TMDB_API_FREE` Edge Function secret for `tmdb` (the dashboard can't show it back; the value
 comes from themoviedb.org → Settings → API). The DROP INDEX steps at the end of `002_query_indexes.sql` haven't run on
-either project yet (they only remove indexes the new composite ones make redundant).
+production yet (they only remove indexes the new composite ones make redundant).
 
 The repo root also has a stray `package.json`/`package-lock.json`/`node_modules` from an early misplaced
 install. They are intentionally **not committed**; don't add them.
@@ -169,7 +174,7 @@ after editing.
   mode, sample reviews) still come from `catalog.js`; with Supabase, `useReviews` reads members' reviews from the
   `review` table. Adding a title: add it to `catalog.js`, regenerate `…_seed_titles.sql`, apply it.
 - **TMDB**: the `tmdb` Edge Function calls The Movie Database with the `TMDB_API_FREE` secret (a v3 API key or v4
-  read token; set it on each project) and returns titles in the catalog's shape, with `source: 'tmdb'` and a
+  read token; set on production) and returns titles in the catalog's shape, with `source: 'tmdb'` and a
   `path` of `/tmdb/:type/:tmdbId` (PosterCard links there). Actions: `lists` (new — movies now playing and TV on the
   air — trending and popular, for Home's rows and for Search with no query), `search` (Search with a query) and
   `title` (the TMDB page, with `trailer` — a YouTube key — and `providers`, U.S. stream/rent/buy services from
@@ -212,7 +217,7 @@ after editing.
 - **Forms**: use `components/Field.jsx`; validate on submit, then `focusFirstError(form)`; errors use `--error`
   (`#e87c03`), never the red accent.
 - **Passwords**: new passwords go through `passwordProblem()` / `PASSWORD_HINT` in `state/authContext.js`: 13+
-  characters with lowercase, uppercase, a digit and a symbol — the same rules as Supabase Auth on both projects and
+  characters with lowercase, uppercase, a digit and a symbol — the same rules as Supabase Auth on production and
   in `supabase/config.toml`. Change all three together. Supabase also rejects leaked passwords (`weak_password`,
   reason `pwned`). Test passwords must meet the rules too (e.g. `Brand-new-pass-42`).
 - **Password reset**: `requestPasswordReset` → email link → `/reset-password` → `beginPasswordReset` (Supabase: the
@@ -293,7 +298,7 @@ after editing.
   device; `components/GrownUpGate.jsx` asks for the account password on Kids profiles (Account, profile settings).
   `verify_account_password()` (10 per 15 minutes) also backs Change password with Supabase: signing in again would
   replace the session and need a two-step code.
-- **Two-step sign-in**: Supabase Auth MFA (TOTP; on in `config.toml` and on both projects). With a verified factor a
+- **Two-step sign-in**: Supabase Auth MFA (TOTP; on in `config.toml` and on production). With a verified factor a
   password sign-in or restored session is aal1: the provider sets `secondStep` and Login asks for the code
   (`verifySecondStep`). A restrictive policy "Two-step sign-in finished" on every RLS table (`second_step_done()`)
   blocks aal1 sessions; give new tables the same policy, and start any security-definer function that reads other
@@ -311,7 +316,7 @@ after editing.
   succeeded, never the reverse; payments without `metadata.user_id` are ignored). Members only read their own rows:
   no insert/update/delete grants or policies, and not even the service role deletes. 20/hour per member, 60/hour per
   IP. Database rules in `supabase/tests/database/donations.test.sql`. The page only needs `VITE_STRIPE_PUBLISHABLE_KEY`
-  (a `pk_test_` key on dev; without it, or in memory mode, /donate says donations aren't available and Stripe.js never
+  (the live `pk_live_` key in production builds; without it, or in memory mode, /donate says donations aren't available and Stripe.js never
   loads). The form remembers the PaymentIntent of an attempt that didn't succeed (declined, or no answer) and asks
   Stripe about it (`retrievePaymentIntent`) before anything else: if it went through after all, that's the donation,
   whatever amount is chosen now; the same amount confirms it again (one intent and one row, even after a decline); a
@@ -414,8 +419,10 @@ after editing.
 - Tests sign in once with `signInAsDemo()` and move with `navigateInApp()` (client-side), because a reload logs out on
   the in-memory build (the Supabase build stays signed in; `supabase-auth.spec.js` checks that).
 - Most specs run on the in-memory build (:4173). `e2e/supabase.spec.js` (REST catalog) and `e2e/supabase-auth.spec.js`
-  (real sign-in, saved data, Edge Functions; desktop only, on :4174) use the dev project and skip without
-  `.env.development.local` (as in CI). Keep Supabase sign-ins in tests few: Auth rate-limits them per IP.
+  (real sign-in, saved data, Edge Functions; desktop only, on :4174) were written for the dev project and are retired
+  with it: they skip without `.env.development.local`, locally as in CI. Don't point them at production: each run
+  creates real accounts and data. They can run again against a new dev project (or `supabase start` locally) if one
+  is set up. The database rules are still tested by pgTAP in CI.
 - New features get a spec: `e2e/features.spec.js` (carousel, billing, affiliate…) and `e2e/accessibility.spec.js`
   (accessibility menu, policy, player and captions, autoplay, delete account); TMDB features go in `e2e/tmdb.spec.js`; Continue Watching is in `features.spec.js`, leaderboards in `games.spec.js`.
   Specs import `test` from `e2e/test.js`, which mocks the `tmdb` function on every page (`e2e/tmdbMock.js`; call
@@ -425,10 +432,10 @@ after editing.
   not just the URL, before navigating again, or the old page can stay mounted.
 - Specs for the ten features: `profiles.spec.js`, `support.spec.js`, `lists.spec.js`, `party.spec.js` (two tabs),
   `search.spec.js`, `pwa.spec.js`; people, episodes and history are in `features.spec.js`, TMDB people, seasons and
-  release reminders in `tmdb.spec.js`; `supabase-auth.spec.js` checks lists and watch parties against the dev project.
+  release reminders in `tmdb.spec.js`; `supabase-auth.spec.js` checked lists and watch parties against the dev project (retired, see above).
 - The seven after that: thumbs ratings, Year in Review and the assistant in `features.spec.js`; skips, chapters, seek
   previews and picture-in-picture in `accessibility.spec.js`; PINs and Kids in `profiles.spec.js`; two-step sign-in and
-  devices in `auth.spec.js`; all of them against the dev project (real TOTP) in `supabase-auth.spec.js`; database rules
+  devices in `auth.spec.js`; all of them against the dev project (real TOTP) in `supabase-auth.spec.js` (retired); database rules
   in `supabase/tests/database/seven_features.test.sql`.
 - The eight after that: donation history in `donate.spec.js`; Surprise me in `features.spec.js`; shortcuts help and
   Spanish captions in `accessibility.spec.js`; screen-time limits in `profiles.spec.js` (Playwright's fake clock);

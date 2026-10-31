@@ -8,7 +8,7 @@ export const SUPABASE_E2E_PORT = 4174
 const env = loadEnv('development', process.cwd(), 'VITE_')
 export const supabaseConfigured = Boolean(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_PUBLISHABLE_KEY)
 
-// Public Auth settings of the dev project, e.g. whether sign-ups must confirm their email first
+// Public Auth settings of the configured project (the dev project, now deleted), e.g. whether sign-ups must confirm their email first
 export async function supabaseAuthSettings() {
   const response = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: env.VITE_SUPABASE_PUBLISHABLE_KEY } })
   return response.json()

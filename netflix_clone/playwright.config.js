@@ -27,8 +27,8 @@ export default defineConfig({
     { name: 'firefox', testMatch: /(layout|browse|i18n)\.spec\.js/, use: { ...devices['Desktop Firefox'], viewport: { width: 1366, height: 768 } } },
     { name: 'tablet', testMatch: /(layout|browse|i18n)\.spec\.js/, use: { ...devices['Desktop Chrome'], viewport: { width: 820, height: 1180 }, hasTouch: true } },
   ],
-  // Tests run against production builds, served with SPA fallback by e2e/serve.js. Both builds use the dev project
-  // (.env.development.local) when it's configured, and neither does in CI.
+  // Tests run against production builds, served with SPA fallback by e2e/serve.js. Both builds use the project in
+  // .env.development.local when one is set; none is now (the dev project was deleted), as in CI.
   webServer: [
     {
       // Most specs: accounts in memory, so 100+ sign-ins stay local and every test starts from a clean account
