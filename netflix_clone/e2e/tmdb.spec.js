@@ -14,7 +14,7 @@ test.describe('TMDB titles from the tmdb Edge Function', () => {
     for (const row of ['New on TMDB', 'Trending Movies on TMDB', 'Trending TV Shows on TMDB', 'Popular Movies on TMDB', 'Popular TV Shows on TMDB']) {
       await expect(page.getByRole('heading', { name: row })).toBeVisible()
     }
-    await expect(page.getByRole('heading', { name: 'New on Netflix' })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'New on NetBox' })).toHaveCount(0)
     const newRow = page.locator('.row-section', { has: page.getByRole('heading', { name: 'New on TMDB' }) })
     await expect(newRow.getByRole('link', { name: 'The Odyssey' })).toBeVisible()
     await expect(newRow.getByRole('link', { name: 'The Pitt' })).toBeVisible()
@@ -321,7 +321,7 @@ test.describe('TMDB seasons and episodes', () => {
 test.describe('TMDB release reminders', () => {
   test.skip(!configured, 'Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.development.local to run these')
 
-  test('New & Hot lists what’s coming soon; a reminder shows as coming up, then as out on release day', async ({ page }) => {
+  test('New & Upcoming lists what’s coming soon; a reminder shows as coming up, then as out on release day', async ({ page }) => {
     await mockTmdb(page)
     await signInAsDemo(page)
     await navigateInApp(page, '/new')

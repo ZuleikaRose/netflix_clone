@@ -13,14 +13,14 @@ const tabs = [
   { key: 'favorites', path: '/favorites', label: 'Favorites', empty: 'Tap the heart on any title to add a favorite.' },
 ]
 
-export function MyNetflix() {
+export function MyNetBox() {
   const t = useT()
   const library = useLibrary()
   const { profile, profiles } = useProfile()
   const { findTitle } = useCatalog()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  // /my-netflix and /watchlist show the watch list; /favorites shows favorites
+  // /my-netbox and /watchlist show the watch list; /favorites shows favorites
   const tab = pathname === '/favorites' ? 'favorites' : 'list'
   const active = tabs.find((t) => t.key === tab)
   const ids = tab === 'list' ? library.myList : library.favorites

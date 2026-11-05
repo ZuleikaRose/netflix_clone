@@ -142,7 +142,7 @@ test('title pages list cast and crew, and each name opens that person’s page',
   await page.getByRole('link', { name: 'Dara Whitfield' }).click()
   await expect(page).toHaveURL(/\/people\/Dara%20Whitfield$/)
   await expect(page.getByRole('heading', { name: 'Dara Whitfield', level: 1 })).toBeVisible()
-  await expect(page.getByText('Director · 1 title on Netflix Clone')).toBeVisible()
+  await expect(page.getByText('Director · 1 title on NetBox')).toBeVisible()
   const titles = page.locator('.credit-grid li')
   await expect(titles).toHaveCount(1)
   await expect(titles.first()).toContainText('Director')
@@ -386,7 +386,7 @@ test.describe('viewing history and privacy', () => {
 
     await page.evaluate(() => { delete Navigator.prototype.share })
     await page.getByRole('button', { name: 'Share my year' }).click()
-    await expect(highlights.getByRole('status')).toHaveText(new RegExp(`Summary copied|Copy this summary: My ${year} on Netflix Clone: 1 title, 1 episode`))
+    await expect(highlights.getByRole('status')).toHaveText(new RegExp(`Summary copied|Copy this summary: My ${year} on NetBox: 1 title, 1 episode`))
   })
 
   test('what a profile watches is listed by day, and entries can be hidden or all cleared', async ({ page }) => {

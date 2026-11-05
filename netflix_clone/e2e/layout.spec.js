@@ -2,7 +2,7 @@ import { expect, test } from './test.js'
 import { navigateInApp, signInAsDemo, tabBar } from './helpers.js'
 
 const routes = [
-  '/', '/title/behind-the-glass', '/tmdb/show/1399', '/tmdb/person/6384', '/people/Mara%20Quinn', '/search', '/new', '/my-netflix', '/watchlist', '/favorites', '/account', '/profiles', '/support-dashboard', '/notifications', '/history', '/year-in-review', '/what-to-watch', '/donate', '/lists', '/downloads', '/party/0000000000', '/shared/0000000000000000', '/games', '/games/memory', '/games/trivia', '/games/timeline', '/games/cast', '/games/higher-lower', '/games/scramble',
+  '/', '/title/behind-the-glass', '/tmdb/show/1399', '/tmdb/person/6384', '/people/Mara%20Quinn', '/search', '/new', '/my-netbox', '/watchlist', '/favorites', '/account', '/profiles', '/support-dashboard', '/notifications', '/history', '/year-in-review', '/what-to-watch', '/donate', '/lists', '/downloads', '/party/0000000000', '/shared/0000000000000000', '/games', '/games/memory', '/games/trivia', '/games/timeline', '/games/cast', '/games/higher-lower', '/games/scramble',
   ...['support', 'faqs', 'feedback', 'report-issue', 'promotions', 'tech-requirements', 'ai', 'affiliate', 'legal', 'terms', 'privacy', 'do-not-sell', 'accessibility'].map((s) => `/info/${s}`),
 ]
 
@@ -60,7 +60,7 @@ test('keyboard focus is visible and follows a logical order on Home', async ({ p
   // Wide screens (the desktop project) have the tabs in the top bar, between the logo and the icons
   const wide = page.viewportSize().width >= 1024
   expect(order).toEqual(wide
-    ? ['Home', 'Home', 'Games', 'New & Hot', 'My App']
+    ? ['Home', 'Home', 'Games', 'New & Upcoming', 'My App']
     : ['Home', 'Accessibility menu', 'Search', 'Notifications', 'My App profile'])
   const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)
   expect(outline).toBe('solid')

@@ -12,7 +12,7 @@ export function AppNotices() {
       {!online && <p className="app-notice">{t('You’re offline. Pages you’ve opened still work; saving and new titles wait until you reconnect.')}</p>}
       {updateWaiting && (
         <p className="app-notice">
-          {t('A new version of Netflix Clone is ready.')}
+          {t('A new version of NetBox is ready.')}
           <button type="button" className="app-notice-action" onClick={applyUpdate}>{t('Reload')}</button>
         </p>
       )}

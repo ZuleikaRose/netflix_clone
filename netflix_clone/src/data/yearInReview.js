@@ -88,8 +88,8 @@ export function reviewYear(summary, findTitle) {
 export function shareText(year, stats) {
   const parts = [
     stats.titles === 1
-      ? tr('My {year} on Netflix Clone: {count} title', { year, count: stats.titles })
-      : tr('My {year} on Netflix Clone: {count} titles', { year, count: stats.titles }),
+      ? tr('My {year} on NetBox: {count} title', { year, count: stats.titles })
+      : tr('My {year} on NetBox: {count} titles', { year, count: stats.titles }),
     stats.episodes ? (stats.episodes === 1 ? tr('{count} episode', { count: 1 }) : tr('{count} episodes', { count: stats.episodes })) : null,
     stats.hours === 1 ? tr('about {count} hour watched.', { count: 1 }) : tr('about {count} hours watched.', { count: stats.hours }),
   ].filter(Boolean)

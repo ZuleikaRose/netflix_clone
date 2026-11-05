@@ -29,7 +29,7 @@ async function signOut(page) {
 test('the demo button creates a private demo account; its changes are saved and a reload keeps it signed in', async ({ page }) => {
   await signInAsDemo(page)
   // The demo-account Edge Function adds two titles to the new account's watch list
-  await navigateInApp(page, '/my-netflix')
+  await navigateInApp(page, '/my-netbox')
   await expect(page.getByText('2 saved · 0 favorites · 0 rated')).toBeVisible()
 
   await navigateInApp(page, '/title/after-dark')
@@ -58,7 +58,7 @@ test('the demo button creates a private demo account; its changes are saved and 
   await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(email)
   await expect(page.locator('.demo-credentials code')).toHaveText(password)
   await expect(page.locator('html')).toHaveAttribute('data-a11y-text-size', '130')
-  await navigateInApp(page, '/my-netflix')
+  await navigateInApp(page, '/my-netbox')
   await expect(page.getByText('3 saved · 0 favorites · 1 rated')).toBeVisible()
 
   // Signing out clears the saved session, so the next reload stays signed out; signing in brings it all back
@@ -67,7 +67,7 @@ test('the demo button creates a private demo account; its changes are saved and 
   await page.reload()
   await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible()
   await signIn(page, email, password)
-  await navigateInApp(page, '/my-netflix')
+  await navigateInApp(page, '/my-netbox')
   await expect(page.getByText('3 saved · 0 favorites · 1 rated')).toBeVisible()
 })
 
@@ -221,7 +221,7 @@ test('title pages show members’ reviews from the database; a list shared by li
   await expect(visit.getByRole('heading', { name: 'Scary nights', level: 1 })).toBeVisible()
   await expect(visit.getByText(/^A list by .+ · 1 title$/)).toBeVisible()
   await expect(visit.getByRole('link', { name: 'After Dark' })).toBeVisible()
-  await expect(visit.getByRole('link', { name: 'Join Netflix Clone' })).toBeVisible()
+  await expect(visit.getByRole('link', { name: 'Join NetBox' })).toBeVisible()
   await visitor.close()
 })
 

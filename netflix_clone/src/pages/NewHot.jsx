@@ -42,7 +42,7 @@ function FeedItem({ title, meta, children }) {
   )
 }
 
-// New & Hot: movies coming soon (from TMDB, with reminders that the bell announces on release day) and what's new here
+// New & Upcoming: movies coming soon (from TMDB, with reminders that the bell announces on release day) and what's new here
 export function NewHot() {
   const t = useT()
   const { titles: catalog, isAllowed } = useCatalog()
@@ -52,7 +52,7 @@ export function NewHot() {
 
   return (
     <>
-      <PageHeader title={t('New & Hot')} />
+      <PageHeader title={t('New & Upcoming')} />
       {reminder.error && <p className="form-alert page-alert" role="alert">{reminder.error}</p>}
       {comingSoon.length > 0 && (
         <section aria-labelledby="coming-soon-heading">
@@ -68,7 +68,7 @@ export function NewHot() {
         </section>
       )}
       <section aria-labelledby="new-here-heading">
-        <div className="section-heading"><h2 id="new-here-heading">{t('New on Netflix Clone')}</h2></div>
+        <div className="section-heading"><h2 id="new-here-heading">{t('New on NetBox')}</h2></div>
         <ul className="feed">
           {fresh.map((t) => (
             <FeedItem key={t.id} title={t} meta={<p className="detail-meta"><span>{t.year}</span><span className="maturity">{t.maturity}</span><span>{describeLength(t)}</span></p>}>

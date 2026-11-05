@@ -1,4 +1,4 @@
-# Netflix Clone
+# NetBox
 
 A mobile-first streaming app built with React 19, Vite and React Router (`BrowserRouter`) on Supabase. It was built in phases from the wireframes, user journey and style guide in `../app_outline`, then connected to Supabase (catalog from the REST API, Supabase Auth, member data in Postgres; see `../supabase`). Real trending, popular and searchable movies and TV shows come from [TMDB](https://www.themoviedb.org) through the `tmdb` Edge Function, which keeps the TMDB key on the server.
 
@@ -45,16 +45,16 @@ New passwords need 13+ characters with lowercase, uppercase, a digit and a symbo
 | Autoplay previews | Off by default: Home shows a **Preview** button. Turn on Account → Autoplay previews and previews start by themselves (never under reduced motion or *Stop animations*) |
 | Delete account | Account → Danger zone. Cancel the membership in Billing first, then type the account's email and the password shown in Change password. With Supabase this removes access (the `delete-account` function); the demo button makes a new demo account |
 | Episodes and volume | Play *Night Shift*: **Previous episode** / **Next episode** (or Shift+P / Shift+N) move between episodes. Set the volume with the slider or ↑/↓; signed in with Supabase, it follows you to other devices |
-| Profiles | My Netflix → Profiles → Manage profiles → Add profile; choose maturity *Kids* and the Kids profile sees only *Lantern Island* from the catalog, with its own lists |
+| Profiles | My NetBox → Profiles → Manage profiles → Add profile; choose maturity *Kids* and the Kids profile sees only *Lantern Island* from the catalog, with its own lists |
 | Support dashboard | In memory the demo account is support staff: file a report in Issue Reporting, then Account → Support dashboard to reply and change its status; the reply shows under Your reports and the bell counts it. With Supabase, staff are rows in `staff` (the dev seed makes Dana staff) |
 | People | On any title page, click a cast or crew name |
 | Episodes | *Night Shift* → Episodes: pick Season 2 and play an episode; the last episode of *The Veil* ends the series |
-| Reminders and the bell | With Supabase configured: New & Hot → Coming Soon → Remind Me; the bell lists it under Coming up and announces it on release day |
+| Reminders and the bell | With Supabase configured: New & Upcoming → Coming Soon → Remind Me; the bell lists it under Coming up and announces it on release day |
 | Viewing activity | Watch a little of anything, then Account → Viewing activity: hide entries, download a CSV, pause history or set it to delete after 90 days |
-| Custom lists | On a title page, **Add to a list** → New list; then My Netflix → My lists → the list → Share with a link, and open the link signed out (in memory, in the same tab until a reload) |
+| Custom lists | On a title page, **Add to a list** → New list; then My NetBox → My lists → the list → Share with a link, and open the link signed out (in memory, in the same tab until a reload) |
 | Watch party | On a catalog title, **Watch party**; open the invite link in a second tab and press play in either |
 | Search | Try `nite shift` (a typo), `mara` (a person) or `thril` (a genre); press Enter to keep a search in recent searches |
-| Install | Account → App (Chrome and Edge offer **Install Netflix Clone**; iPhone: Share → Add to Home Screen); production builds only |
+| Install | Account → App (Chrome and Edge offer **Install NetBox**; iPhone: Share → Add to Home Screen); production builds only |
 | Surprise me | Home (under the hero) or Search: opens a random title for the profile, following the Movies / TV Shows filter |
 | Keyboard shortcuts | Press **?** on any page (or Accessibility menu → Keyboard shortcuts) |
 | Screen-time limits | Profiles → Manage profiles → Edit → Screen time: choose a daily limit and enter the account password. When it's used up the player stops; **Ask a grown-up** allows 30 more minutes with the password |
@@ -111,13 +111,13 @@ Tests serve the built app with `e2e/serve.js`, a tiny static server with SPA fal
 | Discover | `/what-to-watch`, `/year-in-review` | What should I watch? (Claude via the `assistant` function, or word matching), Year in Review with a shareable summary |
 | Together | `/lists`, `/lists/:listId`, `/shared/:slug`, `/party/:code` | Custom lists shareable by link (public page for anyone), watch parties over Supabase Realtime with presence and chat |
 | Activity | `/notifications`, `/history`, `/support-dashboard` | Notifications bell (released reminders, support replies), viewing activity with privacy controls, the support team's ticket queue |
-| Library | `/my-netflix`, `/watchlist`, `/favorites`, `/account` | Watch list & Favorites pages; profile, password, plan, billing (payment method, billing date, pause, cancel), autoplay, maturity, accessibility and privacy settings, Security (two-step sign-in, signed-in devices), danger zone (delete account) |
+| Library | `/my-netbox`, `/watchlist`, `/favorites`, `/account` | Watch list & Favorites pages; profile, password, plan, billing (payment method, billing date, pause, cancel), autoplay, maturity, accessibility and privacy settings, Security (two-step sign-in, signed-in devices), danger zone (delete account) |
 | Donate | `/donate` | One-time card donations through Stripe ($5, $10, $25, $50 or $1–$10,000), opened from the round coffee button above the tab bar on every page or from Account, with the member's past donations and an emailed Stripe receipt; the `process-donation` and `stripe-webhook` Edge Functions (dev project for now) |
 | Downloads | `/downloads` | Titles saved on this device to watch offline ("Download to watch offline" on a title page; the service worker plays them, seeking included) |
 | Games | `/games`, `/games/:gameId` | Poster Match (`memory`), Plot Twist (`trivia`), Timeline (`timeline`), Cast Call (`cast`), Higher or Lower (`higher-lower`) and Title Scramble (`scramble`), with best scores (saved with Supabase) and opt-in leaderboards (first names only) |
 | Help & legal | `/info/:slug` | Support hub with live-chat mock, FAQs, Feedback, Issue Reporting, Promotions (working promo codes), Technical Requirements, AI Integration, Affiliate Program (join, referral dashboard, tiered commissions, marketing materials), Legal & Privacy hub, Terms, Privacy, Do Not Sell, Accessibility Policy |
 
-The maturity setting in Account filters every catalog surface: Home, Search, New & Hot, related titles and games.
+The maturity setting in Account filters every catalog surface: Home, Search, New & Upcoming, related titles and games.
 
 ## Project layout
 

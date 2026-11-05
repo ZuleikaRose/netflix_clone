@@ -80,5 +80,5 @@ export const checkTotpCode = (key, code, time = Date.now()) =>
   [-1, 0, 1].some((step) => totpCode(key, time + step * STEP_SECONDS * 1000) === code)
 
 // What authenticator apps scan (otpauth:// URI)
-export const totpUri = (key, account, issuer = 'Netflix Clone') =>
+export const totpUri = (key, account, issuer = 'NetBox') =>
   `otpauth://totp/${encodeURIComponent(`${issuer}:${account}`)}?secret=${key}&issuer=${encodeURIComponent(issuer)}&period=${STEP_SECONDS}&digits=${DIGITS}`

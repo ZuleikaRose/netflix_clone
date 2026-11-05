@@ -36,7 +36,7 @@ export function Notifications() {
             <p className="muted notifications-since">{t('New since you last checked,')} <time dateTime={new Date(newSince).toISOString()}>{whenExactly(new Date(newSince))}</time></p>
           )}
           {recent.length === 0
-            ? <p className="muted">{t('You’re all caught up. Set reminders on upcoming titles in')} <Link to="/new" className="inline-link">{t('New & Hot')}</Link>.</p>
+            ? <p className="muted">{t('You’re all caught up. Set reminders on upcoming titles in')} <Link to="/new" className="inline-link">{t('New & Upcoming')}</Link>.</p>
             : (
               <ul className="notification-list">
                 {recent.map((n) => {

@@ -126,7 +126,7 @@ export function Home() {
             <AccessibilityButton />
             <Link to="/search" className="icon-button" aria-label={t('Search')}><Icon name="search" /></Link>
             <NotificationBell />
-            <Link to="/my-netflix" className="avatar-hit" aria-label={t('My App profile')}><ProfileAvatar profile={profile} /></Link>
+            <Link to="/my-netbox" className="avatar-hit" aria-label={t('My App profile')}><ProfileAvatar profile={profile} /></Link>
           </div>
         </header>
       )}
@@ -157,7 +157,7 @@ export function Home() {
         <PreviewArt title={{ ...featured, image: heroImage(featured) }} preview={preview} />
         <div className="hero-shade" />
         <div className="hero-copy">
-          <p className="eyebrow">{featuredIsTmdb ? null : <b>N</b>} {featured.type === 'show' ? t('SERIES') : t('FILM')}{featuredIsTmdb && ' · TMDB'}</p>
+          <p className="eyebrow">{featuredIsTmdb ? null : <b>NB</b>} {featured.type === 'show' ? t('SERIES') : t('FILM')}{featuredIsTmdb && ' · TMDB'}</p>
           <h1 className="hero-title">{first}<br />{rest.join(' ')}</h1>
           <p className="meta">{(featuredIsTmdb ? genreLabels(featured, t).slice(0, 3) : featured.mood).join('  ·  ')}</p>
           <PreviewToggle title={featured} preview={preview} />

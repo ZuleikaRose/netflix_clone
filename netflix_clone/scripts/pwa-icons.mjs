@@ -1,13 +1,13 @@
-// Draws the app icons in public/icons/ from the favicon's design (red tile, white N):
+// Draws the app icons in public/icons/ from the favicon's design (violet tile, white N):
 //   node scripts/pwa-icons.mjs
 // "any" icons keep the rounded tile; maskable ones fill the square and keep the N inside the 80% safe zone, since the
 // device crops them to its own shape. The Apple touch icon has no transparency (iOS would fill it black).
 import { chromium } from '@playwright/test'
 
 const N = '<path d="M10.5 22.5v-13l11 13v-13" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>'
-const tile = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#e50914"/>${N}</svg>`
-// The N scaled to 70% about the centre, on a full red square
-const fullBleed = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 32 32"><rect width="32" height="32" fill="#e50914"/><g transform="translate(4.8 4.8) scale(.7)">${N}</g></svg>`
+const tile = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#7c3aed"/>${N}</svg>`
+// The N scaled to 70% about the centre, on a full violet square
+const fullBleed = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 32 32"><rect width="32" height="32" fill="#7c3aed"/><g transform="translate(4.8 4.8) scale(.7)">${N}</g></svg>`
 
 const icons = [
   ['icon-192.png', tile(192), true],

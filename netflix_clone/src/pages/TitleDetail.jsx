@@ -113,7 +113,7 @@ export function TitleDetail() {
         )}
 
       <div className="detail-body">
-        <p className="eyebrow"><b>N</b> {title.type === 'show' ? t('SERIES') : t('FILM')}</p>
+        <p className="eyebrow"><b>NB</b> {title.type === 'show' ? t('SERIES') : t('FILM')}</p>
         <h2 className="detail-title">{title.title.toUpperCase()}</h2>
         <p className="detail-meta">
           <span>{title.year}</span><span className="maturity">{title.maturity}</span><span>{describeLength(title)}</span>

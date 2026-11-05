@@ -24,8 +24,8 @@ export function Person() {
       <PageHeader title={name} back />
       <div className="person">
         <p className="muted">{roles.map((role) => t(role)).join(' · ')} · {credits.length === 1
-          ? t('{count} title on Netflix Clone', { count: 1 })
-          : t('{count} titles on Netflix Clone', { count: credits.length })}</p>
+          ? t('{count} title on NetBox', { count: 1 })
+          : t('{count} titles on NetBox', { count: credits.length })}</p>
         {shown.length < credits.length && (
           <p className="muted">{credits.length - shown.length === 1
             ? t('{count} more is hidden by this profile’s maturity setting.', { count: 1 })

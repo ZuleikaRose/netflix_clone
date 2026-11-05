@@ -60,7 +60,7 @@ test('a profile can be locked with a PIN, which Who’s watching asks for', asyn
   await page.getByLabel('Profile PIN').fill('1234')
   await page.getByRole('button', { name: 'Unlock' }).click()
   await expect(page.getByRole('heading', { name: 'Top 10 in the U.S. Today' })).toBeVisible()
-  await navigateInApp(page, '/my-netflix')
+  await navigateInApp(page, '/my-netbox')
   await expect(page.locator('.profile-card h2')).toHaveText('Alex')
 })
 
@@ -129,7 +129,7 @@ async function addProfile(page, { name, avatar, maturity }) {
 
 test('an account with one profile goes straight in; My App shows the profile', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Top 10 in the U.S. Today' })).toBeVisible()
-  await navigateInApp(page, '/my-netflix')
+  await navigateInApp(page, '/my-netbox')
   await expect(page.locator('.profile-card h2')).toHaveText('Alex')
   await page.getByRole('link', { name: 'Profiles', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Who’s watching?' })).toBeVisible()

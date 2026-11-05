@@ -17,7 +17,7 @@ test('a list made from a title page can be renamed, shared by link, unshared and
   await page.getByRole('button', { name: 'Create list' }).click()
   await expect(page.getByText('You already have a list called friday FRIGHTS.')).toBeVisible()
 
-  await navigateInApp(page, '/my-netflix')
+  await navigateInApp(page, '/my-netbox')
   await page.getByRole('link', { name: 'My lists' }).click()
   await page.getByRole('link', { name: /Friday frights\s*1 title/ }).click()
   await expect(page.getByRole('heading', { name: 'Friday frights', level: 1 })).toBeVisible()
