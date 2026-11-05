@@ -4,7 +4,7 @@ export default {
   // Navigation and places
   'Home': 'Inicio',
   'Games': 'Juegos',
-  'New & Hot': 'Novedades',
+  'New & Upcoming': 'Novedades',
   'My App': 'Mi app',
   'Search': 'Buscar',
   'Account': 'Cuenta',

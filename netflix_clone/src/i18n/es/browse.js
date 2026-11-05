@@ -63,13 +63,13 @@ export default {
   '{count} title on TMDB': '{count} título en TMDB',
   '{count} titles on TMDB': '{count} títulos en TMDB',
 
-  // New & Hot
+  // New & Upcoming
   'Remind me about {title}': 'Recordarme {title}',
   'Reminder set': 'Recordatorio activado',
   'Remind Me': 'Recordarme',
   'Coming Soon': 'Próximamente',
   'Coming {date}': 'Llega el {date}',
-  'New on Netflix Clone': 'Nuevo en Netflix Clone',
+  'New on NetBox': 'Nuevo en NetBox',
   'Couldn’t set a reminder for {title}. Please try again.': 'No se pudo activar un recordatorio para {title}. Inténtalo de nuevo.',
 
   // My App
@@ -118,7 +118,7 @@ export default {
   'Remove': 'Quitar',
   'Delete list': 'Eliminar lista',
   'Delete {name}': 'Eliminar {name}',
-  'Delete {name}? Its share link stops working. The titles themselves stay on Netflix Clone.': '¿Eliminar {name}? Su enlace para compartir dejará de funcionar. Los títulos seguirán en Netflix Clone.',
+  'Delete {name}? Its share link stops working. The titles themselves stay on NetBox.': '¿Eliminar {name}? Su enlace para compartir dejará de funcionar. Los títulos seguirán en NetBox.',
   'Delete this list…': 'Eliminar esta lista…',
 
   // Shared list
@@ -129,8 +129,8 @@ export default {
   'This list doesn’t exist, or its owner stopped sharing it.': 'Esta lista no existe o su dueño dejó de compartirla.',
   'A list by {owner} · {count} title': 'Una lista de {owner} · {count} título',
   'A list by {owner} · {count} titles': 'Una lista de {owner} · {count} títulos',
-  'Join Netflix Clone': 'Únete a Netflix Clone',
-  'Back to Netflix Clone': 'Volver a Netflix Clone',
+  'Join NetBox': 'Únete a NetBox',
+  'Back to NetBox': 'Volver a NetBox',
 
   // Title pages
   'Season {number}': 'Temporada {number}',
@@ -210,8 +210,8 @@ export default {
   '{count} more is hidden by this profile’s maturity setting.': '{count} más está oculto por la clasificación por edad de este perfil.',
   '{count} more are hidden by this profile’s maturity setting.': '{count} más están ocultos por la clasificación por edad de este perfil.',
   'No titles to show.': 'No hay títulos para mostrar.',
-  '{count} title on Netflix Clone': '{count} título en Netflix Clone',
-  '{count} titles on Netflix Clone': '{count} títulos en Netflix Clone',
+  '{count} title on NetBox': '{count} título en NetBox',
+  '{count} titles on NetBox': '{count} títulos en NetBox',
 
   // Viewing activity
   'Keep until I delete it': 'Conservar hasta que lo elimine',
@@ -236,8 +236,8 @@ export default {
   'Hide all…': 'Ocultar todo…',
 
   // Year in Review
-  'My {year} on Netflix Clone: {count} title': 'Mi {year} en Netflix Clone: {count} título',
-  'My {year} on Netflix Clone: {count} titles': 'Mi {year} en Netflix Clone: {count} títulos',
+  'My {year} on NetBox: {count} title': 'Mi {year} en NetBox: {count} título',
+  'My {year} on NetBox: {count} titles': 'Mi {year} en NetBox: {count} títulos',
   '{count} episode': '{count} episodio',
   '{count} episodes': '{count} episodios',
   'about {count} hour watched.': 'cerca de {count} hora vista.',

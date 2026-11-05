@@ -10,7 +10,7 @@ export function NotFound() {
       <div className="empty">
         <p className="big-code" aria-hidden="true">404</p>
         <p>{t('We can’t find that page. You’ll find lots to explore on the home page.')}</p>
-        <Link to="/" className="play wide">{t('Netflix Home')}</Link>
+        <Link to="/" className="play wide">{t('NetBox Home')}</Link>
       </div>
     </>
   )

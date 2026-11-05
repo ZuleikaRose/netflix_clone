@@ -103,7 +103,7 @@ export function Login() {
       {demoPassword
         ? <p className="demo-credentials">{t('Or sign in as')} <b>{demoEmail}</b> {t('with password')} <code>{demoPassword}</code> ({backend === 'supabase' ? t('your private demo account, deleted after 24 hours') : t('new on every reload')}).</p>
         : <p className="demo-credentials">{t('Creates a private demo account for you. It’s deleted automatically after 24 hours.')}</p>}
-      <p className="auth-switch">{t('New to Netflix?')} <Link to="/signup">{t('Sign up now.')}</Link></p>
+      <p className="auth-switch">{t('New to NetBox?')} <Link to="/signup">{t('Sign up now.')}</Link></p>
     </AuthShell>
   )
 }

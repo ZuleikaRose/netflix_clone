@@ -50,9 +50,9 @@ export function SharedList() {
         </div>
       )}
       {ready && !session && (
-        <p className="shared-join"><Link to="/signup" className="cta">{t('Join Netflix Clone')}</Link></p>
+        <p className="shared-join"><Link to="/signup" className="cta">{t('Join NetBox')}</Link></p>
       )}
-      {ready && session && <p><Link to="/" className="ghost-cta">{t('Back to Netflix Clone')}</Link></p>}
+      {ready && session && <p><Link to="/" className="ghost-cta">{t('Back to NetBox')}</Link></p>}
     </AuthShell>
   )
 }

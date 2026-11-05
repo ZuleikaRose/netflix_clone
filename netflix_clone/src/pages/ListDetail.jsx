@@ -120,7 +120,7 @@ export function ListDetail() {
           {confirming
             ? (
               <div className="confirm-row" role="group" aria-label={t('Delete {name}', { name: list.name })}>
-                <p>{t('Delete {name}? Its share link stops working. The titles themselves stay on Netflix Clone.', { name: list.name })}</p>
+                <p>{t('Delete {name}? Its share link stops working. The titles themselves stay on NetBox.', { name: list.name })}</p>
                 <button type="button" className="cta delete-fill" onClick={remove}>{t('Delete list')}</button>
                 <button type="button" className="ghost-cta" onClick={() => setConfirming(false)}>{t('Cancel')}</button>
               </div>

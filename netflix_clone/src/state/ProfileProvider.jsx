@@ -3,7 +3,7 @@ import { readStored, writeStored } from '../lib/supabaseConfig.js'
 import { useAuth } from './authContext.js'
 import { ProfileContext } from './profileContext.js'
 
-// Which profile is watching on this device, remembered per account (like Netflix: each device keeps its own choice).
+// Which profile is watching on this device, remembered per account (each device keeps its own choice).
 // An account with a single profile uses it without asking.
 // A locked profile (one with a PIN) opens only once its PIN was entered, until another profile is chosen; it isn't
 // remembered, so the next visit asks again. A Kids profile needs a grown-up's account password before account

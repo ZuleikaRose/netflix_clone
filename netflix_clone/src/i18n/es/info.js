@@ -135,7 +135,7 @@ export default {
   'Track referrals': 'Sigue tus referidos',
   'Use a different sub-ID per channel (e.g. ?sub=youtube) to see what works.': 'Usa un sub-ID diferente para cada canal (p. ej., ?sub=youtube) para ver qué funciona.',
   'Maximize earnings': 'Maximiza tus ganancias',
-  'Time posts around big releases in New & Hot, when interest peaks.': 'Publica alrededor de los grandes estrenos de Novedades, cuando el interés está en su punto más alto.',
+  'Time posts around big releases in New & Upcoming, when interest peaks.': 'Publica alrededor de los grandes estrenos de Novedades, cuando el interés está en su punto más alto.',
   'Program terms': 'Términos del programa',
   'Eligibility requirements': 'Requisitos de elegibilidad',
   'You must be 18 or older and hold an active membership.': 'Debes tener 18 años o más y una membresía activa.',

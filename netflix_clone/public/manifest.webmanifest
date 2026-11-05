@@ -1,6 +1,6 @@
 {
-  "name": "Netflix Clone",
-  "short_name": "Netflix Clone",
+  "name": "NetBox",
+  "short_name": "NetBox",
   "description": "Watch, list and share movies and TV shows, with games, watch parties and full accessibility settings.",
   "start_url": "/",
   "scope": "/",

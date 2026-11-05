@@ -14,8 +14,8 @@ import { useWideScreen } from '../state/useWideScreen.js'
 const navItems = [
   { to: '/', label: 'Home', icon: 'home', end: true },
   { to: '/games', label: 'Games', icon: 'games' },
-  { to: '/new', label: 'New & Hot', icon: 'new' },
-  { to: '/my-netflix', label: 'My App', icon: 'profile', also: ['/watchlist', '/favorites'] },
+  { to: '/new', label: 'New & Upcoming', icon: 'new' },
+  { to: '/my-netbox', label: 'My App', icon: 'profile', also: ['/watchlist', '/favorites'] },
 ]
 
 function NavLinks({ isTabActive }) {
@@ -63,7 +63,7 @@ export function Layout() {
               <AccessibilityButton />
               <Link to="/search" className="icon-button" aria-label={t('Search')}><Icon name="search" /></Link>
               <NotificationBell />
-              <Link to="/my-netflix" className="avatar-hit" aria-label={t('My App profile')}><ProfileAvatar profile={profile} /></Link>
+              <Link to="/my-netbox" className="avatar-hit" aria-label={t('My App profile')}><ProfileAvatar profile={profile} /></Link>
             </div>
           </header>
         )}
