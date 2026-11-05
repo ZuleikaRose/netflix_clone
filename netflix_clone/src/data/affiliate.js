@@ -38,7 +38,7 @@ export const restrictions = [
 export const tips = [
   { title: 'Drive traffic', body: 'Pair your link with honest reviews and “what to watch this weekend” lists — they convert best.' },
   { title: 'Track referrals', body: 'Use a different sub-ID per channel (e.g. ?sub=youtube) to see what works.' },
-  { title: 'Maximize earnings', body: 'Time posts around big releases in New & Hot, when interest peaks.' },
+  { title: 'Maximize earnings', body: 'Time posts around big releases in New & Upcoming, when interest peaks.' },
 ]
 
 export const marketingAssets = [

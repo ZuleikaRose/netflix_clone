@@ -44,12 +44,12 @@ function InstallCard() {
     <section className="settings-card" aria-labelledby="app-heading">
       <h2 id="app-heading">{t('App')}</h2>
       {installed
-        ? <p className="muted"><span aria-hidden="true">✓</span> {t('Netflix Clone is installed on this device. It opens from your home screen or app list, and pages you’ve visited work offline.')}</p>
+        ? <p className="muted"><span aria-hidden="true">✓</span> {t('NetBox is installed on this device. It opens from your home screen or app list, and pages you’ve visited work offline.')}</p>
         : canInstall
           ? (
             <>
-              <p className="muted">{t('Add Netflix Clone to your home screen or desktop: it opens in its own window and works offline.')}</p>
-              <button type="button" className="cta" onClick={install}>{t('Install Netflix Clone')}</button>
+              <p className="muted">{t('Add NetBox to your home screen or desktop: it opens in its own window and works offline.')}</p>
+              <button type="button" className="cta" onClick={install}>{t('Install NetBox')}</button>
               {declined && <p className="muted" role="status">{t('Not installed. You can install it any time from here.')}</p>}
             </>
           )

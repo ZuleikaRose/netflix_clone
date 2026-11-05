@@ -7,7 +7,7 @@ test.describe('authentication', () => {
     await signInAsDemo(page, '/title/the-signal')
     await expect(page).toHaveURL(/\/title\/the-signal$/)
     await expect(page.getByRole('heading', { name: 'THE SIGNAL' })).toBeVisible()
-    await expect(page).toHaveTitle('The Signal · Netflix Clone')
+    await expect(page).toHaveTitle('The Signal · NetBox')
   })
 
   test('sign-in validates input and rejects wrong credentials', async ({ page }) => {
@@ -104,7 +104,7 @@ test.describe('authentication', () => {
 
     await page.getByRole('link', { name: 'Sign In Again' }).click()
     await page.getByRole('button', { name: 'Use demo account' }).click()
-    await navigateInApp(page, '/my-netflix')
+    await navigateInApp(page, '/my-netbox')
     await expect(page.getByText('0 saved · 0 favorites · 0 rated')).toBeVisible()
 
     await page.reload()

@@ -1,4 +1,4 @@
-import { Outlet, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout.jsx'
 import { RequireAuth } from './components/RequireAuth.jsx'
 import { RequireProfile } from './components/RequireProfile.jsx'
@@ -8,7 +8,7 @@ import { Home } from './pages/Home.jsx'
 import { InfoPage } from './pages/InfoPage.jsx'
 import { Login } from './pages/Login.jsx'
 import { Logout } from './pages/Logout.jsx'
-import { MyNetflix } from './pages/MyNetflix.jsx'
+import { MyNetBox } from './pages/MyNetBox.jsx'
 import { NewHot } from './pages/NewHot.jsx'
 import { NotFound } from './pages/NotFound.jsx'
 import { Profiles } from './pages/Profiles.jsx'
@@ -68,9 +68,10 @@ function App() {
           <Route path="downloads" element={<Downloads />} />
           <Route path="party/:code" element={<WatchParty />} />
           <Route path="lists/:listId" element={<ListDetail />} />
-          <Route path="my-netflix" element={<MyNetflix />} />
-          <Route path="watchlist" element={<MyNetflix />} />
-          <Route path="favorites" element={<MyNetflix />} />
+          <Route path="my-netbox" element={<MyNetBox />} />
+          <Route path="my-netflix" element={<Navigate to="/my-netbox" replace />} />
+          <Route path="watchlist" element={<MyNetBox />} />
+          <Route path="favorites" element={<MyNetBox />} />
           <Route path="account" element={<Account />} />
           <Route path="donate" element={<Donate />} />
           <Route path="support-dashboard" element={<SupportDashboard />} />

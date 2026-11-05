@@ -1,4 +1,6 @@
-# Netflix Clone
+# NetBox
+
+> Formerly "Netflix Clone"; renamed to **NetBox** with its own name, logo and colours.
 
 [![CI](https://github.com/ZuleikaRose/netflix_clone/actions/workflows/ci.yml/badge.svg)](https://github.com/ZuleikaRose/netflix_clone/actions/workflows/ci.yml)
 

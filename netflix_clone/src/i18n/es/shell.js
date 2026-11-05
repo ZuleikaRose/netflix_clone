@@ -2,7 +2,7 @@
 export default {
   // App frame
   'You’re offline. Pages you’ve opened still work; saving and new titles wait until you reconnect.': 'No tienes conexión. Las páginas que ya abriste siguen funcionando; lo que guardes y los títulos nuevos esperarán hasta que te vuelvas a conectar.',
-  'A new version of Netflix Clone is ready.': 'Hay una nueva versión de Netflix Clone lista.',
+  'A new version of NetBox is ready.': 'Hay una nueva versión de NetBox lista.',
   'Reload': 'Recargar',
   'Legal': 'Legal',
   'Main navigation': 'Navegación principal',
@@ -143,7 +143,7 @@ export default {
   'your private demo account, deleted after 24 hours': 'tu cuenta demo privada, que se elimina después de 24 horas',
   'new on every reload': 'cambia cada vez que recargas',
   'Creates a private demo account for you. It’s deleted automatically after 24 hours.': 'Crea una cuenta demo privada para ti. Se elimina automáticamente después de 24 horas.',
-  'New to Netflix?': '¿Nuevo en Netflix?',
+  'New to NetBox?': '¿Nuevo en NetBox?',
   'Sign up now.': 'Registrarse ahora.',
 
   // Sign up
@@ -206,7 +206,7 @@ export default {
   // Not found
   'Lost Your Way?': '¿Te perdiste?',
   'We can’t find that page. You’ll find lots to explore on the home page.': 'No encontramos esa página. En la página de inicio encontrarás mucho para explorar.',
-  'Netflix Home': 'Inicio de Netflix',
+  'NetBox Home': 'Inicio de NetBox',
 
   // Notifications
   'New since you last checked,': 'Nuevas desde la última vez que revisaste,',
@@ -219,9 +219,9 @@ export default {
 
   // Account
   'App': 'App',
-  'Netflix Clone is installed on this device. It opens from your home screen or app list, and pages you’ve visited work offline.': 'Netflix Clone está instalada en este dispositivo. Se abre desde tu pantalla de inicio o tu lista de apps, y las páginas que visitaste funcionan sin conexión.',
-  'Add Netflix Clone to your home screen or desktop: it opens in its own window and works offline.': 'Agrega Netflix Clone a tu pantalla de inicio o escritorio: se abre en su propia ventana y funciona sin conexión.',
-  'Install Netflix Clone': 'Instalar Netflix Clone',
+  'NetBox is installed on this device. It opens from your home screen or app list, and pages you’ve visited work offline.': 'NetBox está instalada en este dispositivo. Se abre desde tu pantalla de inicio o tu lista de apps, y las páginas que visitaste funcionan sin conexión.',
+  'Add NetBox to your home screen or desktop: it opens in its own window and works offline.': 'Agrega NetBox a tu pantalla de inicio o escritorio: se abre en su propia ventana y funciona sin conexión.',
+  'Install NetBox': 'Instalar NetBox',
   'Not installed. You can install it any time from here.': 'No se instaló. Puedes instalarla cuando quieras desde aquí.',
   'To install: tap Share, then Add to Home Screen.': 'Para instalarla: toca Compartir y luego Agregar a pantalla de inicio.',
   'To install, use your browser’s menu: Install app, or Add to Home Screen.': 'Para instalarla, usa el menú de tu navegador: Instalar app o Agregar a pantalla de inicio.',
