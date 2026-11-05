@@ -218,5 +218,32 @@ These came after the front end was built, in this order. Skills used: PostgreSQL
     the WebKit project and its install are gone from both repos' Playwright config and CI (installing WebKit's
     system libraries is what kept hanging). Chromium (phone, desktop, tablet) and Firefox stay. The new `tmdb`
     function is deployed to dev and answers in Spanish there; production waits for the user's go-ahead.
-Still to do: custom SMTP for Auth emails, CAPTCHA on sign-up and sign-in, and deploying the Spanish-aware `tmdb`
-function (step 48).
+51. "there was a vscode crash. Please continue where you left off." Nothing was lost: both repos were clean and
+    merged. A safety hook had blocked the production `tmdb` deploy, so the user ran it; production then answered
+    The Matrix in Spanish ("Matrix", a Spanish synopsis), with genre names in English as designed.
+52. "Please update and edit new table and columns on the drawsql.png and update the schema.sql file too ... update
+    supabase ... Then update the README.md": asked which table and columns, the answer was none. `schema.sql`,
+    `drawsql.png` and both Supabase projects already matched (34 public tables plus `private.profile_pins`, all 29
+    migrations), so none changed. CLAUDE.md, the README and these records now say the Spanish `tmdb` is live.
+53. "What's the next features to add? Can you clean up code and features?" A survey found lint and the translation check
+    clean, no TODOs or stray logs, two unused exports and three large files; ideas offered included the next two.
+54. "add these two features then commit and push: Spanish genre names coming straight from TMDB. Offline-ready Spanish
+    captions for all clips." (1) In Spanish, the `tmdb` function adds `genreLabels`, TMDB's es-MX genre names, next
+    to the English `genres` Search matches on; title pages and the featured carousel show them (the app's dictionary
+    had no "Science Fiction", so it stayed English). (2) Every download already saved Spanish captions; but a download
+    from before audio description lacked its tracks, so `completeDownloads()` now fetches whatever tracks a download is
+    missing whenever the app opens online. Covered by `tmdb.spec.js` and `pwa.spec.js`. Netflix_clone PR #34,
+    front-end PR #12.
+55. "deploy to dev then deploy to production": dev was deployed and answered The Matrix with `genreLabels` ['Acción',
+    'Ciencia ficción']. The safety hook blocked the production deploy (it asks for a dry run, which
+    `supabase functions deploy` doesn't have), so the user ran it; production then answered the same, lists included.
+56. "please delete the eagle_platoon_dev database in supabase. going forward we will push to production." The
+    Supabase MCP can't delete a project and the permission check blocked the CLI's delete, so the user deleted
+    eagle_platoon_dev (`cfcbhwwpslgxjpijdnfy`) themselves; it held only test data. Then "update ... the drawsql.png and
+    schema.sql ... the docs and policies ... update supabase ... README.md": production, `schema.sql` and `drawsql.png`
+    already matched (34 public tables, all 29 migrations), and the user chose no schema change, so the diagram,
+    migrations and Supabase stayed as they were. The working rules now say production is the only project: a change
+    reaches it once the pull request's CI `database` job (migrations plus pgTAP on a local Supabase) passes. The
+    Supabase e2e specs that used dev are retired: they skip without `.env.development.local` and must not point at
+    production. `user_journey.md` and `style_guide.md` don't mention the projects, so they didn't change.
+Still to do: custom SMTP for Auth emails, and CAPTCHA on sign-up and sign-in.

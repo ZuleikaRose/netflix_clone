@@ -56,6 +56,8 @@
 -- - ..._monthly_donations: new table monthly_donations (a Stripe subscription per member, started and cancelled by
 --   the monthly-donation function, kept in step by stripe-webhook); donations gains monthly_donation_id.
 -- - ..._interface_language: accessibility_settings gains language ('en' or 'es'), the interface language.
+-- 2026-10-31: the development project (eagle_platoon_dev) was deleted; "the live Supabase database" is production
+--   (eagle_platoon), which this file matches (34 public tables). No table or column changed.
 
 CREATE SEQUENCE ticket_number_seq START 48400;
 

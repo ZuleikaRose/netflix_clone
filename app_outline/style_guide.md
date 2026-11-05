@@ -74,7 +74,7 @@ together.
   under Stream, Rent and Buy, with a muted "Availability from JustWatch" credit; More Like This sits below.
 * **Hero carousel:** a full-bleed 610px featured title with a dark gradient, centered title and actions, arrow
   buttons and dots. It never auto-advances. It features TMDB's five most popular movies and shows (sharp w780
-  posters, "FILM · TMDB" eyebrow, genres, a white **More Info** button instead of Play, then My List), or the catalog's
+  posters, "FILM · TMDB" eyebrow, genres (TMDB's own Spanish names in Spanish), a white **More Info** button instead of Play, then My List), or the catalog's
   most popular titles without TMDB.
 * **Chips and tabs:** pill chips for filters (active = white border on `#343434`); underlined tabs for sections.
 * **Banners:** a green status banner on Support (service is up) and a gold maintenance banner on Home, which the
@@ -124,7 +124,8 @@ together.
   "Time's up for today", **Ask a grown-up** (white) and **Close**; the password form opens in place.
 * **Downloads:** a full-width outlined "Download to watch offline" button under a title's actions; once saved, a muted
   "✓ Downloaded (2.3 MB) · plays offline" line and **Remove download**. The Downloads page lists them like signed-in
-  devices (title, type and size, Remove).
+  devices (title, type and size, Remove). Spanish captions and audio description come with every download, so the
+  caption language works offline with no extra choice to make.
 * **Report a review:** a small grey underlined "Report" under each review by someone else; it opens an outlined box with
   the reasons as pill radio choices, an optional note, an accent **Send report** and Cancel. Afterwards a muted
   "Reported" line replaces it. On the support dashboard each reported review shows its text as a quote with a grey left

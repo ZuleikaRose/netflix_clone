@@ -36,6 +36,10 @@ export async function fetchTmdbLists(language) {
   return Object.fromEntries(Object.entries(data).map(([name, titles]) => [name, titles.map(withPath)]))
 }
 
+// The genre names to show: TMDB's Spanish ones when the function sent them (Spanish answers), else the English
+// `genres` through the app's dictionary (English answers, and TMDB titles saved in the database)
+export const genreLabels = (title, translate) => title.genreLabels ?? title.genres.map((g) => translate(g))
+
 // Every title in TMDB's lists, once each, without Coming Soon (not out yet): Search's list with no query, Surprise me
 export const listedTitles = (lists) => [...new Map(Object.entries(lists).filter(([name]) => name !== 'upcomingMovies')
   .flatMap(([, titles]) => titles).map((t) => [t.id, t])).values()]
