@@ -1,5 +1,7 @@
 # NetBox
 
+**Live:** [front-end-sepia-rho.vercel.app](https://front-end-sepia-rho.vercel.app), deployed from [netflix_clone_front_end](https://github.com/ZuleikaRose/netflix_clone_front_end).
+
 A mobile-first streaming app built with React 19, Vite and React Router (`BrowserRouter`) on Supabase. It was built in phases from the wireframes, user journey and style guide in `../app_outline`, then connected to Supabase (catalog from the REST API, Supabase Auth, member data in Postgres; see `../supabase`). Real trending, popular and searchable movies and TV shows come from [TMDB](https://www.themoviedb.org) through the `tmdb` Edge Function, which keeps the TMDB key on the server.
 
 **You stay signed in after a refresh**: with Supabase the session is kept in the browser (`localStorage`) until you sign out, and your list, ratings, reviews and settings load back from the database. The app talks to Supabase through its REST APIs (Data API `/rest/v1`, Auth `/auth/v1`, Edge Functions `/functions/v1`) via `supabase-js`. Without Supabase configured the app falls back to the built-in catalog and in-memory accounts, and a refresh resets everything.

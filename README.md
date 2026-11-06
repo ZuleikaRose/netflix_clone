@@ -2,6 +2,8 @@
 
 > Formerly "Netflix Clone"; renamed to **NetBox** with its own name, logo and colours.
 
+**Live:** [front-end-sepia-rho.vercel.app](https://front-end-sepia-rho.vercel.app), deployed from [netflix_clone_front_end](https://github.com/ZuleikaRose/netflix_clone_front_end).
+
 [![CI](https://github.com/ZuleikaRose/netflix_clone/actions/workflows/ci.yml/badge.svg)](https://github.com/ZuleikaRose/netflix_clone/actions/workflows/ci.yml)
 
 A mobile-first video streaming app inspired by Netflix, built with **React 19**, **Vite 8** and **React Router 7** on
